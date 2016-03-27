@@ -32,6 +32,7 @@ Player.prototype.move = function (move) {
     this.y = move.y;
     this.cxt.fill();
     this.cxt.closePath();
+
 };
 Player.prototype.aboutMe = function () {
     return "I'm " + this.name;
@@ -85,43 +86,72 @@ var move = {
     dragging:false,
     stopGoing: function () { clearInterval(move.timer); move.timer = false; move.going = false; },
     goTowards: function () {
-        
+
     }
 };
 //move.keepGoing = ;
-
 function inits() {
     player1 = new Player("p1", cxt);
-    console.log(player1);
+    //console.log(player1);
     //setupPlayer(player1, move, player1.cxt);
-    /*
-     var startCrl = parseInt(40+Math.random()*100-40);
-     for (var i=0;i<startCrl; i++){
-     var crlX = parseInt(40+Math.random()*canvas.width-40);
-     var crlY= parseInt(40+Math.random()*canvas.height-40);
-     var dot = {
-     x: crlX,
-     y: crlY,
-     rad:5,//parseInt(minRad+Math.random()*10-minRad),
-     color:"#"+((1<<24)*Math.random()|0).toString(16)};
-
-     //console.log(dots[0]);
-     cxt.fillStyle = dot.color;//'#8ED6FF';
-     cxt.beginPath();
-     cxt.arc(dot.x, dot.y, dot.rad, 0, Math.PI*2, true);
-     cxt.fill();
-     cxt.closePath();
-     dots.push(dot);
-     if (dots.length < 20) {
-     i--;
-     continue;
-     }
-     // console.log(dot);
-     // exit;
-     }
-     */
+    addFood();
+    refreshDots(dots);
 //console.log(dots);
 }
+function addFood() {
+  //num = num?num:1;
+  var bites =  20;
+   var startCrl = 0;parseInt(bites+Math.random()*bites);
+   startCrl = startCrl?startCrl:2;
+   console.log(bites, startCrl);
+   for (var i=0;i<startCrl; i++) {
+     var crlX = parseInt(bites+Math.random()*canvas.width-bites);
+     var crlY= parseInt(bites+Math.random()*canvas.height-bites);
+     var dot = {
+         x: crlX,
+         y: crlY,
+         rad:5,//parseInt(minRad+Math.random()*10-minRad),
+         color:"#"+((1<<24)*Math.random()|0).toString(16)
+     };
+
+         //console.log(dots[0]);
+         /*
+         cxt.fillStyle = dot.color;//'#8ED6FF';
+         cxt.beginPath();
+         cxt.arc(dot.x, dot.y, dot.rad, 0, Math.PI*2, true);
+         cxt.fill();
+         cxt.closePath();
+         */
+         
+         dots.push(dot);
+         /*
+         if (dots.length < 20) {
+         i--;
+         continue;
+         }
+         */
+         // console.log(dot);
+         // exit;
+   }
+   //refreshDots(dots);
+}
+
+function refreshDots(dots)
+{
+    console.log(dots);
+    for(var i=0;i<dots.length; i++) {
+console.log(dot);
+      var dot=dots[i];
+      //console.log(dot);
+        cxt.fillStyle = dot.color;
+         cxt.beginPath();
+         cxt.arc(dot.x, dot.y, dot.rad, 0, Math.PI*2, true);
+         cxt.fill();
+         cxt.closePath();
+        //dots.push(dot);
+    }
+}
+
 
 document.addEventListener('keydown',
         function (evt) {
@@ -222,9 +252,10 @@ function onTimerTick() {
     var gotoy = player1.y + (move.mouseY - player1.y) * move.ease;//- player1.y)/2;
     //gotox = (gotox > move.maxX)? move.maxX: (gotox < 0)? 10: gotox;
     //gotoy = (gotoy > move.maxY)? move.maxY: (gotoy < 0)? 10: gotoy;
-console.log('>>>>>>>>>', gotox, gotoy);  
-//, math.abs(player1.y - move.mouseY) );  
+console.log('>>>>>>>>>', gotox, gotoy);
+//, math.abs(player1.y - move.mouseY) );
     move.gotoStep(gotox, gotoy);
+    refreshDots(dots);
     player1.move(move);
 
 
@@ -243,4 +274,9 @@ function hitTest(shape, mx, my) {
     var dy = my - shape.y;
     console.log(dx, '---', dy,'---', shape.rad);
     return (dx * dx + dy * dy < shape.rad * shape.rad);
+}
+
+function collisionTest(obj, objc)
+{
+
 }
