@@ -9,18 +9,25 @@ var mouseX;
 var mouseY;
 var player1;
 
+var settings = {
+    fps:30,
+    speed:2,
+    ease:0.1,
+    rad:10,
+};
+
 function Player(name, cxt) {
     this.name = name;
     this.cxt = cxt;
     this.x = 100;
     this.y = 100;
-    this.rad = 8;
+    this.rad = settings.rad;
     this.color = "#" + ((1 << 24) * Math.random() | 0).toString(16)
     this.move(move);
 }
 Player.prototype.move = function (move) {
     this.cxt.beginPath();
-    this.cxt.arc(move.x, move.y, 5, 0, Math.PI * 2, true);
+    this.cxt.arc(move.x, move.y, settings.rad, 0, Math.PI * 2, true);
     this.x = move.x;
     this.y = move.y;
     this.cxt.fill();
@@ -33,11 +40,9 @@ Player.prototype.aboutMe = function () {
 function setupPlayer(player, move, cxt) {
     console.log(move, cxt);
     cxt.beginPath();
-    cxt.arc(move.x, move.y, 5, 0, Math.PI * 2, true);
+    cxt.arc(move.x, move.y, settings.rad, 0, Math.PI * 2, true);
     cxt.fill();
     cxt.closePath();
-    //clearInterval(move.timer);
-    //alert("setupPlayer!");
 }
 
 CanvasRenderingContext2D.prototype.clear =
@@ -51,24 +56,18 @@ var minRad = 10;
 var move = {
     maxY: canvas.height - (minRad / 2),
     maxX: canvas.width - (minRad / 2),
-    speed: 2,
+    minY: 10,
+    minX: 10,
+    speed: settings.speed,
     x: 100,
     y: 100,
-    up: function () { if (this.y - this.speed >= 5) { this.y -= this.speed; this.going = this.up;}},
-    down: function () { if (this.y + this.speed <= this.maxY) { this.y += this.speed;  this.going = this.down;}},
-    left: function () { if (this.x - this.speed >= 5) { this.x -= this.speed;  this.going = this.left;}},
-    right: function () {
-        if (this.x + this.speed <= this.maxX) {
-            this.x += this.speed;
-            this.going = this.right;
-        }
-    },
-    keepGoing: function () { 
-    /*    console.log(typeof this.going, this.going); 
-        move.right(); 
-        cxt.clear(); 
-        player1.move(move);
-        */
+    up: function () { if (this.y - this.speed >= this.minY) { this.y -= this.speed; this.going = this.up;} else { this.going = false; } },
+    down: function () { if (this.y + this.speed <= this.maxY) { this.y += this.speed; this.going = this.down;} else { this.going = false; } },
+    left: function () { if (this.x - this.speed >= this.minX) { this.x -= this.speed; this.going = this.left;} else { this.going = false; } },
+    right: function () { if (this.x + this.speed <= this.maxX) { this.x += this.speed; this.going = this.right;} else { this.going = false; } },
+    keepGoing: function () {if (move.going) {
+        console.log(typeof move.going, move.going);
+        move.going(); cxt.clear(); player1.move(move); } else { move.stopGoing(); }
     },
     going: false,
     goto: function (newX, newY) { this.x = newX || this.mouseX; this.y = newY || this.mouseY; },
@@ -81,20 +80,16 @@ var move = {
         return {mouseX: this.mouseX, mouseY: this.mouseX};
     },
     timer: false,
-    ease: .2, //0 to 1
-    gotoStep: function (stepX, stepY) {
-        this.x = stepX;
-        this.y = stepY;
-    },
-    dragging:false
+    ease: settings.ease, //0 to 1
+    gotoStep: function (stepX, stepY) { this.x = stepX; this.y = stepY; },
+    dragging:false,
+    stopGoing: function () { clearInterval(move.timer); move.timer = false; move.going = false; },
+    goTowards: function () {
+        
+    }
 };
-function keepGoing() {
-        console.log(typeof move.going, move.going); 
-        move.going(); 
-        cxt.clear(); 
-        player1.move(move);
-}
-move.keepGoing = keepGoing
+//move.keepGoing = ;
+
 function inits() {
     player1 = new Player("p1", cxt);
     console.log(player1);
@@ -148,9 +143,7 @@ function doKeyDown(evt) {
     }
 
     if(move.timer && move.going != this.going) {
-        clearInterval(move.timer);
-        move.timer = false;
-        move.going = false;
+        move.stopGoing();
         this.going = false;
     } else if (move.going && move.going != this.going) {
         this.going = move.going;
@@ -206,6 +199,18 @@ function doMouseMove(evt) {
 
     //clearInterval(move.timer);
     console.log(move);
+}
+
+canvas.addEventListener("click", doMouseClick, false);
+function doMouseClick(evt) {
+console.log('clickingggggggggggg..........', evt);
+    move.getMouseXY(evt);
+    move.goto(move.mouseX, move.mouseY);
+
+    if (!move.timer) {
+        move.timer = setInterval(onTimerTick, 1000/30);
+            console.log(move.timer,'---',move.dragging ,'sssssssssssssssssssssssssssssssssssssss');
+    }
 }
 
 function onTimerTick() {
