@@ -27,25 +27,22 @@ function Player(name, cxt) {
 }
 Player.prototype.move = function (move) {
     this.cxt.beginPath();
+    this.cxt.fillStyle = this.color;
     this.cxt.arc(move.x, move.y, settings.rad, 0, Math.PI * 2, true);
     this.x = move.x;
     this.y = move.y;
     this.cxt.fill();
     this.cxt.closePath();
-
-};
-Player.prototype.aboutMe = function () {
-    return "I'm " + this.name;
 }
-
+/*
 function setupPlayer(player, move, cxt) {
     console.log(move, cxt);
     cxt.beginPath();
     cxt.arc(move.x, move.y, settings.rad, 0, Math.PI * 2, true);
-    cxt.fill();
+    //cxt.fill();
     cxt.closePath();
 }
-
+*/
 CanvasRenderingContext2D.prototype.clear =
         CanvasRenderingContext2D.prototype.clear || function () {
             this.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -60,17 +57,26 @@ var move = {
     minY: 10,
     minX: 10,
     speed: settings.speed,
+    timer: false,
+    going: false,
+    dragging:false,
     x: 100,
     y: 100,
     up: function () { if (this.y - this.speed >= this.minY) { this.y -= this.speed; this.going = this.up;} else { this.going = false; } },
     down: function () { if (this.y + this.speed <= this.maxY) { this.y += this.speed; this.going = this.down;} else { this.going = false; } },
     left: function () { if (this.x - this.speed >= this.minX) { this.x -= this.speed; this.going = this.left;} else { this.going = false; } },
     right: function () { if (this.x + this.speed <= this.maxX) { this.x += this.speed; this.going = this.right;} else { this.going = false; } },
-    keepGoing: function () {if (move.going) {
-        console.log(typeof move.going, move.going);
-        move.going(); cxt.clear(); player1.move(move); } else { move.stopGoing(); }
+    keepGoing: function () {
+        if (move.going) {
+            console.log(typeof move.going, move.going);
+            move.going();
+            cxt.clear();
+            refreshDots(dots);
+            player1.move(move); 
+        } else {
+            move.stopGoing();
+        }
     },
-    going: false,
     goto: function (newX, newY) { this.x = newX || this.mouseX; this.y = newY || this.mouseY; },
     mouseX: 0,
     mouseY: 0,
@@ -80,10 +86,8 @@ var move = {
         this.mouseY = (evt.clientY - bRect.top) * (canvas.height / bRect.height);
         return {mouseX: this.mouseX, mouseY: this.mouseX};
     },
-    timer: false,
     ease: settings.ease, //0 to 1
     gotoStep: function (stepX, stepY) { this.x = stepX; this.y = stepY; },
-    dragging:false,
     stopGoing: function () { clearInterval(move.timer); move.timer = false; move.going = false; },
     goTowards: function () {
 
@@ -91,17 +95,18 @@ var move = {
 };
 //move.keepGoing = ;
 function inits() {
-    player1 = new Player("p1", cxt);
+    
     //console.log(player1);
     //setupPlayer(player1, move, player1.cxt);
     addFood();
     refreshDots(dots);
+    player1 = new Player("p1", cxt);
 //console.log(dots);
 }
 function addFood() {
   //num = num?num:1;
   var bites =  20;
-   var startCrl = 0;parseInt(bites+Math.random()*bites);
+   var startCrl = 0;//parseInt(bites+Math.random()*bites);
    startCrl = startCrl?startCrl:2;
    console.log(bites, startCrl);
    for (var i=0;i<startCrl; i++) {
@@ -140,28 +145,25 @@ function refreshDots(dots)
 {
     console.log(dots);
     for(var i=0;i<dots.length; i++) {
-console.log(dot);
       var dot=dots[i];
-      //console.log(dot);
         cxt.fillStyle = dot.color;
          cxt.beginPath();
          cxt.arc(dot.x, dot.y, dot.rad, 0, Math.PI*2, true);
          cxt.fill();
          cxt.closePath();
-        //dots.push(dot);
     }
 }
 
 
-document.addEventListener('keydown',
-        function (evt) {
-            doKeyDown(evt);
-            console.log(move, cxt, move.x, move.y);
-            cxt.clear();
-            player1.move(move);
+document.addEventListener('keydown', function (evt) {
+        doKeyDown(evt);
+        console.log(move, cxt, move.x, move.y);
+        //cxt.clear();
+    //refreshDots(dots);
+    //player1.move(move);
+
             //setupPlayer(move, cxt);
-        },
-        true);
+}, true);
 
 function doKeyDown(evt) {
 
@@ -184,8 +186,8 @@ function doKeyDown(evt) {
 
 canvas.addEventListener("mousedown", doMouseDown, false);
 function doMouseDown(evt) {
-    console.log('down');
-    console.log(move.getMouseXY(evt));
+    //console.log('down');
+    //console.log(move.getMouseXY(evt));
     //get mouse position
 
 
@@ -275,8 +277,16 @@ function hitTest(shape, mx, my) {
     console.log(dx, '---', dy,'---', shape.rad);
     return (dx * dx + dy * dy < shape.rad * shape.rad);
 }
-
-function collisionTest(obj, objc)
+// object player  player object which we want to check if its touching the any of the given objects
+// array objects array of object that could collide with player
+function collisionTest(player, objects)
 {
+    for (var i=0;i<objects.length;i++) {
+        object = objects[i];
 
+        var dx = palyer.x - object.x;
+        var dy = palyer.y - object.y;
+
+        
+    }
 }
