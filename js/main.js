@@ -13,7 +13,7 @@ var settings = {
     fps:30,
     speed:2,
     ease:0.1,
-    rad:10,
+    rad:20,
 };
 
 function Player(name, cxt) {
@@ -23,12 +23,13 @@ function Player(name, cxt) {
     this.y = 100;
     this.rad = settings.rad;
     this.color = "#" + ((1 << 24) * Math.random() | 0).toString(16)
+    this.originalColor = this.color;
     this.move(move);
 }
 Player.prototype.move = function (move) {
     this.cxt.beginPath();
     this.cxt.fillStyle = this.color;
-    this.cxt.arc(move.x, move.y, settings.rad, 0, Math.PI * 2, true);
+    this.cxt.arc(move.x, move.y, this.rad, 0, Math.PI * 2, true);
     this.x = move.x;
     this.y = move.y;
     this.cxt.fill();
@@ -72,7 +73,7 @@ var move = {
             move.going();
             cxt.clear();
             refreshDots(dots);
-            player1.move(move); 
+            player1.move(move);
         } else {
             move.stopGoing();
         }
@@ -95,7 +96,7 @@ var move = {
 };
 //move.keepGoing = ;
 function inits() {
-    
+
     //console.log(player1);
     //setupPlayer(player1, move, player1.cxt);
     addFood();
@@ -104,9 +105,10 @@ function inits() {
 //console.log(dots);
 }
 function addFood() {
+
   //num = num?num:1;
-  var bites =  20;
-   var startCrl = 0;//parseInt(bites+Math.random()*bites);
+  var bites =  2;
+   var startCrl = parseInt(bites+Math.random()*bites);
    startCrl = startCrl?startCrl:2;
    console.log(bites, startCrl);
    for (var i=0;i<startCrl; i++) {
@@ -115,7 +117,7 @@ function addFood() {
      var dot = {
          x: crlX,
          y: crlY,
-         rad:5,//parseInt(minRad+Math.random()*10-minRad),
+         rad:parseInt(minRad+Math.random()*10-minRad),
          color:"#"+((1<<24)*Math.random()|0).toString(16)
      };
 
@@ -127,7 +129,7 @@ function addFood() {
          cxt.fill();
          cxt.closePath();
          */
-         
+
          dots.push(dot);
          /*
          if (dots.length < 20) {
@@ -143,7 +145,7 @@ function addFood() {
 
 function refreshDots(dots)
 {
-    console.log(dots);
+//    console.log(dots);
     for(var i=0;i<dots.length; i++) {
       var dot=dots[i];
         cxt.fillStyle = dot.color;
@@ -157,7 +159,7 @@ function refreshDots(dots)
 
 document.addEventListener('keydown', function (evt) {
         doKeyDown(evt);
-        console.log(move, cxt, move.x, move.y);
+//        console.log(move, cxt, move.x, move.y);
         //cxt.clear();
     //refreshDots(dots);
     //player1.move(move);
@@ -169,7 +171,7 @@ function doKeyDown(evt) {
 
     switch (evt.keyCode) {
         case 38: move.up(); evt.preventDefault(); break;  /* Up */
-        case 40: move.down(); evt.preventDefault(); break;  /* Down */
+        case 40: move.  down(); evt.preventDefault(); break;  /* Down */
         case 37: move.left(); evt.preventDefault(); break;  /* Left */
         case 39: move.right(); evt.preventDefault(); break;  /* Right */
     }
@@ -226,7 +228,7 @@ function doMouseMove(evt) {
     //move dot 30 fps...
     if (!move.timer) {
         move.timer = setInterval(onTimerTick, 1000/30);
-            console.log(move.timer,'---',move.dragging ,'sssssssssssssssssssssssssssssssssssssss');
+ //           console.log(move.timer,'---',move.dragging ,'sssssssssssssssssssssssssssssssssssssss');
     }
 
     //clearInterval(move.timer);
@@ -241,12 +243,13 @@ console.log('clickingggggggggggg..........', evt);
 
     if (!move.timer) {
         move.timer = setInterval(onTimerTick, 1000/30);
-            console.log(move.timer,'---',move.dragging ,'sssssssssssssssssssssssssssssssssssssss');
+//            console.log(move.timer,'---',move.dragging ,'sssssssssssssssssssssssssssssssssssssss');
     }
 }
 
 function onTimerTick() {
     console.log('ticking...........................................................', move.timer);
+        collisionTest(player1, dots); 
     cxt.clear();
     //move.ease*
     //console.log(player1.x+ move.ease*(player1.x - move.mouseX), player1.y + move.ease*(player1.x - move.mouseY));
@@ -254,20 +257,22 @@ function onTimerTick() {
     var gotoy = player1.y + (move.mouseY - player1.y) * move.ease;//- player1.y)/2;
     //gotox = (gotox > move.maxX)? move.maxX: (gotox < 0)? 10: gotox;
     //gotoy = (gotoy > move.maxY)? move.maxY: (gotoy < 0)? 10: gotoy;
-console.log('>>>>>>>>>', gotox, gotoy);
+//console.log('>>>>>>>>>', gotox, gotoy);
 //, math.abs(player1.y - move.mouseY) );
     move.gotoStep(gotox, gotoy);
     refreshDots(dots);
+
     player1.move(move);
 
 
-console.log('-->->->->->->->->->', gotox,  move.x , player1.x, '---', move.dragging, '---', Math.abs(player1.x - move.mouseX) , '---', Math.abs(player1.y - move.mouseY));
+//console.log('-->->->->->->->->->', gotox,  move.x , player1.x, '---', move.dragging, '---', Math.abs(player1.x - move.mouseX) , '---', Math.abs(player1.y - move.mouseY));
     if (!move.dragging && Math.abs(player1.x - move.mouseX) <= 0.1 && Math.abs(player1.y - move.mouseY) <= 0.1) {
         clearInterval(move.timer);
         move.timer = false;
         console.log(move.timer, 'stopppppedddddddddd');
     }else{
-        console.log(move.timer, 'noooooooooooooooooooooooooo');
+        console.log(move.timer, 'noooooooooooooooooooooooooo'+dots.length);
+        console.log(dots);
     }
 }
 
@@ -281,12 +286,30 @@ function hitTest(shape, mx, my) {
 // array objects array of object that could collide with player
 function collisionTest(player, objects)
 {
+    var touching = false;
+    var depth = 0;
     for (var i=0;i<objects.length;i++) {
         object = objects[i];
 
-        var dx = palyer.x - object.x;
-        var dy = palyer.y - object.y;
-
-        
+        var dx = player.x - object.x;
+        var dy = player.y - object.y;
+        depth = player.rad + object.rad - Math.sqrt(dx*dx + dy*dy);
+        if (depth > 0) {
+            touching = true;
+        }
+        if (depth > 5) {
+            player.rad = player.rad + object.rad/10;
+            dots.splice(i, 1); 
+            if (dots.length == 0) { // if there are no dots left add some more  
+                addFood();
+                refreshDots(dots);
+                console.log('addddddingggggggggg moreeeeeeeeeeeeeeeeeeeeeeeee');
+            }
+        }
+    }
+    if (touching) {
+        player.color = "#ff0000";
+    } else {
+        player.color = player.originalColor;
     }
 }
