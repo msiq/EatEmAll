@@ -8,41 +8,49 @@
     var cxt;
     var dots = [];
     var socket = io.connect();
+    var connected = true;
 
+    var settings = {
+        canvas:
+            {
+                height: 0,
+                width: 0
+            }
+    }
 
-    var move = {
-        x: 0,
-        y: 0,
+//     var move = {
+//         x: 0,
+//         y: 0,
 
-        speed: 10,
+//         speed: 10,
 
-//        going: false,
+// //        going: false,
 
-        up: function () {
-            this.y-=1*this.speed;
-//            this.going = this.up;
-        },
-        down: function () {
-            this.y+=1*this.speed;
-//            this.going = this.down;
-        },
-        left: function () {
-            this.x-=1*this.speed;
-//            this.going = this.left;
-        },
-        right: function () {
-            this.x+=1*this.speed;
-//            this.going = this.right;
-        },
-    };
+//         up: function () {
+//             this.y-=1*this.speed;
+// //            this.going = this.up;
+//         },
+//         down: function () {
+//             this.y+=1*this.speed;
+// //            this.going = this.down;
+//         },
+//         left: function () {
+//             this.x-=1*this.speed;
+// //            this.going = this.left;
+//         },
+//         right: function () {
+//             this.x+=1*this.speed;
+// //            this.going = this.right;
+//         },
+//     };
 
 
 
     document.getElementById('login-form').addEventListener('submit', function(event) {
         event.preventDefault();
-        userName = event.target.querySelector('.userName').value;
-        // alert('yeahhh'+ userName);
-        if (connectToServer(userName)) {
+        connected = connectToServer(event.target.querySelector('.userName').value);
+
+        if (connected) {
             var loginSplash = document.getElementById('login-splash');
             loginSplash.remove();
         }
@@ -50,27 +58,52 @@
 
     function connectToServer(userName) {
 
-        socket.emit('letmeeat', {userName:userName});
+        socket.emit('letmeeat', requestToJoinEating(userName));
 
-        socket.on('okeat', function (data) {
-            console.log('this data',data);
-            players = data['players'];
-            id = data['id'];
-            player = players[id];
-            
-            move.x = player.x;
-            move.y = player.y;
-            move.rad = player.rad;
+        socket.on('okeat', eatingRequestSuccess);
 
-            dots = data.dots;
-            initiGame();
-        });
-        return true;
+        socket.on('goaway', eatingRequestFail);
+
+        return connected;
     }
 
-    // new player is entered game, we need to spwn it now
+    function requestToJoinEating(userName) {
+        return {userName: userName};
+    }
+
+    function eatingRequestSuccess(response) {   
+        id = response['id'];
+        player = response['players'][id];
+console.log(response);
+        move.x = player.x;
+        move.y = player.y;
+        move.rad = player.rad;
+        dots = response.dots;
+
+        settings.canvas.height = response.settings.height;
+        settings.canvas,width = response.settings.width;
+        initiGame();
+
+        connected = true;
+    }
+
+    // something is wrong you cant eat now
+    // show error message and ask to try again
+    function eatingRequestFail(response) {
+        // var errorElement = document.getElementById('no-one-loves-you');
+        // errorElement.classList.remove('hide-it');
+        // errorElement.classList.remove('show-it');
+
+        // var loginSplash = document.getElementById('login-splash');
+        // loginSplash.classList.remove('hide-it');
+        // loginSplash.classList.remove('show-it');
+
+        connected = false;
+    }
+
+    // new player is entered game, we need to spawn it now
     socket.on('playerJoined', function (newplayer) {
-        console.log( newplayer);
+//        console.log( newplayer);
         // spawnPlayer(newPlayer.player);
             players[newplayer.player.id] = newplayer.player;
         // newPlayers = newPlayers.players;
@@ -86,9 +119,9 @@
 
     // new player is entered game, we need to spwn it now
     socket.on('playerLeft', function (remainingPlayers) {
-console.log(Object.keys(remainingPlayers).length);
+//console.log(Object.keys(remainingPlayers).length);
         players = remainingPlayers.players;
-console.log(Object.keys(players).length);
+//console.log(Object.keys(players).length);
         showPlayers();
     });
 
@@ -97,23 +130,23 @@ console.log(Object.keys(players).length);
         canvas = document.getElementById('canvas');
         cxt = canvas.getContext('2d');
 
-        console.log('yeah');
+//        console.log('yeah');
         showPlayers();
         // spawnPlayer(player);
         refreshDots(dots);
-         setInterval(startGame , 1000);
+         setInterval(startGame , 1000/100);
     }
 
     function startGame() {
         // window.requestAnimationFrame(function () {
         // setInterval()
-console.log(Object.keys(players).length);
+//console.log(Object.keys(players).length);
             cxt.clear();
             refreshDots(dots);
             showPlayers();
         // });
 
-        updateServer();
+        doTick();
     }
 
 function spawnPlayer(player) {
@@ -134,11 +167,7 @@ function showPlayers() {
 // console.log(Object.keys(players).length);
     for (plyr in players) {
         plyr = players[plyr];
- console.log(plyr);
-
-//        plyr.x = move.x;
-//        plyr.y = move.y;
-//        plyr.rad = move.rad;
+ // console.log(plyr);
 
         cxt.beginPath();
         cxt.fillStyle = plyr.color;
@@ -187,7 +216,14 @@ CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.cl
 
 
 
+function doTick() {
+    socket.emit('tick', {players:players, dots:dots});
+}
 
+socket.on('tack', function (update) {
+    players = update.players;
+    dots = update.dots;
+});
 
 
 
@@ -200,29 +236,74 @@ document.addEventListener('keydown', function (evt) {
 }, true);
 
 function doKeyDown(evt) {
-
+    
+    var action = false;
     // which key?
     switch (evt.keyCode) {
-        case 38: move.up(); evt.preventDefault(); break;  /* Up */
-        case 40: move.down(); evt.preventDefault(); break;  /* Down */
-        case 37: move.left(); evt.preventDefault(); break;  /* Left */
-        case 39: move.right(); evt.preventDefault(); break;  /* Right */
+        case 38: /* Up */ 
+            action = 'up';
+            // move.up(); 
+            break;  
+        case 40: /* Down */
+            action = 'down';
+            // move.down(); 
+            break;  
+        case 37: /* Left */
+            action = 'left';
+            // move.left();
+            break;  
+        case 39: /* Right */
+            action = 'right';
+            // move.right();
+            break;  
         default: //haha;
     }
-console.log(player);
-    player.x = move.x;
-    player.y = move.y;
-    player.rad = move.rad;
-    players[player.id] = player;
+
+    if (action) {
+        evt.preventDefault();
+        socket.emit('action', {playerId:player.id, action:action});        
+    }
+
+
+
+// console.log(player);
+    // player.x = move.x;
+    // player.y = move.y;
+    // player.rad = move.rad;
+    // players[player.id] = player;
 }
 
-function updateServer() {
-console.log('------------------hhhhhhhhhhhhhhhhhh--------------------------------------');
-    socket.emit('tick', {players:players, dots:dots});
-}
- socket.on('tick', function (update) {
-    console.log(update,'---------------jjjjjjjjjjjjjjjjjjjjjj-----------------------------------------');
-     players = update.players;
-     dots = update.dots;
- });
- 
+// socket.on('tack', function (update) {
+//     players = update.players;
+//     dots = update.dots;
+// });
+
+// var move = {
+//     x: 0,
+//     y: 0,
+
+//     speed: 10,
+
+// //        going: false,
+
+//     up: function () {
+//         socket.emit('tick', {player:player.id, action:'up'});
+//         // this.y-=1*this.speed;
+// //            this.going = this.up;
+//     },
+//     down: function () {
+//         socket.emit('tick', {players:players, action:'up'});
+//         // this.y+=1*this.speed;
+// //            this.going = this.down;
+//     },
+//     left: function () {
+//         socket.emit('tick', {players:players, dots:dots});
+//         // this.x-=1*this.speed;
+// //            this.going = this.left;
+//     },
+//     right: function () {
+//         socket.emit('tick', {players:players, dots:dots});
+//         // this.x+=1*this.speed;
+// //            this.going = this.right;
+//     },
+// };
