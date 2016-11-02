@@ -7,8 +7,8 @@
     var canvas;
     var cxt;
     var dots = [];
-    var socket = io.connect();
-    var connected = true;
+    var socket= io.connect();
+    var connected = false;
 
     var settings = {
         canvas:
@@ -18,42 +18,16 @@
             }
     }
 
-//     var move = {
-//         x: 0,
-//         y: 0,
-
-//         speed: 10,
-
-// //        going: false,
-
-//         up: function () {
-//             this.y-=1*this.speed;
-// //            this.going = this.up;
-//         },
-//         down: function () {
-//             this.y+=1*this.speed;
-// //            this.going = this.down;
-//         },
-//         left: function () {
-//             this.x-=1*this.speed;
-// //            this.going = this.left;
-//         },
-//         right: function () {
-//             this.x+=1*this.speed;
-// //            this.going = this.right;
-//         },
-//     };
-
-
-
     document.getElementById('login-form').addEventListener('submit', function(event) {
+
         event.preventDefault();
+
         connected = connectToServer(event.target.querySelector('.userName').value);
 
-        if (connected) {
+        // if (connected) {
             var loginSplash = document.getElementById('login-splash');
             loginSplash.remove();
-        }
+        // }
     });
 
     function connectToServer(userName) {
@@ -71,10 +45,10 @@
         return {userName: userName};
     }
 
-    function eatingRequestSuccess(response) {   
+    function eatingRequestSuccess(response) {
         id = response['id'];
         player = response['players'][id];
-console.log(response);
+// console.log(response);
         move.x = player.x;
         move.y = player.y;
         move.rad = player.rad;
@@ -130,23 +104,30 @@ console.log(response);
         canvas = document.getElementById('canvas');
         cxt = canvas.getContext('2d');
 
-//        console.log('yeah');
-        showPlayers();
-        // spawnPlayer(player);
-        refreshDots(dots);
-         setInterval(startGame , 1000/100);
+        // setup all other things
+        setup();
+    }
+
+    function setup() {
+        // set up key press listner
+        document.addEventListener('keydown', function (evt) {
+            doKeyDown(evt);
+        }, true);
+
     }
 
     function startGame() {
-        // window.requestAnimationFrame(function () {
-        // setInterval()
-//console.log(Object.keys(players).length);
-            cxt.clear();
-            refreshDots(dots);
-            showPlayers();
-        // });
+        if (connected) {
+            // window.requestAnimationFrame(function () {
+            // setInterval()
+    //console.log(Object.keys(players).length);
+                cxt.clear();
+                refreshDots(dots);
+                showPlayers();
+            // });
 
-        doTick();
+            // doTick();
+        }
     }
 
 function spawnPlayer(player) {
@@ -216,13 +197,15 @@ CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.cl
 
 
 
-function doTick() {
-    socket.emit('tick', {players:players, dots:dots});
-}
+// function doTick() {
+//     socket.emit('tick', {players:players, dots:dots});
+// }
 
 socket.on('tack', function (update) {
+    console.log('.');
     players = update.players;
     dots = update.dots;
+    startGame();
 });
 
 
@@ -230,10 +213,6 @@ socket.on('tack', function (update) {
 
 
 /////////////////////////////////////////////////////////////////////
-
-document.addEventListener('keydown', function (evt) {
-    doKeyDown(evt);
-}, true);
 
 function doKeyDown(evt) {
     
