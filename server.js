@@ -4,7 +4,7 @@ var settings  = {
   gameport: 4444,
   canvas: {
     width: 600,
-    height: 400
+    height: 300
   },
   dots: {
     minRad:15,
@@ -175,6 +175,9 @@ function Actions(player) {
     this.do = function (action) {
       if (typeof this[action] === 'function') {
         this[action]();
+console.log(this.player);
+      this.checkLimit();
+console.log(this.player);
         return this.player;
       } else {
         // console.log('"' + action + '" is not valid action');
@@ -192,6 +195,20 @@ function Actions(player) {
     };
     this.left = function () {
       this.player.x -= 10;
+    };
+    this.checkLimit = function () {
+      if (this.player.x >= settings.canvas.width - this.player.rad) {
+        this.player.x = settings.canvas.width - this.player.rad;
+      }
+      if (this.player.x <= this.player.rad) {
+        this.player.x =  this.player.rad;
+      }
+      if (this.player.y >= settings.canvas.height - this.player.rad) {
+        this.player.y = settings.canvas.height - this.player.rad;
+      }
+      if (this.player.y <= this.player.rad) {
+        this.player.y = this.player.rad;
+      }
     };
 // this.player.y= 200;
 // this.player.x = 300;
