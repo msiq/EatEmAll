@@ -95,6 +95,16 @@ console.log(data);
     // console.log(players);
   });
 
+  setInterval(doGame , 1000/10);
+
+  function doGame() {
+    // do all collisions and stuff
+    // doPhysics();
+    // update all
+    doTack();
+  }
+
+
   socket.on('action', function (actionParams) {
     // console.log(actionParams, players);
     var correntAction = actionParams.action;
@@ -106,7 +116,7 @@ console.log(data);
     // console.log(players[actionParams.playerId]);
     var actions = new Actions(players[actionParams.playerId]);
     players[actionParams.playerId] = actions.do(correntAction);
-    doTack();
+    // doTack();
     // players[actionParams.playerId].up();
   });
 
