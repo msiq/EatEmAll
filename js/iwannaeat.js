@@ -48,7 +48,6 @@
     function eatingRequestSuccess(response) {
         id = response['id'];
         player = response['players'][id];
-// console.log(response);
         move.x = player.x;
         move.y = player.y;
         move.rad = player.rad;
@@ -118,15 +117,9 @@
 
     function startGame() {
         if (connected) {
-            // window.requestAnimationFrame(function () {
-            // setInterval()
-    //console.log(Object.keys(players).length);
-                cxt.clear();
-                refreshDots(dots);
-                showPlayers();
-            // });
-
-            // doTick();
+            cxt.clear();
+            refreshDots(dots);
+            showPlayers();
         }
     }
 
@@ -146,23 +139,31 @@ function spawnPlayer(player) {
 
 function showPlayers() {
 // console.log(Object.keys(players).length);
+    var otherPlayers = players;
     for (plyr in players) {
-        plyr = players[plyr];
- // console.log(plyr);
+        if (plyr != player.id) {
+            drawPlayer(players[plyr]);
+        } else {
+            player = players[plyr];
+        }
+     }
 
+     drawPlayer(player);
+};
+
+function drawPlayer(plr) {
         cxt.beginPath();
-        cxt.fillStyle = plyr.color;
-        cxt.arc(plyr.x, plyr.y, plyr.rad, 0, Math.PI * 2, true);
+        cxt.fillStyle = plr.color;
+        cxt.arc(plr.x, plr.y, plr.rad, 0, Math.PI * 2, true);
 
-        if(typeof plyr.skin == 'object') {
+        if(typeof plr.skin == 'object') {
             // cxt.globalCompositeOperation = 'source-over';
-            cxt.drawImage(plyr.skin, plyr.x-plyr.rad, plyr.y-plyr.rad, plyr.rad*2, plyr.rad*2);
+            cxt.drawImage(plr.skin, plr.x-plr.rad, plr.y-plr.rad, plr.rad*2, plr.rad*2);
         } else {
             cxt.fill();
         }
         cxt.closePath();
-    }
-};
+}
 
 function refreshDots(dots)
 {
