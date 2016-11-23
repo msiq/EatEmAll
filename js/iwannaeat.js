@@ -109,16 +109,17 @@
 
     function setup() {
         // set up key press listner
-        document.addEventListener('keydown', function (evt) {
-            doKeyDown(evt);
-        }, true);
+        document.addEventListener('keydown', function (evt) { doKeyDown(evt); }, true);
+
+        // set up click listener 
+        canvas.addEventListener("click", function (evt) { doMouseClick(evt) }, true);
 
     }
 
     function startGame() {
         if (connected) {
             cxt.clear();
-            refreshDots(dots);
+            // refreshDots(dots);
             showPlayers();
         }
     }
@@ -215,6 +216,9 @@ socket.on('tack', function (update) {
 
 /////////////////////////////////////////////////////////////////////
 
+// DO KEY DOWN EVENTS
+
+/////////////////////////////////////////////////////////////////////
 function doKeyDown(evt) {
     
     var action = false;
@@ -241,8 +245,32 @@ function doKeyDown(evt) {
 
     if (action) {
         evt.preventDefault();
-        socket.emit('action', {playerId:player.id, action:action});        
+        socket.emit('action', {playerId:player.id, action:action, params:{}});        
     }
+
+
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+// Do CLICK EVENTS
+
+///////////////////////////////////////////////////////////////////////////
+
+function doMouseClick(evt) {
+    evt.preventDefault();
+
+    var mouseXY = getMouseXY(evt);
+    socket.emit('action', {playerId:player.id, action:'gotoMouse', params:{mouse: mouseXY}});
+}
+
+function getMouseXY(evt) {
+    var bRect = canvas.getBoundingClientRect();
+    var mouse = {x:0, y:0};
+    mouse.x = (evt.clientX - bRect.left) * (canvas.width / bRect.width);
+    mouse.y = (evt.clientY - bRect.top) * (canvas.height / bRect.height);
+    return mouse;
+}
 
 
 
@@ -251,7 +279,7 @@ function doKeyDown(evt) {
     // player.y = move.y;
     // player.rad = move.rad;
     // players[player.id] = player;
-}
+
 
 // socket.on('tack', function (update) {
 //     players = update.players;

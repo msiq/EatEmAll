@@ -107,17 +107,23 @@ console.log(data);
 
   socket.on('action', function (actionParams) {
     // console.log(actionParams, players);
-    var correntAction = actionParams.action;
+
 
     // var pal = players.filter(function(elm){ return true});
     // console.log(pal); 
+    var currentAction = actionParams.action;
+    var params = actionParams.params;
 
-    // console.log( correntAction);
+    console.log( currentAction);
     // console.log(players[actionParams.playerId]);
-    var actions = new Actions(players[actionParams.playerId]);
-    players[actionParams.playerId] = actions.do(correntAction);
+
+    var action = new Action(players[actionParams.playerId]);
+// console.log('here----->', players[actionParams.playerId]);
+    players[actionParams.playerId] = action.do(currentAction, params);
+// console.log('here----->', players[actionParams.playerId]);
     // doTack();
     // players[actionParams.playerId].up();
+    delete action;
   });
 
 
@@ -138,11 +144,19 @@ console.log(data);
   });
 
 });
+
+// update all eaters with new happenings
 function doTack() {
+
+    for (var playerId in players) {
+
+        players[playerId] = doPlayerAction(players[playerId]);
+    }
+
   io.sockets.emit('tack', {players: players, dots: dots});
 }
 
-function findBySocket(players, socketId) {  
+function findBySocket(players, socketId) {
   for (playerId in players) {
     if (players[playerId].socket_id == socketId) {
 
@@ -153,6 +167,7 @@ function findBySocket(players, socketId) {
   return false;
 }
 
+// player object handels all the things about players
 function Player(name, style) {
     this.name = name;
     this.x = Math.floor(Math.random() * 200) + 10;
@@ -160,6 +175,7 @@ function Player(name, style) {
     this.rad = settings.player.rad;
     this.color = "#" + ((1 << 24) * Math.random() | 0).toString(16);
     this.originalColor = this.color;
+    this.mouse = {x:0, y:0};
     // this.move =  move;
     // function move (move, cxt){};
     // var skin = document.createElement('img');
@@ -169,31 +185,37 @@ function Player(name, style) {
     // var player = this;
 }
 
-function Actions(player) {
+// all the action that eaters can request
+function Action(player) {
     this.player = player;
-// console.log('--->',this.player);
-    this.do = function (action) {
+    this.do = function (action, params) {
       if (typeof this[action] === 'function') {
-        this[action]();
-console.log(this.player);
-      this.checkLimit();
-console.log(this.player);
+        
+        //clear previous action stuff
+        this.player.mouse = {x:0, y:0};
+
+        // do this action
+        this[action](params);
+console.log( '----------->',action , params);
+
+        //check if eater breaking any limits, reset it
+        this.checkLimit();
         return this.player;
       } else {
         // console.log('"' + action + '" is not valid action');
         return this.player;
       }
     }
-    this.up = function () {
+    this.up = function (params) {
       this.player.y -= 10;
     };
-    this.down = function () {
+    this.down = function (params) {
       this.player.y += 10;
     };
-    this.right = function () {
+    this.right = function (params) {
       this.player.x += 10;
     };
-    this.left = function () {
+    this.left = function (params) {
       this.player.x -= 10;
     };
     this.checkLimit = function () {
@@ -210,6 +232,14 @@ console.log(this.player);
         this.player.y = this.player.rad;
       }
     };
+    this.gotoMouse = function (params) {
+
+      this.player.mouse = params.mouse;
+
+      // console.log(params, this.player.mouse);
+      // this.player.x = params.mouse.x;
+      // this.player.y = params.mouse.y;
+    }
 // this.player.y= 200;
 // this.player.x = 300;
 // console.log('------>', this.player);
@@ -218,6 +248,45 @@ console.log(this.player);
     // doTack();
 }
 
+function doPlayerAction(player) {
+// console.log('->>>>>>>>>>>>>', player.mouse.x, player.x);
+    if (player.mouse.x != 0 || player.mouse.y != 0) {
+      // player.x = player.mouse.x;
+      // player.y = player.mouse.y;
+      var nextStep = getGotoMouseStep(player, player.mouse, .1);
+console.log(nextStep);
+      player.x = nextStep.x;
+      player.y = nextStep.y;
+      // var diff = (Math.abs(player.x - nextStep.x) + Math.abs(player.y - nextStep.y));
+console.log(Math.abs(player.x - player.mouse.x), Math.abs(player.y - player.mouse.y));      
+      if (Math.abs(player.x - player.mouse.x) < .1 && Math.abs(player.y - player.mouse.y) < .1 ) {
+        player.mouse = {x:0, y:0};
+      }
+    }
+    // player.mouse = {x:0, y:0};
+
+  return player;
+}
+
+
+/**
+ * get next step from players to mouse
+ *
+ * p Object Player
+ * m Object object containing mouse x y position
+ * s int speed 0 to 1
+ */
+function getGotoMouseStep(p, m, s) {
+  var pt1 = 0;
+
+  var x = p.x;
+  var y = p.y;
+
+  x = p.x + (m.x - p.x) * s;
+  y = p.y + (m.y - p.y) * s;
+
+  return { x: x, y: y };
+}
 
 function addFood() {
     var minRad = settings.dots.minRad;
