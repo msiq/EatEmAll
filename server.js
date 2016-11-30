@@ -176,6 +176,7 @@ function Player(name, style) {
     this.color = "#" + ((1 << 24) * Math.random() | 0).toString(16);
     this.originalColor = this.color;
     this.mouse = {x:0, y:0};
+    this.curveP1 = {x:0, y:0};
     // this.move =  move;
     // function move (move, cxt){};
     // var skin = document.createElement('img');
@@ -234,7 +235,12 @@ console.log( '----------->',action , params);
     };
     this.gotoMouse = function (params) {
 
+    if (this.player.mouse.x > 0 || this.player.mouse.y > 0) {
+      this.player.curveP1 = this.player.mouse;
       this.player.mouse = params.mouse;
+    } else {
+      this.player.mouse = params.mouse;
+    }
 
       // console.log(params, this.player.mouse);
       // this.player.x = params.mouse.x;
@@ -249,43 +255,72 @@ console.log( '----------->',action , params);
 }
 
 function doPlayerAction(player) {
+  var easing = .04;
+  var closeEnough = .1;
+  var nextStep = {x:0, y:0};
 // console.log('->>>>>>>>>>>>>', player.mouse.x, player.x);
     if (player.mouse.x != 0 || player.mouse.y != 0) {
       // player.x = player.mouse.x;
       // player.y = player.mouse.y;
-      var nextStep = getGotoMouseStep(player, player.mouse, .1);
+
+      // if (player.curveP1.x > 0 || player.curveP1.y > 0) {
+      //   nextStep = curveToStep(player, player.curveP1, player.mouse, easing);        
+      // } else {
+        nextStep = getNextStep(player, player.mouse, easing);
+
+      // }
+
+
 console.log(nextStep);
       player.x = nextStep.x;
       player.y = nextStep.y;
       // var diff = (Math.abs(player.x - nextStep.x) + Math.abs(player.y - nextStep.y));
-console.log(Math.abs(player.x - player.mouse.x), Math.abs(player.y - player.mouse.y));      
-      if (Math.abs(player.x - player.mouse.x) < .1 && Math.abs(player.y - player.mouse.y) < .1 ) {
+// console.log(Math.abs(player.x - player.mouse.x), Math.abs(player.y - player.mouse.y));      
+      if (
+          Math.abs(player.x - player.mouse.x) < closeEnough 
+          && Math.abs(player.y - player.mouse.y) < closeEnough
+        ) {
         player.mouse = {x:0, y:0};
       }
     }
-    // player.mouse = {x:0, y:0};
 
   return player;
 }
 
-
 /**
- * get next step from players to mouse
+ * get next step moving straight from p1 to p2
  *
- * p Object Player
- * m Object object containing mouse x y position
- * s int speed 0 to 1
+ * p1 Object point 1, x y position
+ * p2 Object point 2, x y position
+ * e int easing 0 to 1
  */
-function getGotoMouseStep(p, m, s) {
+function getNextStep(p1, p2, e) {
   var pt1 = 0;
 
-  var x = p.x;
-  var y = p.y;
+  var x = p1.x;
+  var y = p1.y;
 
-  x = p.x + (m.x - p.x) * s;
-  y = p.y + (m.y - p.y) * s;
+  x = p1.x + (p2.x - p1.x) * e;
+  y = p1.y + (p2.y - p1.y) * e;
 
   return { x: x, y: y };
+}
+
+/**
+ * Get next step moving on curve between p1, p2 and p3
+ *
+ * p1 Object point 1, x y position
+ * p2 Object point 2, x y position
+ * p3 Object point 2, x y position
+ * e int easing 0 to 1
+ */
+function curveToStep(p1, p2, p3, e) {
+  var p4 = getNextStep(p1, p2, e);
+  var p5 = getNextStep(p2, p3, e);
+  
+  var cp = getNextStep(p4, p5, e);
+
+  return cp;
 }
 
 function addFood() {
