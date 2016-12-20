@@ -156,6 +156,9 @@ function drawPlayer(plr) {
         cxt.beginPath();
         cxt.fillStyle = plr.color;
         cxt.arc(plr.x, plr.y, plr.rad, 0, Math.PI * 2, true);
+        // cxt.arc(plr.mouse.x, plr.mouse.y, 2, 0, Math.PI * 2, true);
+        // if (plr.curveP1.x > 0)
+        // cxt.arc(plr.curveP1.x, plr.curveP1.y, 4, 0, Math.PI * 2, true);
 
         if(typeof plr.skin == 'object') {
             // cxt.globalCompositeOperation = 'source-over';
