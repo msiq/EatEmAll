@@ -116,7 +116,7 @@
 
     }
 
-    function startGame() {
+    function doGame() {
         if (connected) {
             cxt.clear();
             // refreshDots(dots);
@@ -207,10 +207,10 @@ CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.cl
 // }
 
 socket.on('tack', function (update) {
-    console.log('.');
+console.log('.');
     players = update.players;
     dots = update.dots;
-    startGame();
+    doGame();
 });
 
 

@@ -17,7 +17,9 @@ var settings  = {
     rad:20,
     turn:2,
   },
-  frameRate:10
+  frameRate:3,
+  easing: .1,
+  closeEnough: .1
 };
 var dots = addFood();
 
@@ -36,6 +38,7 @@ var UUID = require('node-uuid');
 require('./js/game.js');
 
 var players = {};
+var playerThings = {action: {}};
 var numberOfEaters = 0;
 
 app.get('/', function (req, res) {
@@ -55,13 +58,13 @@ io.on('connection', function (socket) {
 console.log("connection established!");
   
   socket.on('letmeeat', function (data) {
-console.log(data);
+
     if (data['userName'] != 'fails') {
       var uuid = UUID();
       players[uuid] = new Player(data['userName'], 'default');
       players[uuid]['socket_id'] = socket.id;
       players[uuid]['id'] = uuid;
-
+      playerThings.action[uuid] = new Action(players[uuid]);
 
       socket.emit('okeat',
         {
@@ -107,23 +110,14 @@ console.log(data);
 
 
   socket.on('action', function (actionParams) {
-    // console.log(actionParams, players);
 
-
-    // var pal = players.filter(function(elm){ return true});
-    // console.log(pal); 
     var currentAction = actionParams.action;
     var params = actionParams.params;
 
-    console.log( currentAction);
-    // console.log(players[actionParams.playerId]);
+    var action = playerThings.action[actionParams.playerId];
 
-    var action = new Action(players[actionParams.playerId]);
-// console.log('here----->', players[actionParams.playerId]);
     players[actionParams.playerId] = action.do(currentAction, params);
-// console.log('here----->', players[actionParams.playerId]);
-    // doTack();
-    // players[actionParams.playerId].up();
+
     delete action;
   });
 
@@ -137,11 +131,10 @@ console.log(data);
     // );
 // console.log('before >'+ Object.keys(players).length);
     delete players[stoppedEating];
-// console.log('after >' + Object.keys(players).length);
 
-      io.sockets.emit('playerLeft', 
-       {players: players}
-     );
+    io.sockets.emit('playerLeft', 
+      {players: players}
+    );
   });
 
 });
@@ -150,8 +143,7 @@ console.log(data);
 function doTack() {
 
     for (var playerId in players) {
-
-        players[playerId] = doPlayerAction(players[playerId]);
+      players[playerId] = playerThings.action[playerId].doAction();
     }
 
   io.sockets.emit('tack', {players: players, dots: dots});
@@ -178,7 +170,6 @@ function Player(name, style) {
     this.originalColor = this.color;
     this.mouse = {x:0, y:0};
     this.curveP1 = {x:0, y:0};
-    // this.move =  move;
     // function move (move, cxt){};
     // var skin = document.createElement('img');
     // skin.src = '/img/player.png';
@@ -192,20 +183,17 @@ function Action(player) {
     this.player = player;
     this.do = function (action, params) {
       if (typeof this[action] === 'function') {
-        
+
         //clear previous action stuff
-        // this.player.mouse = {x:0, y:0};
         this.player.curveP1 = {x:0, y:0};
 
         // do this action
         this[action](params);
-// console.log( '----------->',action , params);
 
         //check if eater breaking any limits, reset it
         this.checkLimit();
         return this.player;
       } else {
-        // console.log('"' + action + '" is not valid action');
         return this.player;
       }
     }
@@ -237,144 +225,123 @@ function Action(player) {
     };
     this.gotoMouse = function (params) {
 
-      // if mouse is already set, 
-      // set old mouse to point1 and new mouse
-      if (this.player.mouse.x > 0 || this.player.mouse.y > 0) {
+      if (this.isMoving) {
+        if (this.isCurving) {
+          var oldmouse = this.mouse;
+          this.stopMoving();
+          this.mouse = oldmouse;
+          this.isMoving = true;
+        }
+        this.isCurving = true;
+
+        this.controlPoint1 = this.mouse;
+        this.mouse = params.mouse;
+        this.start = {x:this.player.x, y: this.player.y};
+
         this.player.curveP1 = this.player.mouse;
         this.player.mouse = params.mouse;
-        
-        move.mouse = params.mouse;
-        move.p1 = this.player.mouse;
+
       } else {
+
+        this.isMoving = true;
+
+
         this.player.mouse = params.mouse;
+        this.mouse = params.mouse;
+        this.start = {x:this.player.x, y: this.player.y};
+      }
+    };
+    this.isMoving = false;
+    this.isCurving = false;
+    this.currentStep = 1;
+    this.nextStep = {x:0, y:0};
+    this.start = {x:0, y:0};
+    this.controlPoint1 = {x:0, y:0};
+    this.controlPoint1 = {x:0, y:0};
+    this.mouse = {x:0, y:0};
+    this.steps = {};
+    this.stopMoving = function () {
+        this.isMoving = false;
+        this.isCurving = false;
+        this.currentStep = 1;
+        this.steps = {};
+        this.nextStep = {x:0, y:0};
+        this.start = {x:0, y:0};
+        this.controlPoint1 = {x:0, y:0};
+        this.controlPoint1 = {x:0, y:0};
+        this.mouse = {x:0, y:0};
+        this.isMoving = false;
+        this.isCurving = false;
+    };
+    this.doAction = function() {
+      this.start = {x:this.player.x, y:this.player.y};
+
+      if (this.isMoving) {
+        if (this.isCurving) {
+            this.nextStep = this.curveto(this.start, this.controlPoint1, this.mouse);
+            this.currentStep += 1;
+          } else {
+            this.nextStep = this.getNextStep(this.start, this.mouse);
+          }
+// console.log(Object.keys(this.steps).length +':-------------------: ' + this.currentStep);
+          //Update player posisiton or more
+          this.player.x = this.nextStep.x;
+          this.player.y = this.nextStep.y;
+
+          if (this.isCloseEnough(0, 0)) {
+console.log('Stop it, stay there!');
+            this.stopMoving();
+          }
+
+      }
+      return this.player;
+    };
+    this.isCloseEnough = function (point1, point2) {
+      if (point1 + point2 === 0) {
+        point1 = this.start;
+        point2 = this.mouse;
+      }
+      return (Math.abs(point1.x - point2.x) < settings.closeEnough) 
+      && (Math.abs(point1.x - point2.x) < settings.closeEnough);
+    };
+    this.getNextStep = function (start, end) {
+      return {
+        x: start.x + (end.x - start.x) * settings.easing,
+        y: start.y + (end.y - start.y) * settings.easing
+      };
+    };
+    this.curveto = function (start, controlPoint1, target) {
+
+      if (!Object.keys(this.steps).length) {
+
+        this.setCurveSteps(start, controlPoint1, target);
+      }
+
+      if (Object.keys(this.steps).length) {
+
+        return this.steps[this.currentStep];
+      }
+    };
+    this.setCurveSteps = function (start, controlPoint1, target) {
+      var p1 = start;
+      var cp = controlPoint1;
+      var p2 = target;
+      var p3, p4 = {};
+      // var i=1;
+      // while (!this.isCloseEnough(p1, p2))
+      // {
+      for (var i=1; i<100; i++) {
+        p3 = this.getNextStep(p1, cp);
+        p4 = this.getNextStep(cp, p2);
         
-        move.mouse = params.mouse;
+        p1 = this.steps[i] = this.getNextStep(p3, p4);
+        cp = p4;
+        if (this.isCloseEnough(0, 0)) {
+          break;
+        }
+        // i++;
       }
-    }
-}
-var move = { p1: {x:0, y:0},
-             p2: {x:0, y:0},
-             p3: {x:0, y:0},
-             mouse: {x:0, y:0},
-             new: true
-          };
-var step = 1;          
-function doPlayerAction(player) {
-  var easing = .1;
-  var closeEnough = .1;
-  var nextStep = {x:0, y:0};
-  
-// console.log('->>>>>>>>>>>>>', player.mouse.x, player.x);
-    if (player.mouse.x != 0 || player.mouse.y != 0) {
-      // player.x = player.mouse.x;
-      // player.y = player.mouse.y;
-
-      if (player.curveP1.x > 0 || player.curveP1.y > 0) {
-        nextStep = curveToStep(player, player.curveP1, player.mouse, easing);
-        step = step +1;
-             
-      } else {
-        nextStep = getNextStep(player, move.mouse, easing);
-      }
-
-// console.log(nextStep);
-      player.x = nextStep.x;
-      player.y = nextStep.y;
-      // var diff = (Math.abs(player.x - nextStep.x) + Math.abs(player.y - nextStep.y));
-// console.log(Math.abs(player.x - player.mouse.x), Math.abs(player.y - player.mouse.y));      
-      if (
-          (player.curveP1.x > 0 && Object.keys(steps).length <= step ) ||
-          (Math.abs(player.x - player.mouse.x) < closeEnough 
-          && Math.abs(player.y - player.mouse.y) < closeEnough)
-        ) {
-          console.log(Object.keys(steps).length, 'stopped........................................................');
-        player.mouse = {x:0, y:0};
-        player.curveP = {x:0, y:0};
-        steps = {1:{x:0}};
-        step = 1;
-      }
-    }
-
-  return player;
-}
-
-var steps = {1:{x:0, y:0}};
-var currentTarget = {};
-/**
- * Get next step moving on curve between p1, p2 and p3
- *
- * p1 Object point 1, x y position
- * p2 Object point 2, x y position
- * p3 Object point 2, x y position
- * e int easing 0 to 1
- */
-function curveToStep(p1, p2, p3, e) {
-
-  // if there is curve going on don't count steps again until target point p3 changes
-  if (steps[1].x == 0 || currentTarget != p3) {
-    currentTarget = p3;
-    steps = {1:{x:0, y:0}};
-    p4 = 0;
-    p5 = 0;
-    nextStep = 0;
-    step = 1;
-
-    for (var i = 1; i < 1000; i++) {
-
-      steps[i] = countCurveToStep(p1, p2, p3, e);
-
-      p2 = p5;
-      p1 = nextStep;
-      if (Math.abs(p1 - p3) < 1) {
-
-        //Clear the things
-        steps = {1:{x:0, y:0}};
-        p4 = 0;
-        p5 = 0;
-        nextStep = 0;
-        
-        break;
-      }
-    }
-  }
-  console.log(step, steps[step]);
-
-  return steps[step];
-}
-
-/** P3, p5 are temporary positions while object is curving 
- *  nextStep the actual next step on curve
-*/
-var p4 = 0;
-var p5 = 0;
-var nextStep = 0;
-/** 
- * get next step of curve while going from p1 to p3 with p2 control point
- */
-function countCurveToStep(p1, p2, p3, e) {
-  p4 = getNextStep(p1, p2, e);
-  p5 = getNextStep(p2, p3, e);
-  nextStep = getNextStep(p4, p5, e);
-
-  return nextStep;
-}
-
-/**
- * get next step moving straight from p1 to p2
- *
- * p1 Object point 1, x y position
- * p2 Object point 2, x y position
- * e int easing 0 to 1
- */
-function getNextStep(p1, p2, e) {
-
-  // var x = p1.x;
-  // var y = p1.y;
-
-  x = p1.x + (p2.x - p1.x) * e;
-  y = p1.y + (p2.y - p1.y) * e;
-
-  return { x: x, y: y };
+    };
 }
 
 function addFood() {
