@@ -199,18 +199,37 @@ function Action(player) {
         } else {
             return this.player;
         }
-    }
+    };
+    this.startGoing = function (goFrom, goTowards) {
+        this.going.x = goTowards.x - goFrom.x;
+        this.going.y = goTowards.y - goFrom.y;
+        this.goingAngle = Math.atan2(this.going.y, this.going.x);
+        this.isGoing = true;
+    };
     this.up = function (params) {
-        this.player.y -= 10;
+        // this.player.y -= 10;
+        this.startGoing({x:this.player.x, y:this.player.y}, {x:this.player.x, y:this.player.y-10});
+        // this.going.x = this.player.x - this.player.x;
+        // this.going.y = this.player.y-10 - this.player.y;
+        // this.goingAngle = Math.atan2(this.going.y, this.going.x);
+        
+        // this.isGoing = true;
     };
     this.down = function (params) {
-        this.player.y += 10;
+        // this.player.y += 10;
+        this.startGoing({x:this.player.x, y:this.player.y}, {x:this.player.x, y:this.player.y+10});
+        // this.going.x = this.player.x - this.player.x;
+        // this.going.y = this.player.y+10 - this.player.y;
+        // this.goingAngle = Math.atan2(this.going.y, this.going.x);
+        // this.isGoing = true;
     };
     this.right = function (params) {
-        this.player.x += 10;
+        // this.player.x += 10;
+        this.startGoing({x:this.player.x, y:this.player.y}, {x:this.player.x+10, y:this.player.y});
     };
     this.left = function (params) {
-        this.player.x -= 10;
+        // this.player.x -= 10;
+        this.startGoing({x:this.player.x, y:this.player.y}, {x:this.player.x-10, y:this.player.y});
     };
     this.checkLimit = function () {
         var touching = {x: false, y: false, max: false, min: false};
@@ -252,9 +271,19 @@ function Action(player) {
             this.player.mouse = params.mouse;
 
         } else {
+            this.mouse = params.mouse;
+;
+            this.going.x = this.mouse.x - this.player.x;
+            this.going.y = this.mouse.y - this.player.y;
+    
+            this.goingAngle = Math.atan2(this.going.y, this.going.x);
+
+            this.isGoing = true;
+        }
+        
+        if (!this.isMoving && !this.isGoing) {
 
             this.isMoving = true;
-
 
             this.player.mouse = params.mouse;
             this.mouse = params.mouse;
@@ -264,6 +293,8 @@ function Action(player) {
     this.isMoving = false;
     this.isCurving = false;
     this.isGoing = false;
+    this.goingAngle = 0;
+    this.going = {x: 0, y: 0};
     this.currentStep = 1;
     this.nextStep = {x: 0, y: 0};
     this.start = {x: 0, y: 0};
@@ -275,6 +306,8 @@ function Action(player) {
         this.isMoving = false;
         this.isCurving = false;
         this.isGoing = false;
+        this.goingAngle = 0;
+        this.going = {x: 0, y: 0};
         this.currentStep = 1;
         this.steps = {};
         this.nextStep = {x: 0, y: 0};
@@ -282,8 +315,6 @@ function Action(player) {
         this.controlPoint1 = {x: 0, y: 0};
         this.controlPoint1 = {x: 0, y: 0};
         this.mouse = {x: 0, y: 0};
-        this.isMoving = false;
-        this.isCurving = false;
         playerThings.velocity[this.player.id].y = 0.2;
     };
     this.doAction = function () {
@@ -313,6 +344,15 @@ function Action(player) {
                 console.log('Stop it, stay there!');
                 this.stopMoving();
             }
+        } else if (this.isGoing) {
+            this.player.x =this.player.x+settings.player.speed*Math.cos(this.goingAngle);
+            this.player.y =this.player.y+settings.player.speed*Math.sin(this.goingAngle);
+console.log(this.going, this.goingAngle);
+console.log(this.player.x, this.player.y);
+            // this.player.x = this.nextStep.x;
+            // this.player.y = this.nextStep.y;
+            this.checkLimit();
+
         } else if (settings.allowPhysics) {
             //////////////////////////////////////////////////////////////////////////////
             ////            Apply gravity                                             ////
