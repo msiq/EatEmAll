@@ -347,10 +347,7 @@ function Action(player) {
         } else if (this.isGoing) {
             this.player.x =this.player.x+settings.player.speed*Math.cos(this.goingAngle);
             this.player.y =this.player.y+settings.player.speed*Math.sin(this.goingAngle);
-console.log(this.going, this.goingAngle);
-console.log(this.player.x, this.player.y);
-            // this.player.x = this.nextStep.x;
-            // this.player.y = this.nextStep.y;
+
             this.checkLimit();
 
         } else if (settings.allowPhysics) {
