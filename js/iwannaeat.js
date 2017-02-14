@@ -1,22 +1,30 @@
     
-    var players = {};
-    var player = false;
-    var userName = '';
-    var id = false;
+var socket= io.connect();
+var loginSplash = document.getElementById('login-splash');
 
-    var canvas;
-    var cxt;
-    var dots = [];
-    var socket= io.connect();
-    var connected = false;
+function init() {
+    window.players = {};
+    window.player = false;
+    window.userName = '';
+    window.id = false;
 
-    var settings = {
+    window.canvas;
+    window.cxt;
+    window.dots = [];
+
+    window.connected = false;
+
+    window.settings = {
         canvas:
             {
                 height: 0,
                 width: 0
             }
-    }
+    };
+};
+
+//do initilize all the things
+init();
 
     document.getElementById('login-form').addEventListener('submit', function(event) {
 
@@ -25,8 +33,7 @@
         connected = connectToServer(event.target.querySelector('.userName').value);
 
         // if (connected) {
-            var loginSplash = document.getElementById('login-splash');
-            loginSplash.remove();
+            loginSplash.style.display="none";
         // }
     });
 
@@ -90,6 +97,14 @@
 
     });
 
+socket.on('youAreKilled', function (data) {
+console.log(data.playerId, id);
+    if (data.playerId === id) {
+            // loginSplash.show();
+            loginSplash.style.display="block";
+            init();
+    }
+});
     // new player is entered game, we need to spwn it now
     socket.on('playerLeft', function (remainingPlayers) {
 //console.log(Object.keys(remainingPlayers).length);
@@ -119,7 +134,7 @@
     function doGame() {
         if (connected) {
             cxt.clear();
-            // refreshDots(dots);
+            refreshDots(dots);
             showPlayers();
         }
     }

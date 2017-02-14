@@ -37,7 +37,7 @@ var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var UUID = require('node-uuid');
-require('./js/game.js');
+//require('./js/game.js');
 
 var players = {};
 var playerThings = {action: {}, velocity: {x: 0, y: 0}, mass: {}};
@@ -106,6 +106,14 @@ io.on('connection', function (socket) {
 
     function doGame() {
         // do all collisions and stuff
+        for (var playerId in players) {
+            // check coliisions with dots
+            players[playerId] = collisionTest(players[playerId], dots);
+            // check coliisions with players
+            players[playerId] = playersCollisionTest(players[playerId], players);
+        }
+        
+        
         // doPhysics();
         // update all
         doTack();
@@ -272,7 +280,7 @@ function Action(player) {
 
         } else {
             this.mouse = params.mouse;
-;
+
             this.going.x = this.mouse.x - this.player.x;
             this.going.y = this.mouse.y - this.player.y;
     
@@ -498,3 +506,83 @@ function addFood() {
 
     return dots;
 }
+
+// object player  player object which we want to check if its touching the any of the given objects
+// array objects array of object that could collide with player
+function collisionTest(player, objects)
+{
+    var touching = false;
+    var depth = 0;
+    for (var i=0;i<objects.length;i++) {
+
+        object = objects[i];
+        
+        var dx = player.x - object.x;
+        var dy = player.y - object.y;
+        depth = player.rad + object.rad - Math.sqrt(dx*dx + dy*dy);
+        if (depth > 0) {
+            touching = true;
+        }
+        if (depth > 5) {
+            player.rad = player.rad + object.rad/20;
+            dots.splice(i, 1);
+            if (dots.length == 0) { // if there are no dots left add some more  
+                dots = addFood();
+                // console.log('addddddingggggggggg moreeeeeeeeeeeeeeeeeeeeeeeee');
+            }
+        }
+    }
+    if (touching) {
+        player.color = "#ff0000";
+    } else {
+        player.color = player.originalColor;
+    }
+
+    return player;
+}
+
+function playersCollisionTest(player, objects)
+{
+    var touching = false;
+    var depth = 0;
+    for (var playerId in objects) {
+        // dont check if player colliding with it itself
+        if (player.id == playerId){
+            continue;
+        }
+
+        object = objects[playerId];
+        
+        var dx = player.x - object.x;
+        var dy = player.y - object.y;
+        depth = player.rad + object.rad - Math.sqrt(dx*dx + dy*dy);
+        if (depth > 0) {
+            touching = true;
+        }
+        if (depth > 5) {
+            player.rad = player.rad + object.rad/20;
+            //kill other player if he has smaller radius
+            if (player.rad > objects[playerId].rad) {
+                killHimNow(playerId);
+                // delete objects[playerId];
+            }
+        }
+    }
+    if (touching) {
+        player.color = "#ff0000";
+    } else {
+        player.color = player.originalColor;
+    }
+
+    return player;
+}
+
+function killHimNow(playerId) {
+ console.log( players[playerId].name + 'is killed..................')
+        delete players[playerId];
+        // io.sockets.emit('playerLeft', {players: players});
+        io.sockets.emit('youAreKilled', {playerId: playerId});
+        
+}
+
+//do end game for player who is killed by bigger player
