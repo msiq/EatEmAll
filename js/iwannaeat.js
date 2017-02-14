@@ -26,6 +26,7 @@ function init() {
 //do initilize all the things
 init();
 
+
     document.getElementById('login-form').addEventListener('submit', function(event) {
 
         event.preventDefault();

@@ -113,7 +113,7 @@ io.on('connection', function (socket) {
             players[playerId] = playersCollisionTest(players[playerId], players);
         }
         
-        
+
         // doPhysics();
         // update all
         doTack();
