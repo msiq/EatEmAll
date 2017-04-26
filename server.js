@@ -1,3 +1,34 @@
+function GameState() {
+    this.state = {};
+    this.state.init = 1;
+    this.state.booting = 2;
+    this.state.mmenu = 3;
+    this.state.pause = 3.1;
+    this.state.helt = 3.2;
+    this.state.stopped = 0;
+
+    this.currentState = this.state.init;
+}
+
+gameState = new GameState();
+
+function State() {
+    this.state = {};
+    this.state.dead = 0;
+    this.state.init = 1;
+    this.state.menu = 2;
+    this.state.playing = 3;
+    this.state.moving = 3.1;
+    this.state.Going = 3.2;
+    this.state.curving = 3.3;;
+    this.state.pause = 4;
+    this.state.killed = 5;
+
+    this.currentState = this.state.init;
+}
+
+state = new State();
+
 // set some settings
 var settings = {
     gameport: 4444,
@@ -20,9 +51,11 @@ var settings = {
     frameRate: 10,
     easing: .1,
     closeEnough: 1,
-    gravity: {x: 0, y: 9.8}, // m/s^2 default gravity for everything on earth, on moon it is .83 
-    maxVelocity: {x: 20, y: 20}
+    gravity: { x: 0, y: 9.8 }, // m/s^2 default gravity for everything on earth, on moon it is .83 
+    maxVelocity: { x: 20, y: 20 },
+    state: gameState
 };
+
 var dots = addFood();
 
 // here we start
@@ -40,26 +73,26 @@ var UUID = require('node-uuid');
 //require('./js/game.js');
 
 var players = {};
-var playerThings = {action: {}, velocity: {x: 0, y: 0}, mass: {}};
+var playerThings = { action: {}, velocity: { x: 0, y: 0 }, mass: {} };
 var numberOfEaters = 0;
 
-app.get('/', function (req, res) {
+app.get('/', function(req, res) {
     // console.log(req);
     res.sendFile(__dirname + "/eatemall.html");
 });
-app.get('/*', function (req, res) {
+app.get('/*', function(req, res) {
     res.sendFile(__dirname + '/' + req.params[0]);
 });
 
 console.log(settings.gameport);
-http.listen(port = settings.gameport, function () {
+http.listen(port = settings.gameport, function() {
     console.log('listening on : ' + port);
 });
 
-io.on('connection', function (socket) {
+io.on('connection', function(socket) {
     console.log("connection established!");
 
-    socket.on('letmeeat', function (data) {
+    socket.on('letmeeat', function(data) {
 
         if (data['userName'] != 'fails') {
             var uuid = UUID();
@@ -67,23 +100,19 @@ io.on('connection', function (socket) {
             players[uuid]['socket_id'] = socket.id;
             players[uuid]['id'] = uuid;
             playerThings.action[uuid] = new Action(players[uuid]);
-            playerThings.velocity[uuid] = {x: 0, y: 0}; //0 - 1
+            playerThings.velocity[uuid] = { x: 0, y: 0 }; //0 - 1
             playerThings.mass[uuid] = Math.floor(Math.random() * 6) + 1;
-            socket.emit('okeat',
-                    {
-                        id: uuid,
-                        players: players,
-                        dots: dots,
-                        settings: settings.canvas,
-                        success: true
-                    }
-            );
+            socket.emit('okeat', {
+                id: uuid,
+                players: players,
+                dots: dots,
+                settings: settings.canvas,
+                success: true
+            });
             numberOfEaters += 1;
 
             //send new players to all players
-            io.sockets.emit('playerJoined',
-                    {player: players[uuid]}
-            );
+            io.sockets.emit('playerJoined', { player: players[uuid] });
         } else {
 
             socket.emit('goaway');
@@ -92,7 +121,7 @@ io.on('connection', function (socket) {
         console.log(data['userName'] + ' is eating now!');
     });
 
-    socket.on('tick', function (data) {
+    socket.on('tick', function(data) {
         // console.log(players);
         players = data.players;
         dots = data.dots;
@@ -112,7 +141,7 @@ io.on('connection', function (socket) {
             // check coliisions with players
             players[playerId] = playersCollisionTest(players[playerId], players);
         }
-        
+
 
         // doPhysics();
         // update all
@@ -120,7 +149,7 @@ io.on('connection', function (socket) {
     }
 
 
-    socket.on('action', function (actionParams) {
+    socket.on('action', function(actionParams) {
 
         var currentAction = actionParams.action;
         var params = actionParams.params;
@@ -133,19 +162,17 @@ io.on('connection', function (socket) {
     });
 
 
-    socket.on('disconnect', function () {
+    socket.on('disconnect', function() {
         var stoppedEating = findBySocket(players, socket.id);
         console.log('bye ' + stoppedEating + '...');
 
         // io.sockets.emit('playerLeft', 
         //   {players: players}
         // );
-// console.log('before >'+ Object.keys(players).length);
+        // console.log('before >'+ Object.keys(players).length);
         delete players[stoppedEating];
 
-        io.sockets.emit('playerLeft',
-                {players: players}
-        );
+        io.sockets.emit('playerLeft', { players: players });
     });
 
 });
@@ -157,7 +184,7 @@ function doTack() {
         players[playerId] = playerThings.action[playerId].doAction();
     }
 
-    io.sockets.emit('tack', {players: players, dots: dots});
+    io.sockets.emit('tack', { players: players, dots: dots });
 }
 
 function findBySocket(players, socketId) {
@@ -173,14 +200,15 @@ function findBySocket(players, socketId) {
 
 // player object handels all the things about players
 function Player(name, style) {
+    this.state = state;
     this.name = name;
     this.x = Math.floor(Math.random() * 200) + 10;
     this.y = Math.floor(Math.random() * 200) + 10;
     this.rad = settings.player.rad;
     this.color = "#" + ((1 << 24) * Math.random() | 0).toString(16);
     this.originalColor = this.color;
-    this.mouse = {x: 0, y: 0};
-    this.curveP1 = {x: 0, y: 0};
+    this.mouse = { x: 0, y: 0 };
+    this.curveP1 = { x: 0, y: 0 };
     // function move (move, cxt){};
     // var skin = document.createElement('img');
     // skin.src = '/img/player.png';
@@ -192,11 +220,11 @@ function Player(name, style) {
 // all the action that eaters can request
 function Action(player) {
     this.player = player;
-    this.do = function (action, params) {
+    this.do = function(action, params) {
         if (typeof this[action] === 'function') {
 
             //clear previous action stuff
-            this.player.curveP1 = {x: 0, y: 0};
+            this.player.curveP1 = { x: 0, y: 0 };
 
             // do this action
             this[action](params);
@@ -208,39 +236,39 @@ function Action(player) {
             return this.player;
         }
     };
-    this.startGoing = function (goFrom, goTowards) {
+    this.startGoing = function(goFrom, goTowards) {
         this.going.x = goTowards.x - goFrom.x;
         this.going.y = goTowards.y - goFrom.y;
         this.goingAngle = Math.atan2(this.going.y, this.going.x);
         this.isGoing = true;
     };
-    this.up = function (params) {
+    this.up = function(params) {
         // this.player.y -= 10;
-        this.startGoing({x:this.player.x, y:this.player.y}, {x:this.player.x, y:this.player.y-10});
+        this.startGoing({ x: this.player.x, y: this.player.y }, { x: this.player.x, y: this.player.y - 10 });
         // this.going.x = this.player.x - this.player.x;
         // this.going.y = this.player.y-10 - this.player.y;
         // this.goingAngle = Math.atan2(this.going.y, this.going.x);
-        
+
         // this.isGoing = true;
     };
-    this.down = function (params) {
+    this.down = function(params) {
         // this.player.y += 10;
-        this.startGoing({x:this.player.x, y:this.player.y}, {x:this.player.x, y:this.player.y+10});
+        this.startGoing({ x: this.player.x, y: this.player.y }, { x: this.player.x, y: this.player.y + 10 });
         // this.going.x = this.player.x - this.player.x;
         // this.going.y = this.player.y+10 - this.player.y;
         // this.goingAngle = Math.atan2(this.going.y, this.going.x);
         // this.isGoing = true;
     };
-    this.right = function (params) {
+    this.right = function(params) {
         // this.player.x += 10;
-        this.startGoing({x:this.player.x, y:this.player.y}, {x:this.player.x+10, y:this.player.y});
+        this.startGoing({ x: this.player.x, y: this.player.y }, { x: this.player.x + 10, y: this.player.y });
     };
-    this.left = function (params) {
+    this.left = function(params) {
         // this.player.x -= 10;
-        this.startGoing({x:this.player.x, y:this.player.y}, {x:this.player.x-10, y:this.player.y});
+        this.startGoing({ x: this.player.x, y: this.player.y }, { x: this.player.x - 10, y: this.player.y });
     };
-    this.checkLimit = function () {
-        var touching = {x: false, y: false, max: false, min: false};
+    this.checkLimit = function() {
+        var touching = { x: false, y: false, max: false, min: false };
         if (this.player.x >= settings.canvas.width - this.player.rad) {
             this.player.x = settings.canvas.width - this.player.rad;
             touching.x = touching.max = true;
@@ -260,7 +288,7 @@ function Action(player) {
 
         return touching;
     };
-    this.gotoMouse = function (params) {
+    this.gotoMouse = function(params) {
 
         if (this.isMoving) {
             if (this.isCurving) {
@@ -273,7 +301,7 @@ function Action(player) {
 
             this.controlPoint1 = this.mouse;
             this.mouse = params.mouse;
-            this.start = {x: this.player.x, y: this.player.y};
+            this.start = { x: this.player.x, y: this.player.y };
 
             this.player.curveP1 = this.player.mouse;
             this.player.mouse = params.mouse;
@@ -283,56 +311,56 @@ function Action(player) {
 
             this.going.x = this.mouse.x - this.player.x;
             this.going.y = this.mouse.y - this.player.y;
-    
+
             this.goingAngle = Math.atan2(this.going.y, this.going.x);
 
             this.isGoing = true;
         }
-        
+
         if (!this.isMoving && !this.isGoing) {
 
             this.isMoving = true;
 
             this.player.mouse = params.mouse;
             this.mouse = params.mouse;
-            this.start = {x: this.player.x, y: this.player.y};
+            this.start = { x: this.player.x, y: this.player.y };
         }
     };
     this.isMoving = false;
     this.isCurving = false;
     this.isGoing = false;
     this.goingAngle = 0;
-    this.going = {x: 0, y: 0};
+    this.going = { x: 0, y: 0 };
     this.currentStep = 1;
-    this.nextStep = {x: 0, y: 0};
-    this.start = {x: 0, y: 0};
-    this.controlPoint1 = {x: 0, y: 0};
-    this.controlPoint1 = {x: 0, y: 0};
-    this.mouse = {x: 0, y: 0};
+    this.nextStep = { x: 0, y: 0 };
+    this.start = { x: 0, y: 0 };
+    this.controlPoint1 = { x: 0, y: 0 };
+    this.controlPoint1 = { x: 0, y: 0 };
+    this.mouse = { x: 0, y: 0 };
     this.steps = {};
-    this.stopMoving = function () {
+    this.stopMoving = function() {
         this.isMoving = false;
         this.isCurving = false;
         this.isGoing = false;
         this.goingAngle = 0;
-        this.going = {x: 0, y: 0};
+        this.going = { x: 0, y: 0 };
         this.currentStep = 1;
         this.steps = {};
-        this.nextStep = {x: 0, y: 0};
-        this.start = {x: 0, y: 0};
-        this.controlPoint1 = {x: 0, y: 0};
-        this.controlPoint1 = {x: 0, y: 0};
-        this.mouse = {x: 0, y: 0};
+        this.nextStep = { x: 0, y: 0 };
+        this.start = { x: 0, y: 0 };
+        this.controlPoint1 = { x: 0, y: 0 };
+        this.controlPoint1 = { x: 0, y: 0 };
+        this.mouse = { x: 0, y: 0 };
         playerThings.velocity[this.player.id].y = 0.2;
     };
-    this.doAction = function () {
+    this.doAction = function() {
 
         var velocity = {
             x: playerThings.velocity[this.player.id].x,
             y: playerThings.velocity[this.player.id].y
         };
         var mass = playerThings.mass[this.player.id];
-        this.start = {x: this.player.x, y: this.player.y};
+        this.start = { x: this.player.x, y: this.player.y };
         //////////////////////////////////////////////////////////////////////////////
         ////            do moving or curving                                      ////
         //////////////////////////////////////////////////////////////////////////////
@@ -343,7 +371,7 @@ function Action(player) {
             } else {
                 this.nextStep = this.getNextStep(this.start, this.mouse);
             }
-// console.log(Object.keys(this.steps).length +':-------------------: ' + this.currentStep);
+            // console.log(Object.keys(this.steps).length +':-------------------: ' + this.currentStep);
             //Update player posisiton or more
             this.player.x = this.nextStep.x;
             this.player.y = this.nextStep.y;
@@ -353,8 +381,8 @@ function Action(player) {
                 this.stopMoving();
             }
         } else if (this.isGoing) {
-            this.player.x =this.player.x+settings.player.speed*Math.cos(this.goingAngle);
-            this.player.y =this.player.y+settings.player.speed*Math.sin(this.goingAngle);
+            this.player.x = this.player.x + settings.player.speed * Math.cos(this.goingAngle);
+            this.player.y = this.player.y + settings.player.speed * Math.sin(this.goingAngle);
 
             this.checkLimit();
 
@@ -415,7 +443,7 @@ function Action(player) {
                     //velocity.x = 0;
                 }
             } else if (touching.y && touching.min) {
-                velocity.y = 0.1;//settings.maxVelocity.y;
+                velocity.y = 0.1; //settings.maxVelocity.y;
             }
         }
 
@@ -431,21 +459,21 @@ function Action(player) {
 
         return this.player;
     };
-    this.isCloseEnough = function (point1, point2) {
+    this.isCloseEnough = function(point1, point2) {
         if (point1 + point2 === 0) {
             point1 = this.start;
             point2 = this.mouse;
         }
-        return (Math.abs(point1.x - point2.x) < settings.closeEnough)
-                && (Math.abs(point1.x - point2.x) < settings.closeEnough);
+        return (Math.abs(point1.x - point2.x) < settings.closeEnough) &&
+            (Math.abs(point1.x - point2.x) < settings.closeEnough);
     };
-    this.getNextStep = function (start, end) {
+    this.getNextStep = function(start, end) {
         return {
             x: start.x + (end.x - start.x) * settings.easing,
             y: start.y + (end.y - start.y) * settings.easing
         };
     };
-    this.curveto = function (start, controlPoint1, target) {
+    this.curveto = function(start, controlPoint1, target) {
 
         if (!Object.keys(this.steps).length) {
 
@@ -457,7 +485,7 @@ function Action(player) {
             return this.steps[this.currentStep];
         }
     };
-    this.setCurveSteps = function (start, controlPoint1, target) {
+    this.setCurveSteps = function(start, controlPoint1, target) {
         var p1 = start;
         var cp = controlPoint1;
         var p2 = target;
@@ -485,7 +513,7 @@ function addFood() {
     var canvas = settings.canvas;
     var dots = [];
     var bites = 20;
-    var startCrl = 20;//parseInt(bites+Math.random()*bites);
+    var startCrl = 20; //parseInt(bites+Math.random()*bites);
     startCrl = startCrl ? startCrl : 2;
     for (var i = 0; i < startCrl; i++) {
         var thisRad = parseInt(Math.random() * (minRad - maxRad + 1) + minRad);
@@ -509,22 +537,21 @@ function addFood() {
 
 // object player  player object which we want to check if its touching the any of the given objects
 // array objects array of object that could collide with player
-function collisionTest(player, objects)
-{
+function collisionTest(player, objects) {
     var touching = false;
     var depth = 0;
-    for (var i=0;i<objects.length;i++) {
+    for (var i = 0; i < objects.length; i++) {
 
         object = objects[i];
-        
+
         var dx = player.x - object.x;
         var dy = player.y - object.y;
-        depth = player.rad + object.rad - Math.sqrt(dx*dx + dy*dy);
+        depth = player.rad + object.rad - Math.sqrt(dx * dx + dy * dy);
         if (depth > 0) {
             touching = true;
         }
         if (depth > 5) {
-            player.rad = player.rad + object.rad/20;
+            player.rad = player.rad + object.rad / 20;
             dots.splice(i, 1);
             if (dots.length == 0) { // if there are no dots left add some more  
                 dots = addFood();
@@ -541,26 +568,25 @@ function collisionTest(player, objects)
     return player;
 }
 
-function playersCollisionTest(player, objects)
-{
+function playersCollisionTest(player, objects) {
     var touching = false;
     var depth = 0;
     for (var playerId in objects) {
         // dont check if player colliding with it itself
-        if (player.id == playerId){
+        if (player.id == playerId) {
             continue;
         }
 
         object = objects[playerId];
-        
+
         var dx = player.x - object.x;
         var dy = player.y - object.y;
-        depth = player.rad + object.rad - Math.sqrt(dx*dx + dy*dy);
+        depth = player.rad + object.rad - Math.sqrt(dx * dx + dy * dy);
         if (depth > 0) {
             touching = true;
         }
         if (depth > 5) {
-            player.rad = player.rad + object.rad/20;
+            player.rad = player.rad + object.rad / 20;
             //kill other player if he has smaller radius
             if (player.rad > objects[playerId].rad) {
                 killHimNow(playerId);
@@ -578,11 +604,11 @@ function playersCollisionTest(player, objects)
 }
 
 function killHimNow(playerId) {
- console.log( players[playerId].name + 'is killed..................')
-        delete players[playerId];
-        // io.sockets.emit('playerLeft', {players: players});
-        io.sockets.emit('youAreKilled', {playerId: playerId});
-        
+    console.log(players[playerId].name + 'is killed..................')
+    delete players[playerId];
+    // io.sockets.emit('playerLeft', {players: players});
+    io.sockets.emit('youAreKilled', { playerId: playerId });
+
 }
 
 //do end game for player who is killed by bigger player
