@@ -1,22 +1,16 @@
 {
-    "name": "server",
-    "version": "0.1.0",
-    "description": "This is serverside for eatemall",
+    "name": "eatemall",
+    "version": "0.0.1",
+    "description": "this is new Eat em all.",
     "main": "server.js",
     "scripts": {
-        "test": "test"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://msiq@bitbucket.org/msiq/eatem.git"
+        "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "shahid",
     "license": "ISC",
     "homepage": "https://bitbucket.org/msiq/eatem#readme",
     "dependencies": {
-        "express": "^4.14.0",
         "node-uuid": "^1.4.7",
-        "pug": "^2.0.0-beta6",
         "socket.io": "^1.4.8"
     },
     "devDependencies": {
