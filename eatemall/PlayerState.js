@@ -1,12 +1,3 @@
-module.exports =
-    exports =
-    PlayerState = {
-        init: InitState,
-        menu: MenuState,
-        playing: PlayingState,
-        killed: KilledState
-    }
-
 function AbstractState() {
     this.execute = function() {
         console.log('this should not be printed anywhere..................');
@@ -40,3 +31,11 @@ function KilledState() {
     }
 }
 KilledState.prototype = new AbstractState();
+
+module.exports = exports =
+    PlayerState = {
+        init: InitState,
+        menu: MenuState,
+        playing: PlayingState,
+        killed: KilledState
+    }

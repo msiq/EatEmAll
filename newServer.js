@@ -1,11 +1,33 @@
 var GameState = require('./eatemall/GameState.js');
-var Game = new require('./eatemall/Game.js');
+var Game = require('./eatemall/Game.js');
 var PlayerState = require('./eatemall/PlayerState.js');
-var Player = new require('./eatemall/Player.js');
+var Player = require('./eatemall/Player.js');
 
 
-Game = new Game(GameState);
-Game.init();
+game = new Game(GameState);
+game.init();
+
+/* Initialize Game */
+(function() {
+    var LoadingCtrl = startLoading();
+
+    player = new Player();
+    var initializeGame = game.currentState.execute()
+    initializeGame.then(function(res) {
+        stopLoading(LoadingCtrl);
+        game.changeState(new GameState.menu());
+
+        initializePlayer();
+
+        console.log(res);
+        return game.currentState.execute();
+    }).then(function(res) {
+
+        player.currentState.execute();
+        console.log(res);
+    });
+})();
+
 
 var player;
 
@@ -16,26 +38,6 @@ function initializePlayer() {
     player.changeState(new PlayerState.menu());
 }
 
-function initGame() {
-    var LoadingCtrl = startLoading();
-
-    player = new Player();
-    var initializeGame = Game.currentState.execute()
-    initializeGame.then(function(res) {
-        stopLoading(LoadingCtrl);
-        Game.changeState(new GameState.menu());
-
-        initializePlayer();
-
-        console.log(res);
-        return Game.currentState.execute();
-    }).then(function(res) {
-
-        player.currentState.execute();
-        console.log(res);
-    });
-}
-
 function doGame() {
     // Game.currentState.execute();
     // doGameLoop();
@@ -43,8 +45,6 @@ function doGame() {
 
 // console.log(Core.GameState);
 // return;
-
-initGame();
 
 function doGameLoop() {
     setInterval(function() {
