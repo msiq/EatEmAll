@@ -3,39 +3,47 @@ var Game = require('./eatemall/Game.js');
 var PlayerState = require('./eatemall/PlayerState.js');
 var Player = require('./eatemall/Player.js');
 
+var player;
 
 game = new Game(GameState);
-game.init();
 
 /* Initialize Game */
 (function() {
-    var LoadingCtrl = startLoading();
 
-    player = new Player();
+    // start initializing all the things needed to run Server, 
+    // init state is set on declaration
     var initializeGame = game.currentState.execute()
-    initializeGame.then(function(res) {
-        stopLoading(LoadingCtrl);
-        game.changeState(new GameState.menu());
 
-        initializePlayer();
+    // wait for Game to finish initialization
+    initializeGame.then(function(res) {
+
+        // Set menu game State
+        game.setState(new GameState.menu());
 
         console.log(res);
+        // set game in Menu state and wait for something
         return game.currentState.execute();
+    }).catch(function(exp) {
+        console.log('something failed while initializing game!');
+        console.log(exp);
     }).then(function(res) {
 
-        player.currentState.execute();
+        initializePlayer();
+        player = new Player();
+        // player.currentState.execute();
         console.log(res);
+    }).catch(function(exp) {
+        console.log('something failed in menu!');
+        console.log(exp);
     });
 })();
 
 
-var player;
-
-
 function initializePlayer() {
+
     player = new Player();
     player.currentState.execute();
-    player.changeState(new PlayerState.menu());
+    player.setState(new PlayerState.menu());
 }
 
 function doGame() {
@@ -53,28 +61,6 @@ function doGameLoop() {
         // console.log(Object.getOwnPropertyNames(state));
         // console.log('----> '+ player.name + ' -- state---> ' + player.state);
     }, 1000 / 1);
-}
-
-
-function startLoading() {
-    var loading = ['←', '↖', '↑', '↗', '→', '↘', '↓', '↙', ];
-
-    var ctrl = 0;
-    return setInterval(function() {
-            ctrl = (ctrl == loading.length) ? 0 : ctrl;
-            process.stdout.clearLine();
-            process.stdout.cursorTo(0);
-            process.stdout.write('loading ' + loading[ctrl]);
-            ctrl++;
-        },
-        1000 / 10);
-}
-
-function stopLoading(LoadingCtrl) {
-    clearInterval(LoadingCtrl);
-    process.stdout.clearLine();
-    process.stdout.cursorTo(0);
-    process.stdout.write('loading done!' + '\n');
 }
 
 function inhertis(Sub, Super) {

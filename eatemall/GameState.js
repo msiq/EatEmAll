@@ -16,13 +16,18 @@ function AbstractGameState() {
 function InitGameState() {
     this.execute = function(game) {
         return new Promise(function(resolve, reject) {
+            // Start loading animation
+            const loadingControl = startLoading();
             process.stdout.write('Initializing game...' + '\n');
             setTimeout(function() {
+
+                // Stop loading animation
+                stopLoading(loadingControl);
                 process.stdout.clearLine();
                 process.stdout.cursorTo(0);
                 process.stdout.write('Initializing done!' + '\n');
                 resolve('init resolved');
-            }, 3000);
+            }, 6000);
             // reject('true');
         });
     }
@@ -58,3 +63,24 @@ function FinishGameState() {
     }
 }
 FinishGameState.prototype = new AbstractGameState;
+
+function startLoading() {
+    var loading = ['←', '↖', '↑', '↗', '→', '↘', '↓', '↙', ];
+
+    var ctrl = 0;
+    return setInterval(function() {
+            ctrl = (ctrl == loading.length) ? 0 : ctrl;
+            process.stdout.clearLine();
+            process.stdout.cursorTo(0);
+            process.stdout.write('loading ' + loading[ctrl]);
+            ctrl++;
+        },
+        1000 / 10);
+}
+
+function stopLoading(LoadingCtrl) {
+    clearInterval(LoadingCtrl);
+    process.stdout.clearLine();
+    process.stdout.cursorTo(0);
+    process.stdout.write('loading done!' + '\n');
+}
