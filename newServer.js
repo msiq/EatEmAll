@@ -1,77 +1,74 @@
-var GameState = require('./eatemall/GameState.js');
-var Game = require('./eatemall/Game.js');
-var PlayerState = require('./eatemall/PlayerState.js');
-var Player = require('./eatemall/Player.js');
+// const config = require('./eatemall/config.js');
+// const GameServer = require('./eatemall/GameServer.js');
 
-var player;
+// const GameState = require('./eatemall/GameState.js');
+const GameClass = require('./eatemall/GameClass.js');
+// const PlayerState = require('./eatemall/PlayerState.js');
+// const Player = require('./eatemall/Player.js');
 
-game = new Game(GameState);
+const newGame = require('./eatemall/newGame.js');
 
-/* Initialize Game */
-(function() {
-
-    // start initializing all the things needed to run Server, 
-    // init state is set on declaration
-    var initializeGame = game.currentState.execute()
-
-    // wait for Game to finish initialization
-    initializeGame.then(function(res) {
-
-        // Set menu game State
-        game.setState(new GameState.menu());
-
-        console.log(res);
-        // set game in Menu state and wait for something
-        return game.currentState.execute();
-    }).catch(function(exp) {
-        console.log('something failed while initializing game!');
-        console.log(exp);
-    }).then(function(res) {
-
-        initializePlayer();
-        player = new Player();
-        // player.currentState.execute();
-        console.log(res);
-    }).catch(function(exp) {
-        console.log('something failed in menu!');
-        console.log(exp);
-    });
-})();
-
-
-function initializePlayer() {
-
-    player = new Player();
-    player.currentState.execute();
-    player.setState(new PlayerState.menu());
+if (newGame instanceof GameClass === false) {
+    console.log('Game Must be an instance of GameClass, instance of ' + newGame.constructor.name + ' given!');
+    console.log('Please correct the problem and try again!');
 }
 
-function doGame() {
-    // Game.currentState.execute();
-    // doGameLoop();
-}
+const players = {};
 
-// console.log(Core.GameState);
-// return;
+game = newGame;
 
-function doGameLoop() {
-    setInterval(function() {
-        console.log('.');
-        // doGame();
-        // console.log(Object.getOwnPropertyNames(state));
-        // console.log('----> '+ player.name + ' -- state---> ' + player.state);
-    }, 1000 / 1);
-}
+// game.setState(new GameState.init());
+// let gameInterval = false;
+// doGameLoop();
 
-function inhertis(Sub, Super) {
-    Sub.super_ = Super;
-    Sub.prototype = Object.create(Super.prototype, {
-        constructor: {
-            value: Sub,
-            enumerable: false,
-            writable: true,
-            configurable: true
-        }
-    });
 
-}
+game.start();
+// game.stop();
+
+
+/** Dont do loop here it should be hidden in Game someehow */
+
+
+
+// // do Game Loop
+// function doGameLoop() {
+
+//     let eventsPromise = game.handleEvents();
+//     eventsPromise.then(() => {
+
+//     });
+
+//     if (!gameInterval) {
+//         gameInterval = setInterval(doGameLoop, 1000 / config.server.frameRate);
+//     }
+// }
+
+// /* Initialize Game */
+// (function() {
+
+//     // start initializing all the things needed to run Server, 
+//     // init state is set on declaration
+//     const initializeGame = game.currentState.setup()
+
+//     // wait for Game to finish initialization
+//     initializeGame.then((res) => {
+
+//         // Set menu game State
+//         game.setState(new GameState.menu());
+
+//         console.log(res);
+//         // set game in Menu state and wait for something
+//         return game.currentState.setup();
+//     }).catch((exp) => {
+//         console.log('something failed while initializing game!');
+//         console.log(exp);
+//     }).then((res) => {
+//         // wait for first player to login and then procceed
+//         GameServer.serve();
+//         doGameLoop();
+//         console.log(res);
+//     }).catch((exp) => {
+//         console.log('something failed in menu!');
+//         console.log(exp);
+//     });
+// })();
