@@ -16,7 +16,6 @@ var Entity = function(name = 'noname') {
 
     this.abilities = {};
     this.has = (ability) => {
-        console.log(this);
         return this.abilities.hasOwnProperty(ability) ? this.abilities[ability] : false;
     }
     this.attach = function(ability) {
@@ -25,24 +24,27 @@ var Entity = function(name = 'noname') {
         }
     }
 
-    this.createPlayer = function(name, shape, color = 'blue') {
+    this.update = () => {
+        var pos = this.abilities.position.pos;
+        var vel = this.abilities.velocity.vel;
+        this.abilities.position.pos = Object.assign({}, pos, { x: pos.x + vel.x, y: pos.y + vel.y });
+    };
 
-        console.log(arguments);
-        var player = new Entity(name);
-        player.attach(new Abilities.Body(shape, color));
-        player.attach(new Abilities.Motion());
-        player.attach(new Abilities.Collision());
+    // this.createPlayer = function(name, shape, color = 'blue') {
 
-        return player;
-    }
+    //     console.log(arguments);
+    //     var player = new Entity(name);
+    //     player.attach(new Abilities.Body(shape, color));
 
-    this.createEnemy = function() {
-        var enemy = new Entity();
-        enemy.attach(new Abilities.Body());
-        enemy.attach(new Abilities.Collision());
+    //     return player;
+    // }
 
-        return enemy;
-    }
+    // this.createEnemy = function() {
+    //     var enemy = new Entity();
+    //     enemy.attach(new Abilities.Body());
+
+    //     return enemy;
+    // }
 }
 
 

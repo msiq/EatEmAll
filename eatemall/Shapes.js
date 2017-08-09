@@ -8,19 +8,23 @@ var Shapes = {
         this.y = y;
         this.z = z;
     },
-    Circ: function(redius, pos = null) {
+    Line: function(start, end) {
+        name: 'line';
+        this.start = (start !== null) ? start : new this.Vect(0, 0);
+        this.end = (end !== null) ? end : new this.Vect(0, 0);
+    },
+    Circ: function(redius) {
         name: 'circle';
         this.redius = redius;
-        this.pos = (pos !== null) ? pos : new this.Vect(0, 0);
     },
-    Rect: function(width, height, pos = null) {
+    Rect: function(width, height) {
         name: 'rectangle';
         this.width = width;
         this.height = height;
-        this.pos = (pos !== null) ? pos : new this.Vect(0, 0);
     }
 }
 Shapes.Vect.prototype = new Shape;
+Shapes.Line.prototype = new Shape;
 Shapes.Circ.prototype = new Shape;
 Shapes.Rect.prototype = new Shape;
 

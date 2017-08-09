@@ -19,10 +19,10 @@ game.setup = function() {
     // // console.log(player);
     // game.addEntity(player, 'players');
 
-    for (var i = 0; i < 1; i++) {
-        // console.log(JSON.stringify(makeDot()));
-        game.addEntity(addDot(), 'dots');
-    }
+    // for (var i = 0; i < 1; i++) {
+    //     // console.log(JSON.stringify(makeDot()));
+    //     game.addEntity(addDot(), 'dots');
+    // }
 
     console.log('setting up game');
 

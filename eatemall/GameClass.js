@@ -7,9 +7,14 @@ const Entity = require('./Entity.js');
 const Shapes = require('./Shapes.js');
 const Player = require('./Player.js');
 
+const Abilities = require('./Abilities.js');
+
+const SubSystems = require('./SubSystems.js');
+
 
 var Game = function Game() {
     this.server = new GameServer();
+    this.SubSystems = SubSystems;
 
     this.state = false;
     this.players = {};
@@ -52,11 +57,18 @@ var Game = function Game() {
     };
     this.internalUpdate = function() {
         var players = this.getEntities('players');
+
         if (players.length > 0) {
+
+            Object.keys(SubSystems).forEach((SubSystem) => {
+                SubSystems[SubSystem].update();
+            });
+
             players.forEach((player) => {
-                Object.keys(player.abilities).forEach((comp) => {
-                    player.abilities[comp].update(player);
-                })
+                player.update();
+                //         Object.keys(player.abilities).forEach((comp) => {
+                //             player.abilities[comp].update(player);
+                //         })
             });
         }
     };
@@ -70,15 +82,24 @@ var Game = function Game() {
         // console.log(this.entities);
         let players = this.getEntities('players');
         players = players.map((player) => {
-            return {
-                id: player.id,
-                socketId: player.socketId,
-                x: player.abilities.body.shape.pos.x,
-                y: player.abilities.body.shape.pos.y,
-                redius: player.abilities.body.shape.redius,
-                color: player.abilities.body.color
-            };
-        })
+            return Object.assign({}, {
+                    id: player.id,
+                    socketId: player.socketId,
+                    color: player.abilities.body.color,
+                    vel: player.abilities.velocity.vel,
+                },
+                player.abilities.position.pos,
+                player.abilities.body.shape
+            );
+            // return {
+            //     id: player.id,
+            //     socketId: player.socketId,
+            //     x: player.abilities.position.pos.x,
+            //     y: player.abilities.position.pos.y,
+            //     redius: player.abilities.body.shape.redius,
+            //     color: player.abilities.body.color
+            // };
+        });
         console.log(Object.keys(players).length);
         this.server.doTick(players);
     };
@@ -166,8 +187,16 @@ var Game = function Game() {
         // }
 
         var playerPos = new game.Shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1);
-        var playerCirc = new game.Shapes.Circ(Math.floor(Math.random() * (30 - 10 + 1)) + 1, playerPos);
-        var player = this.Entity.createPlayer(data.userName, playerCirc, 'blue');
+        var playerCirc = new game.Shapes.Circ(Math.floor(Math.random() * (30 - 10 + 1)) + 1);
+
+        var player = new Entity(data.userName);
+        player.attach(new Abilities.Body(playerCirc, 'blue'));
+        player.attach(new Abilities.Position(playerPos));
+        player.attach(new Abilities.Velocity());
+        player.attach(new Abilities.Input());
+        this.SubSystems.motion.AddEntity(player);
+        // SubSystems.Motion
+        // player.attach(new Abilities.Motion());
         player.socket_id = data.socketId;
         this.addEntity(player, 'players');
 
@@ -175,14 +204,14 @@ var Game = function Game() {
     };
 
     this.playerAction = (event) => {
-        var player = this.searchEntity(event.playerId, 'players');
-        player.addAction(event.action, event.params);
-        console.log(player);
-        // var motion = player.has('motion');
-        // if (motion.hasOwnProperty(event.action)) {
-        //     player.abilities.body.shape.pos = motion[event.action](player.abilities.body.shape.pos);
-        // }
-        // player.abilities.body.shape.pos = this[event.action](player.abilities.body.shape.pos);
+
+        this.SubSystems.input.handle(this, event);
+
+
+        // console.log('----->>>>>>>>>>>>>>>>>><<<', event.action);
+        // var player = this.searchEntity(event.playerId, 'players');
+
+        // player.addAction(event.action, event.params);
     };
 };
 

@@ -10,26 +10,6 @@ let connected = false;
 let player = {};
 
 
-initiGame();
-
-
-function initiGame() {
-    // canvas = document.getElementById('canvas');
-    // cxt = canvas.getContext('2d');
-
-    // setup all other things
-    setup();
-}
-
-function setup() {
-    // set up key press listner
-    document.addEventListener('keydown', function(evt) { doKeyDown(evt); }, true);
-
-    // set up click listener 
-    // canvas.addEventListener("click", function(evt) { doMouseClick(evt) }, true);
-
-}
-
 // Handel game join button
 $(loginBtn).on('click', (event) => {
     event.defaultPrevented;
@@ -50,6 +30,19 @@ socket.on('eat', eatingRequestSuccess);
 socket.on('goaway', eatingRequestFail);
 socket.on('tick', onTick);
 
+
+function setup() {
+    console.log(player);
+    if (player.abilities.hasOwnProperty('input')) {
+
+        // set up key press listner
+        document.addEventListener('keydown', doKeyDown, true);
+
+        // set up click listener 
+        canvas.addEventListener("click", doMouseClick, true);
+    }
+}
+
 // On request success
 function eatingRequestSuccess(data) {
     connected = true;
@@ -60,7 +53,7 @@ function eatingRequestSuccess(data) {
     canvas.style.display = "inline-flex";
     canvas.HTML = "<H1>HI Welcome in!</H1>";
     // console.log(data, 'connected :)');
-
+    setup();
     // show player    
     // spawnPlayer(player);
 
@@ -76,7 +69,7 @@ function eatingRequestFail(data) {
 
 // on tick from server
 function onTick(data) {
-    console.log('yessssssss!', data);
+    // console.log('yessssssss!', data);
 
 
     data = JSON.parse(data);
@@ -125,7 +118,7 @@ function update(data) {
 
 function spawnPlayer(plr) {
     // var body = player.has('body');
-    console.log(plr);
+    // console.log(plr);
     // var pos = player.abilities.body.shape.pos;
     // console.log(player.x, player.y, player.redius, 0, Math.PI * 2);
 
@@ -136,6 +129,9 @@ function spawnPlayer(plr) {
     cxt.fillStyle = plr.color;
     cxt.fill();
     cxt.closePath();
+
+
+    cxt.fillText(JSON.stringify(plr), 10, 10);
 };
 
 function renderPlayer(player) {
@@ -184,26 +180,24 @@ CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.cl
     this.clearRect(0, 0, this.canvas.width, this.canvas.height);
 };
 
-function doKeyDown(evt) {
-    console.log('jakjsflajslfkj');
-    var action = false;
-    switch (evt.keyCode) {
-        case 38:
-            action = 'up';
-            break;
-        case 40:
-            action = 'down';
-            break;
-        case 37:
-            action = 'left';
-            break;
-        case 39:
-            action = 'right';
-            break;
-    }
+function doMouseClick(evt) {
+    console.log('clickingggggggggggggggggggggggg');
+    evt.preventDefault();
+    socket.emit('action', { playerId: player.id, action: 'gotoMouse', params: { mouse: getMouseXY(evt) } });
+}
 
-    if (action) {
+function getMouseXY(evt) {
+    var canvasBox = canvas.getBoundingClientRect();
+    return {
+        x: (evt.clientX - canvasBox.left) * (canvas.width / canvasBox.width),
+        y: (evt.clientY - canvasBox.top) * (canvas.height / canvasBox.height)
+    };
+}
+
+function doKeyDown(evt) {
+    var actions = [38, 40, 37, 39];
+    if (actions.indexOf(evt.keyCode) >= 0) {
         evt.preventDefault();
-        socket.emit('player-action', { playerId: player.id, action: action, params: {} });
+        socket.emit('player-action', { playerId: player.id, action: evt.keyCode, params: {} });
     }
 }

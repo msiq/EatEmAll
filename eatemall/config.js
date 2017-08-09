@@ -2,7 +2,7 @@ module.exports =
     exports = {
         gameport: 4444,
         server: {
-            frameRate: 30
+            frameRate: 10
         },
         canvas: {
             width: 600,
