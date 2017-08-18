@@ -117,10 +117,21 @@ function Motion(game) {
                 });
             }
 
+            entity.abilities.position.pos = this.limit(entity.abilities.position.pos);
+
         }, this);
 
         console.log(this.name + ' issssssssss updateding!.....');
     };
+    this.limit = (pos) => {
+        return Object.assign({},
+            pos, {
+                x: pos.x < 0 ? 0 : (pos.x > config.canvas.width) ? config.canvas.width : pos.x,
+                y: pos.y < 0 ? 0 : (pos.y > config.canvas.height) ? config.canvas.height : pos.y,
+                z: pos.z < 0 ? 0 : (pos.z > config.canvas.height) ? config.canvas.height : pos.z,
+            }
+        )
+    }
     this.applyEase = function(val, ease) {
         if (val !== 0) {
             if (val > 0) {

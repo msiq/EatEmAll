@@ -6,7 +6,7 @@ module.exports =
         },
         canvas: {
             width: 600,
-            height: 300
+            height: 400
         },
         dots: {
             minRad: 15,
