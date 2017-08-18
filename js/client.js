@@ -87,6 +87,7 @@ function onTick(data) {
 function update(data) {
     cxt.clear();
     var ps = data.players;
+    console.log(ps);
     for (p in ps) {
         // console.log(ps[p]);
         renderPlayer(ps[p]);
@@ -129,8 +130,7 @@ function spawnPlayer(plr) {
     cxt.fillStyle = plr.color;
     cxt.fill();
     cxt.closePath();
-
-
+    // console.log(plr);
     cxt.fillText(JSON.stringify(plr), 10, 10);
 };
 
@@ -183,7 +183,7 @@ CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.cl
 function doMouseClick(evt) {
     console.log('clickingggggggggggggggggggggggg');
     evt.preventDefault();
-    socket.emit('action', { playerId: player.id, action: 'gotoMouse', params: { mouse: getMouseXY(evt) } });
+    socket.emit('player-action', { playerId: player.id, action: 'click', params: { mouse: getMouseXY(evt) } });
 }
 
 function getMouseXY(evt) {

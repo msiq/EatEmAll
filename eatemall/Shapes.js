@@ -2,7 +2,7 @@ function Shape() {
     this.color = 'blue';
 }
 var Shapes = {
-    Vect: function(x, y, z = 0) {
+    Vect: function(x = 0, y = 0, z = 0) {
         name: 'vector';
         this.x = x;
         this.y = y;

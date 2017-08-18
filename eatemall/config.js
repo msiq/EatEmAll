@@ -2,7 +2,7 @@ module.exports =
     exports = {
         gameport: 4444,
         server: {
-            frameRate: 10
+            frameRate: 30
         },
         canvas: {
             width: 600,
@@ -15,7 +15,7 @@ module.exports =
         player: {
             fps: 30,
             speed: 2,
-            ease: 0.1,
+            ease: 0.2,
             rad: 20,
             turn: 2,
         }

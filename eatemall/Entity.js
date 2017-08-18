@@ -1,5 +1,6 @@
 const UUID = require('node-uuid');
 const Shapes = require('./Shapes.js');
+const config = require('./config.js');
 
 const Abilities = require('./Abilities.js');
 
@@ -18,6 +19,7 @@ var Entity = function(name = 'noname') {
     this.has = (ability) => {
         return this.abilities.hasOwnProperty(ability) ? this.abilities[ability] : false;
     }
+
     this.attach = function(ability) {
         if (ability.constructor.name === 'Ability') {
             this.abilities[ability.name] = ability;
@@ -25,10 +27,47 @@ var Entity = function(name = 'noname') {
     }
 
     this.update = () => {
-        var pos = this.abilities.position.pos;
-        var vel = this.abilities.velocity.vel;
-        this.abilities.position.pos = Object.assign({}, pos, { x: pos.x + vel.x, y: pos.y + vel.y });
+
+        // if (this.debounce(1000)) {
+        //     let vel = this.abilities.velocity.velocity;
+        //     this.abilities.velocity.velocity = Object.assign({}, vel, {
+        //         x: this.applyEase(vel.x, config.player.ease),
+        //         y: this.applyEase(vel.y, config.player.ease),
+        //         z: this.applyEase(vel.z, config.player.ease),
+        //     });
+        // }
     };
+
+    // this.applyEase = function(val, ease) {
+    //     if (val !== 0) {
+    //         if (val > 0) {
+    //             val = val - ease;
+    //         } else {
+    //             val = Math.abs(val) - ease;
+    //             if (val < 0) {
+    //                 val = 0;
+    //             } else {
+    //                 val = val * -1;
+    //             }
+    //         }
+    //     }
+
+    //     return Number(val.toFixed(2));
+    // }
+    this.limit = function(value) {
+        return (Math.abs(value) > 0) ? value : 0;
+    }
+
+    // this.last = 0;
+    // this.now = 0;
+    // this.debounce = (wait) => {
+    //     this.now = Date.now();
+    //     let canCall = ((this.now - this.last) > wait) ? true : false;
+    //     // console.log('-------------------------------------->', canCall, this.last, this.now);
+    //     this.last = (canCall) ? Date.now() : this.last;
+
+    //     return canCall;
+    // }
 
     // this.createPlayer = function(name, shape, color = 'blue') {
 

@@ -24,9 +24,15 @@ Position.prototype = new Ability;
 
 function Velocity(vector = null) {
     this.name = 'velocity';
-    this.vel = vector ? vector : new Shapes.Vect(0, 0);
+    this.velocity = vector ? vector : new Shapes.Vect(0, 0);
 }
 Velocity.prototype = new Ability;
+
+function Gravity(vector = null) {
+    this.name = 'gravity';
+    this.gravity = vector ? vector : new Shapes.Vect(0, 0.5);
+}
+Gravity.prototype = new Ability;
 
 function Input() {
     this.name = 'input';
@@ -39,4 +45,5 @@ module.exports =
         Position,
         Velocity,
         Input,
+        Gravity,
     };

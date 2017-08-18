@@ -10,11 +10,14 @@ const Player = require('./Player.js');
 const Abilities = require('./Abilities.js');
 
 const SubSystems = require('./SubSystems.js');
+const MessageSystem = require('./MessageBus.js');
 
 
 var Game = function Game() {
     this.server = new GameServer();
-    this.SubSystems = SubSystems;
+    this.subSystems = SubSystems(this);
+    // console.log(this.subSystems);
+    this.messageBus = new MessageSystem.MessageBus(this);
 
     this.state = false;
     this.players = {};
@@ -59,9 +62,8 @@ var Game = function Game() {
         var players = this.getEntities('players');
 
         if (players.length > 0) {
-
-            Object.keys(SubSystems).forEach((SubSystem) => {
-                SubSystems[SubSystem].update();
+            Object.keys(this.subSystems).forEach((subSystem) => {
+                this.subSystems[subSystem].update();
             });
 
             players.forEach((player) => {
@@ -86,7 +88,7 @@ var Game = function Game() {
                     id: player.id,
                     socketId: player.socketId,
                     color: player.abilities.body.color,
-                    vel: player.abilities.velocity.vel,
+                    vel: player.abilities.velocity.velocity,
                 },
                 player.abilities.position.pos,
                 player.abilities.body.shape
@@ -191,11 +193,15 @@ var Game = function Game() {
 
         var player = new Entity(data.userName);
         player.attach(new Abilities.Body(playerCirc, 'blue'));
+
         player.attach(new Abilities.Position(playerPos));
         player.attach(new Abilities.Velocity());
         player.attach(new Abilities.Input());
-        this.SubSystems.motion.AddEntity(player);
-        // SubSystems.Motion
+        this.subSystems.motion.AddEntity(player);
+
+        player.attach(new Abilities.Gravity());
+        this.subSystems.physics.AddEntity(player);
+        // subSystems.Motion
         // player.attach(new Abilities.Motion());
         player.socket_id = data.socketId;
         this.addEntity(player, 'players');
@@ -205,7 +211,9 @@ var Game = function Game() {
 
     this.playerAction = (event) => {
 
-        this.SubSystems.input.handle(this, event);
+        // this should go to message bus
+
+        this.subSystems.input.handle(event);
 
 
         // console.log('----->>>>>>>>>>>>>>>>>><<<', event.action);

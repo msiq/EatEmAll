@@ -30,6 +30,7 @@ function GameServer() {
         console.log('conneted with something!');
         this.onRequest('letmeeat', game.onletMeEat);
         this.onRequest('player-action', game.playerAction);
+        // this.onRequest('click', game.playerAction);
     };
     this.onRequest = (request, onRequest) => {
         this.sockets.map((soc) => {
@@ -41,7 +42,7 @@ function GameServer() {
     };
     this.letEmEat = (player) => {
         console.log('letttttttttttttttttttt Em Eat!');
-        io.sockets.sockets[player.socket_id].emit('eat', { player, jsonn: JSON.stringify(player) });
+        io.sockets.sockets[player.socket_id].emit('eat', { player });
     };
     this.goAway = (socketId) => {
         io.sockets.sockets[socketId].emit('goaway');
