@@ -8,6 +8,7 @@ var Entity = function(name = 'noname') {
     this.id = UUID();
     this.name = name;
     this.socket_id = false;
+    this.type = '';
 
     this.actions = [];
     // Array.pop will remove this action once its applied
@@ -54,9 +55,9 @@ var Entity = function(name = 'noname') {
 
     //     return Number(val.toFixed(2));
     // }
-    this.limit = function(value) {
-        return (Math.abs(value) > 0) ? value : 0;
-    }
+    // this.limit = function(value) {
+    //     return (Math.abs(value) > 0) ? value : 0;
+    // }
 
     // this.last = 0;
     // this.now = 0;

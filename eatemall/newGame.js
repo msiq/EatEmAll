@@ -30,7 +30,9 @@ game.setup = function() {
 };
 
 game.update = function() {
-    console.log('I am updating...');
+    // console.log('I am updating...');
+
+
 };
 
 function addDot() {

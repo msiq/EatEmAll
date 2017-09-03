@@ -29,7 +29,7 @@ function GameServer() {
         this.sockets.push(sock);
         console.log('conneted with something!');
         this.onRequest('letmeeat', game.onletMeEat);
-        this.onRequest('player-action', game.playerAction);
+        this.onRequest('input', game.playerInput);
         // this.onRequest('click', game.playerAction);
     };
     this.onRequest = (request, onRequest) => {

@@ -1,5 +1,3 @@
-
-
 function inits() {
     addFood();
 
@@ -18,11 +16,11 @@ var mouseY;
 var player1;
 
 var settings = {
-    fps:30,
-    speed:2,
-    ease:0.1,
-    rad:20,
-    turn:2,
+    fps: 30,
+    speed: 2,
+    ease: 0.1,
+    rad: 20,
+    turn: 2,
 };
 
 function Player(name, style) {
@@ -34,12 +32,12 @@ function Player(name, style) {
     this.originalColor = this.color;
     var skin = document.createElement('img');
     skin.src = '/img/player.png';
- 
-    this.skin=skin;
+
+    this.skin = skin;
     var player = this;
 }
 
-Player.prototype.move = function (move) {
+Player.prototype.move = function(move) {
     this.x = move.x;
     this.y = move.y;
 
@@ -47,9 +45,9 @@ Player.prototype.move = function (move) {
     this.cxt.fillStyle = this.color;
     this.cxt.arc(this.x, this.y, this.rad, 0, Math.PI * 2, true);
 
-    if(typeof this.skin == 'object') {
+    if (typeof this.skin == 'object') {
         // cxt.globalCompositeOperation = 'source-over';
-        cxt.drawImage(this.skin, this.x-this.rad, this.y-this.rad, this.rad*2, this.rad*2);
+        cxt.drawImage(this.skin, this.x - this.rad, this.y - this.rad, this.rad * 2, this.rad * 2);
     } else {
         this.cxt.fill();
     }
@@ -63,10 +61,10 @@ Player.prototype.move = function (move) {
 var canvas = {
     height: 400,
     width: 600,
-    getBoundingClientRect: function () {
+    getBoundingClientRect: function() {
         return {
-            height:500,
-            width:300
+            height: 500,
+            width: 300
         };
     }
 }
@@ -79,13 +77,13 @@ var move = {
     speed: settings.speed,
     timer: false,
     going: false,
-    dragging:false,
-    turn:0,
+    dragging: false,
+    turn: 0,
     x: 100,
     y: 100,
-    offsetX:0,
-    offsetY:0,
-    up: function () {
+    offsetX: 0,
+    offsetY: 0,
+    up: function() {
         if (this.y - this.speed - settings.rad >= this.minY) {
             this.y -= this.speed;
             this.going = this.up;
@@ -93,14 +91,14 @@ var move = {
             this.going = false;
         }
     },
-    down: function () {
+    down: function() {
         if (this.y + this.speed + settings.rad <= this.maxY) {
             this.y += this.speed;
-            if(this.going == this.right){
+            if (this.going == this.right) {
                 this.x += this.offsetY;
                 // console.log('right down', this.going);
             }
-            if(this.going == this.left) {
+            if (this.going == this.left) {
                 this.x -= this.offsetY;
                 // console.log('right left', this.going);
             }
@@ -109,7 +107,7 @@ var move = {
             this.going = false;
         }
     },
-    left: function () {
+    left: function() {
         if (this.x - this.speed - settings.rad >= this.minX) {
             this.x -= this.speed;
             this.going = this.left;
@@ -117,7 +115,7 @@ var move = {
             this.going = false;
         }
     },
-    right: function () {
+    right: function() {
         if (this.x + this.speed + settings.rad <= this.maxX) {
             this.x += this.speed;
             this.going = this.right;
@@ -125,7 +123,7 @@ var move = {
             this.going = false;
         }
     },
-    keepGoing: function () {
+    keepGoing: function() {
         if (move.going) {
             collisionTest(player1, dots);
             move.going();
@@ -136,19 +134,23 @@ var move = {
             move.stopGoing();
         }
     },
-    goto: function (newX, newY) { this.x = newX || this.mouseX; this.y = newY || this.mouseY; },
+    goto: function(newX, newY) { this.x = newX || this.mouseX;
+        this.y = newY || this.mouseY; },
     mouseX: 0,
     mouseY: 0,
-    getMouseXY: function (evt) {
+    getMouseXY: function(evt) {
         var bRect = canvas.getBoundingClientRect();
         this.mouseX = (evt.clientX - bRect.left) * (canvas.width / bRect.width);
         this.mouseY = (evt.clientY - bRect.top) * (canvas.height / bRect.height);
-        return {mouseX: this.mouseX, mouseY: this.mouseX};
+        return { mouseX: this.mouseX, mouseY: this.mouseX };
     },
     ease: settings.ease, //0 to 1
-    gotoStep: function (stepX, stepY) { this.x = stepX; this.y = stepY; },
-    stopGoing: function () { clearInterval(move.timer); move.timer = false; move.going = false; },
-    goTowards: function () {
+    gotoStep: function(stepX, stepY) { this.x = stepX;
+        this.y = stepY; },
+    stopGoing: function() { clearInterval(move.timer);
+        move.timer = false;
+        move.going = false; },
+    goTowards: function() {
 
     }
 };
@@ -157,7 +159,7 @@ var move = {
 function colorWeight(RGBColor) {
     var weight = 0;
     for (var i = 0; i < RGBColor.length; i++) {
-        var numberValue = RGBColor.charCodeAt(i) - ((RGBColor.charCodeAt(i) > 96)? 87 : 48);
+        var numberValue = RGBColor.charCodeAt(i) - ((RGBColor.charCodeAt(i) > 96) ? 87 : 48);
         weight += parseInt(numberValue);
     }
 
@@ -167,13 +169,13 @@ function colorWeight(RGBColor) {
 function onTimerTick() {
 
     // Test if something colliding
-    collisionTest(player1, dots); 
+    collisionTest(player1, dots);
     cxt.clear();
 
     //move.ease*
     //console.log(player1.x+ move.ease*(player1.x - move.mouseX), player1.y + move.ease*(player1.x - move.mouseY));
-    var gotox = player1.x + (move.mouseX - player1.x) * move.ease;// (move.mouseX - player1.x)/2;
-    var gotoy = player1.y + (move.mouseY - player1.y) * move.ease;//- player1.y)/2;
+    var gotox = player1.x + (move.mouseX - player1.x) * move.ease; // (move.mouseX - player1.x)/2;
+    var gotoy = player1.y + (move.mouseY - player1.y) * move.ease; //- player1.y)/2;
     //gotox = (gotox > move.maxX)? move.maxX: (gotox < 0)? 10: gotox;
     //gotoy = (gotoy > move.maxY)? move.maxY: (gotoy < 0)? 10: gotoy;
 
@@ -184,7 +186,7 @@ function onTimerTick() {
     if (!move.dragging && Math.abs(player1.x - move.mouseX) <= 0.1 && Math.abs(player1.y - move.mouseY) <= 0.1) {
         clearInterval(move.timer);
         move.timer = false;
-    }else{
+    } else {
         //do something here
     }
 }
@@ -197,21 +199,20 @@ function hitTest(shape, mx, my) {
 
 // object player  player object which we want to check if its touching the any of the given objects
 // array objects array of object that could collide with player
-function collisionTest(player, objects)
-{
+function collisionTest(player, objects) {
     var touching = false;
     var depth = 0;
-    for (var i=0;i<objects.length;i++) {
+    for (var i = 0; i < objects.length; i++) {
         object = objects[i];
-        
+
         var dx = player.x - object.x;
         var dy = player.y - object.y;
-        depth = player.rad + object.rad - Math.sqrt(dx*dx + dy*dy);
+        depth = player.rad + object.rad - Math.sqrt(dx * dx + dy * dy);
         if (depth > 0) {
             touching = true;
         }
         if (depth > 5) {
-            player.rad = player.rad + object.rad/100;
+            player.rad = player.rad + object.rad / 100;
             dots.splice(i, 1);
             if (dots.length == 0) { // if there are no dots left add some more  
                 addFood();

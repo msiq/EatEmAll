@@ -131,7 +131,9 @@ function spawnPlayer(plr) {
     cxt.fill();
     cxt.closePath();
     // console.log(plr);
-    cxt.fillText(JSON.stringify(plr), 10, 10);
+    if (plr.name == 'plr') {
+        cxt.fillText(JSON.stringify(plr), 10, 10);
+    }
 };
 
 function renderPlayer(player) {
@@ -183,7 +185,7 @@ CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.cl
 function doMouseClick(evt) {
     console.log('clickingggggggggggggggggggggggg');
     evt.preventDefault();
-    socket.emit('player-action', { playerId: player.id, action: 'click', params: { mouse: getMouseXY(evt) } });
+    socket.emit('input', { playerId: player.id, action: 'click', params: { mouse: getMouseXY(evt) } });
 }
 
 function getMouseXY(evt) {
@@ -198,6 +200,6 @@ function doKeyDown(evt) {
     var actions = [38, 40, 37, 39];
     if (actions.indexOf(evt.keyCode) >= 0) {
         evt.preventDefault();
-        socket.emit('player-action', { playerId: player.id, action: evt.keyCode, params: {} });
+        socket.emit('input', { playerId: player.id, params: { input: evt.keyCode } });
     }
 }

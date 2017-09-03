@@ -1,6 +1,7 @@
 const Type = {
     INPUT: 'input',
-    MOTION: 'motion'
+    MOTION: 'motion',
+    PHYSICS: 'physics'
 }
 
 function Message(type, entities = [], params = {}) {
@@ -13,7 +14,10 @@ const MessageBus = function(game) {
     this.game = game;
     this.messages = [];
 
-    this.add = (message) => this.messages.push(message);
+    this.add = (message) => {
+        this.messages.push(message);
+        // console.log(this.messages)
+    };
     this.getNext = () => this.isEmpty() ? false : this.messages.pop();
     this.isEmpty = () => this.messages.length === 0;
 }

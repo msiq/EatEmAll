@@ -62,8 +62,22 @@ var Game = function Game() {
         var players = this.getEntities('players');
 
         if (players.length > 0) {
+
+            if (!this.messageBus.isEmpty()) {
+                while (message = this.messageBus.messages.pop()) {
+                    Object.keys(this.subSystems).forEach((subSystem) => {
+                        this.subSystems[subSystem].handleMessage(message)
+                    });
+                }
+            }
+
+
+
+
             Object.keys(this.subSystems).forEach((subSystem) => {
+                this.subSystems[subSystem].preUpdate();
                 this.subSystems[subSystem].update();
+                this.subSystems[subSystem].postUpdate();
             });
 
             players.forEach((player) => {
@@ -88,7 +102,9 @@ var Game = function Game() {
                     id: player.id,
                     socketId: player.socketId,
                     color: player.abilities.body.color,
-                    vel: player.abilities.velocity.velocity,
+                    vel: player.has('velocity') ? player.abilities.velocity.velocity : {},
+                    name: player.name,
+                    type: player.type,
                 },
                 player.abilities.position.pos,
                 player.abilities.body.shape
@@ -102,7 +118,7 @@ var Game = function Game() {
             //     color: player.abilities.body.color
             // };
         });
-        console.log(Object.keys(players).length);
+        // console.log(Object.keys(players).length);
         this.server.doTick(players);
     };
 
@@ -146,17 +162,22 @@ var Game = function Game() {
         default: []
     };
     this.addEntity = function(entity, type = 'default') {
+        entity.type = type;
         this.entities[type].push(entity);
     };
     this.addEntityType = function(name) {
         this.entities[name] = [];
     };
     this.getEntities = function(type) {
+
+        // return this.entities.filter((entity) => entity['type'] === type);
         if (this.entities[type] !== undefined) {
             return this.entities[type];
+        } else {
+            return [];
         }
 
-        throw 'Entities of type "' + type + '" does not exists!';
+        // throw 'Entities of type "' + type + '" does not exists!';
     };
     this.searchEntity = function(id, type) {
         if (this.entities[type] !== undefined) {
@@ -189,32 +210,80 @@ var Game = function Game() {
         // }
 
         var playerPos = new game.Shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1);
-        var playerCirc = new game.Shapes.Circ(Math.floor(Math.random() * (30 - 10 + 1)) + 1);
+        var playerCirc = new game.Shapes.Circ(10); //Math.floor(Math.random() * (30 - 10 + 1)) + 1);
+
+
+
+
+        // Add a dot to play with collisions
+        var dotPos = new game.Shapes.Vect(config.canvas.width / 2, config.canvas.height / 2);
+        var dotCirc = new game.Shapes.Circ(25);
+        var dot = new Entity();
+        dot.attach(new Abilities.Body(dotCirc, 'blue'));
+        dot.attach(new Abilities.Position(dotPos));
+        dot.attach(new Abilities.Collidable());
+        this.subSystems.collision.AddEntity(dot);
+
+        this.addEntity(dot, 'players');
+
+
 
         var player = new Entity(data.userName);
-        player.attach(new Abilities.Body(playerCirc, 'blue'));
-
+        player.attach(new Abilities.Body(playerCirc, 'green'));
         player.attach(new Abilities.Position(playerPos));
         player.attach(new Abilities.Velocity());
         player.attach(new Abilities.Input());
         this.subSystems.motion.AddEntity(player);
 
+        player.attach(new Abilities.Cor());
+
+        player.attach(new Abilities.Collidable());
+        this.subSystems.collision.AddEntity(player);
+
         player.attach(new Abilities.Gravity());
         this.subSystems.physics.AddEntity(player);
+
         // subSystems.Motion
         // player.attach(new Abilities.Motion());
         player.socket_id = data.socketId;
         this.addEntity(player, 'players');
 
+
         this.server.letEmEat(player);
     };
 
-    this.playerAction = (event) => {
+    this.playerInput = (event) => {
 
+        this.messageBus.add(
+            new MessageSystem.Message(MessageSystem.Type.INPUT, [event.playerId], { input: event.params.input })
+        );
         // this should go to message bus
 
-        this.subSystems.input.handle(event);
 
+
+
+
+
+        // this.subSystems.input.handle(event);
+
+
+
+
+
+
+
+
+        // this.handle = function(event) {
+        //     if (this.actions[event.action]) {
+        //         this.game.messageBus.add(
+        //             new MessageSystem.Message(
+        //                 MessageSystem.Type.MOTION, [event.playerId],
+        //                 Object.assign({}, event.params, { action: this.actions[event.action] })
+        //             )
+        //         );
+        //         // game.searchEntity(event.playerId, 'players').addAction(this.actions[event.action], event.params);
+        //     }
+        // };
 
         // console.log('----->>>>>>>>>>>>>>>>>><<<', event.action);
         // var player = this.searchEntity(event.playerId, 'players');

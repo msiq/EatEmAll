@@ -13,6 +13,7 @@ function Body(shape, color = 'red') {
     }
     this.shape = shape;
     this.color = color;
+    this.originalColor = color;
 }
 Body.prototype = new Ability;
 
@@ -34,10 +35,22 @@ function Gravity(vector = null) {
 }
 Gravity.prototype = new Ability;
 
+function Collidable(vector = null) {
+    this.name = 'collidable';
+    this.gravity = vector ? vector : new Shapes.Vect(0, 0.5);
+}
+Collidable.prototype = new Ability;
+
 function Input() {
     this.name = 'input';
 }
 Input.prototype = new Ability;
+
+function Cor(cor = .5) { //elasticity
+    this.name = 'cor';
+    this.cor = cor;
+}
+Cor.prototype = new Ability;
 
 module.exports =
     exports = {
@@ -46,4 +59,6 @@ module.exports =
         Velocity,
         Input,
         Gravity,
+        Collidable,
+        Cor,
     };
