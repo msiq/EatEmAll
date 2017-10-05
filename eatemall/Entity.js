@@ -10,6 +10,7 @@ var Entity = function(name = 'noname') {
     this.socket_id = false;
     this.type = '';
 
+
     this.actions = [];
     // Array.pop will remove this action once its applied
     this.addAction = function(action, params = {}) {
@@ -17,6 +18,7 @@ var Entity = function(name = 'noname') {
     };
 
     this.abilities = {};
+    // this.abilities[Abilities.Orientation.name] = new Abilities.Orientation();
     this.has = (ability) => {
         return this.abilities.hasOwnProperty(ability) ? this.abilities[ability] : false;
     }
@@ -25,6 +27,25 @@ var Entity = function(name = 'noname') {
         if (ability.constructor.name === 'Ability') {
             this.abilities[ability.name] = ability;
         }
+    }
+
+    this.distance = function(entity) {
+        let thisPos = this.abilities.position.pos;
+        let enPos = entity.abilities.position.pos;
+
+        console.log(thisPos.x, enPos.x, thisPos.y, enPos.y, 'ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ');
+        let deltaX = thisPos.x - enPos.x;
+        let deltaY = thisPos.y - enPos.y;
+
+
+
+        console.log((deltaX * deltaY), (deltaX * deltaY), '---------------------------------------------------------::::::');
+        return {
+            x: deltaX,
+            y: deltaY,
+            z: 0,
+            mag: Math.sqrt((deltaX * deltaX) + (deltaY * deltaY))
+        };
     }
 
     this.update = () => {

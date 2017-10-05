@@ -121,18 +121,29 @@ function spawnPlayer(plr) {
     // var body = player.has('body');
     // console.log(plr);
     // var pos = player.abilities.body.shape.pos;
-    // console.log(player.x, player.y, player.redius, 0, Math.PI * 2);
+    // console.log(player.x, player.y, player.radius, 0, Math.PI * 2);
 
     cxt.beginPath();
     cxt.fillStyle = plr.color;
 
-    cxt.arc(plr.x, plr.y, plr.redius, 0, Math.PI * 2);
+    cxt.arc(plr.x, plr.y, plr.radius, 0, Math.PI * 2);
     cxt.fillStyle = plr.color;
     cxt.fill();
     cxt.closePath();
+
+    // draw direction line
+    cxt.beginPath();
+    cxt.lineWidth = 5;
+    cxt.moveTo(plr.x, plr.y);
+    cxt.lineTo(plr.x + plr.dir.x, plr.y + plr.dir.y);
+    cxt.stroke();
+    cxt.closePath();
+
+
     // console.log(plr);
     if (plr.name == 'plr') {
-        cxt.fillText(JSON.stringify(plr), 10, 10);
+        cxt.fillStyle = 'red';
+        cxt.fillText(JSON.stringify(plr), 30, 30);
     }
 };
 

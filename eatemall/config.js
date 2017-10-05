@@ -18,5 +18,10 @@ module.exports =
             ease: 0.2,
             rad: 20,
             turn: 2,
+        },
+        env: {
+            gravity: 9.8,
+            airResistance: 0.1,
+            surfaceResistance: 0.3
         }
     };

@@ -80,12 +80,12 @@ var Game = function Game() {
                 this.subSystems[subSystem].postUpdate();
             });
 
-            players.forEach((player) => {
-                player.update();
-                //         Object.keys(player.abilities).forEach((comp) => {
-                //             player.abilities[comp].update(player);
-                //         })
-            });
+            // players.forEach((player) => {
+            //     player.update();
+            //     //         Object.keys(player.abilities).forEach((comp) => {
+            //     //             player.abilities[comp].update(player);
+            //     //         })
+            // });
         }
     };
 
@@ -97,24 +97,35 @@ var Game = function Game() {
 
         // console.log(this.entities);
         let players = this.getEntities('players');
+
         players = players.map((player) => {
+            let ort = player.abilities.orientation.orientation;
+            let vel = player.has('velocity') ? player.abilities.velocity.velocity : new Shapes.Vect();
+            let shape = player.abilities.body.shape;
+            let dir = ort.multi(shape.radius + 2);
             return Object.assign({}, {
                     id: player.id,
                     socketId: player.socketId,
                     color: player.abilities.body.color,
-                    vel: player.has('velocity') ? player.abilities.velocity.velocity : {},
+                    vel,
                     name: player.name,
                     type: player.type,
+                    dir: {
+                        x: dir.x,
+                        y: dir.y,
+                        z: dir.z
+                    }
                 },
                 player.abilities.position.pos,
                 player.abilities.body.shape
+
             );
             // return {
             //     id: player.id,
             //     socketId: player.socketId,
             //     x: player.abilities.position.pos.x,
             //     y: player.abilities.position.pos.y,
-            //     redius: player.abilities.body.shape.redius,
+            //     radius: player.abilities.body.shape.radius,
             //     color: player.abilities.body.color
             // };
         });
@@ -168,6 +179,19 @@ var Game = function Game() {
     this.addEntityType = function(name) {
         this.entities[name] = [];
     };
+    this.getEntityById = function(id) {
+        // this.entities.forEach(function(entities) {
+        for (entitGroup in this.entities) {
+            for (entity in this.entities[entitGroup]) {
+                if (this.entities[entitGroup][entity].id == id) {
+                    return this.entities[entitGroup][entity];
+                }
+            }
+        }
+        // });
+
+        return false;
+    };
     this.getEntities = function(type) {
 
         // return this.entities.filter((entity) => entity['type'] === type);
@@ -218,14 +242,20 @@ var Game = function Game() {
         // Add a dot to play with collisions
         var dotPos = new game.Shapes.Vect(config.canvas.width / 2, config.canvas.height / 2);
         var dotCirc = new game.Shapes.Circ(25);
-        var dot = new Entity();
+        var dot = new Entity('dot');
         dot.attach(new Abilities.Body(dotCirc, 'blue'));
         dot.attach(new Abilities.Position(dotPos));
         dot.attach(new Abilities.Collidable());
+        dot.attach(new Abilities.Velocity());
+        dot.attach(new Abilities.Mass(40));
+
+        dot.attach(new Abilities.Orientation());
+        dot.attach(new Abilities.Gravity());
         this.subSystems.collision.AddEntity(dot);
+        this.subSystems.physics.AddEntity(dot);
+        this.subSystems.motion.AddEntity(dot);
 
         this.addEntity(dot, 'players');
-
 
 
         var player = new Entity(data.userName);
@@ -233,21 +263,24 @@ var Game = function Game() {
         player.attach(new Abilities.Position(playerPos));
         player.attach(new Abilities.Velocity());
         player.attach(new Abilities.Input());
-        this.subSystems.motion.AddEntity(player);
-
+        player.attach(new Abilities.Mass(20));
         player.attach(new Abilities.Cor());
-
         player.attach(new Abilities.Collidable());
-        this.subSystems.collision.AddEntity(player);
-
         player.attach(new Abilities.Gravity());
+
+        player.attach(new Abilities.Orientation());
+
+        this.subSystems.collision.AddEntity(player);
+        this.subSystems.motion.AddEntity(player);
         this.subSystems.physics.AddEntity(player);
 
-        // subSystems.Motion
-        // player.attach(new Abilities.Motion());
         player.socket_id = data.socketId;
         this.addEntity(player, 'players');
 
+        // oconnect player and dot with a string
+        // let connString = new Abilities.String(dot.id, player.id, 100, 0.2);
+        // dot.attach(connString);
+        // player.attach(connString);
 
         this.server.letEmEat(player);
     };

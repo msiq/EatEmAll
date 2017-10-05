@@ -6,6 +6,8 @@ const GameClass = require('./GameClass.js');
 // const PlayerState = require('./PlayerState.js');
 // const Player = require('./Player.js');
 
+const Shapes = require('./Shapes.js');
+
 var game = new GameClass();
 game.setup = function() {
     game.addEntityType('players');
@@ -26,11 +28,27 @@ game.setup = function() {
 
     console.log('setting up game');
 
-    console.log(game.entities['players']);
+    // test vector class
+    // let v = new Shapes.Vect(-6, 8, 0);
+    // let v2 = new Shapes.Vect(5, 12, 0);
+    // let v3 = v.rev();
+    // console.log(v);
+    // console.log(v3);
+    // let unit = v.unit();
+    // console.log(unit);
+    // console.log(unit.mag());
+    // return;
+
+    // console.log(game.entities['players']);
 };
 
 game.update = function() {
     // console.log('I am updating...');
+    // game.entities['players'].forEach(function(entity) {
+    //     console.log(JSON.stringify(entity));
+    // }, this);
+
+
 
 
 };

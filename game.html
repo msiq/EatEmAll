@@ -114,7 +114,7 @@
             z-index: 1;
         }
         
-        canvas {
+        .canvas {
             background-color: ghostwhite;
             /* previous syntax */
             -webkit-box-flex: 1;
@@ -126,15 +126,15 @@
             -moz-flex: 1;
             -ms-flex: 1;
             flex: 1;
-            max-height: 80%;
+            height: 80%;
             min-height: 600px;
-            max-width: 80%;
+            width: 80%;
             min-width: 600px;
-            border: 5px solid green;
+            border: 5px solid #484848;
             display: none;
         }
         
-        #menu {
+        .menu {
             background-color: whitesmoke;
             /* previous syntax */
             -webkit-box-flex: 1;
@@ -146,11 +146,11 @@
             -moz-flex: 1;
             -ms-flex: 1;
             flex: 1;
-            max-height: 80%;
+            height: 80%;
             min-height: 600px;
-            max-width: 80%;
+            width: 80%;
             min-width: 600px;
-            border: 5px solid green;
+            border: 5px solid #484848;
             z-index: 100;
         }
     </style>
@@ -159,7 +159,7 @@
 <body class="vbox viewport">
     <header>---</header>
     <div id="wrapper">
-        <div id="menu">
+        <div id="menu" class="menu">
             <section id="login-header">
                 <div id="wrapper">
                     <div id="heading">Hungry ?</div>
@@ -176,7 +176,7 @@
             </section>
         </div>
         <section class="main">
-            <canvas id="canvas" width="600" height="400"></canvas>
+            <canvas id="canvas" class="canvas" width="600" height="400"></canvas>
         </section>
     </div>
     <footer>---</footer>

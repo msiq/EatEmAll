@@ -17,6 +17,7 @@ function GameServer() {
         this.game = game;
         // define routes and start receiving Player connections
         app.get('/', (req, res) => res.sendFile('game.html', { root: '.' }));
+        // app.get('/', (req, res) => res.sendFile('collision-test.html', { root: '.' }));
         app.get('/*', (req, res) => res.sendFile(req.params[0], { root: '.' }));
 
         // start listening to on port 4444  
