@@ -29,7 +29,7 @@ function GameServer() {
 
         this.sockets.push(sock);
         console.log('conneted with something!');
-        this.onRequest('letmeeat', game.onletMeEat);
+        this.onRequest('letmeplay', game.onletMePlay);
         this.onRequest('input', game.playerInput);
         // this.onRequest('click', game.playerAction);
     };
@@ -41,7 +41,7 @@ function GameServer() {
     this.onResponse = (socketId, response, onResponse) => {
         io.sockets.sockets[socketId].emit(response, onResponse);
     };
-    this.letEmEat = (player) => {
+    this.letEmPlay = (player) => {
         console.log('letttttttttttttttttttt Em Eat!');
         io.sockets.sockets[player.socket_id].emit('eat', { player });
     };

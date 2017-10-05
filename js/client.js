@@ -24,7 +24,7 @@ $(loginBtn).on('click', (event) => {
 function connectToServer(userName) {
     console.log('Trying to connect');
     oldId = localStorage.getItem('eeaid');
-    socket.emit('letmeeat', { userName, oldId, socketId: socket.id });
+    socket.emit('letmeplay', { userName, oldId, socketId: socket.id });
 }
 socket.on('eat', eatingRequestSuccess);
 socket.on('goaway', eatingRequestFail);

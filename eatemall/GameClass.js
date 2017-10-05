@@ -216,7 +216,7 @@ var Game = function Game() {
 
         throw 'Entities of type "' + type + '" does not exists!';
     };
-    this.onletMeEat = (data) => {
+    this.onletMePlay = (data) => {
         console.log('let meeeeeeeeeeeeeeeeee    eattt!');
         let pid = data.oldId;
         // if info missing dont let em eat anything :|
@@ -282,7 +282,7 @@ var Game = function Game() {
         // dot.attach(connString);
         // player.attach(connString);
 
-        this.server.letEmEat(player);
+        this.server.letEmPlay(player);
     };
 
     this.playerInput = (event) => {
