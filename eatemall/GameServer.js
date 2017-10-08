@@ -43,7 +43,7 @@ function GameServer() {
     };
     this.letEmPlay = (player) => {
         console.log('letttttttttttttttttttt Em Eat!');
-        io.sockets.sockets[player.socket_id].emit('eat', { player });
+        io.sockets.sockets[player.socket_id].emit('play', { player });
     };
     this.goAway = (socketId) => {
         io.sockets.sockets[socketId].emit('goaway');

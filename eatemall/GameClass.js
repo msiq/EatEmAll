@@ -8,12 +8,12 @@ const Shapes = require('./Shapes.js');
 const Player = require('./Player.js');
 
 const Abilities = require('./Abilities.js');
-
 const SubSystems = require('./SubSystems.js');
 const MessageSystem = require('./MessageBus.js');
 
 
 var Game = function Game() {
+    this.config = config;
     this.server = new GameServer();
     this.subSystems = SubSystems(this);
     // console.log(this.subSystems);
@@ -24,16 +24,30 @@ var Game = function Game() {
     this.active = false;
     this.control = false;
 
+    this.activeConnections = {};
 
     this.events = {};
 
+    /*******************************************************************'
+     * Function available to be over ridden by Devs
+     */
+    //setup must be overriden by dev 
     this.setup = function() {
-        console.log('I am default setup....');
-
+        console.log('hey, i am default setup, look like you are missing something.');
+        throw new Error('No setup method implemented.');
     };
+    // update must be overriden by dev
     this.update = function() {
-        console.log('i am default update');
+        console.log('Hey! i am default update, you sould implement your own update method.');
+        throw new Error('No update method implemented.');
     };
+    //Dev may override joinGame() to satisfiy their needs on client requests to let them play
+    this.joinGame = function() {
+        console.log('hey, i am default join.');
+    };
+
+    //******************************************************************** */
+
 
     this.start = function() {
         this.server.serve(this);
@@ -60,9 +74,9 @@ var Game = function Game() {
     };
     this.internalUpdate = function() {
         var players = this.getEntities('players');
-
         if (players.length > 0) {
 
+            // handle all messages
             if (!this.messageBus.isEmpty()) {
                 while (message = this.messageBus.messages.pop()) {
                     Object.keys(this.subSystems).forEach((subSystem) => {
@@ -71,9 +85,7 @@ var Game = function Game() {
                 }
             }
 
-
-
-
+            // update all subsystems
             Object.keys(this.subSystems).forEach((subSystem) => {
                 this.subSystems[subSystem].preUpdate();
                 this.subSystems[subSystem].update();
@@ -99,7 +111,10 @@ var Game = function Game() {
         let players = this.getEntities('players');
 
         players = players.map((player) => {
-            let ort = player.abilities.orientation.orientation;
+
+            let ort = (player.has('orientation')) ? player.abilities.orientation.orientation : new Shapes.Vect();
+
+
             let vel = player.has('velocity') ? player.abilities.velocity.velocity : new Shapes.Vect();
             let shape = player.abilities.body.shape;
             let dir = ort.multi(shape.radius + 2);
@@ -159,10 +174,12 @@ var Game = function Game() {
     /**
      * Shapes object constructor 
      */
-    this.Shapes = Shapes;
+    this.shapes = Shapes;
+
+    this.abilities = Abilities;
 
     /** Entity object constructor */
-    this.Entity = new Entity();
+    this.Entity = Entity;
     /**
      * Add entity in entity collections
      *
@@ -225,6 +242,17 @@ var Game = function Game() {
             return 0;
         }
 
+        this.activeConnections[data.socketId] = {
+            'socketId': data.socketId,
+            'userName': data.userName
+        };
+
+
+        // connected to client do setup now
+        // this.setup();
+
+        let player = this.joinGame();
+
         // // Is returning eater :)
         // if (player = this.searchEntity(pid, 'players')) {
         //     console.log('This eater is back again!');
@@ -233,54 +261,54 @@ var Game = function Game() {
         //     return 0;
         // }
 
-        var playerPos = new game.Shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1);
-        var playerCirc = new game.Shapes.Circ(10); //Math.floor(Math.random() * (30 - 10 + 1)) + 1);
+        // var playerPos = new game.Shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1);
+        // var playerCirc = new game.Shapes.Circ(10); //Math.floor(Math.random() * (30 - 10 + 1)) + 1);
 
 
 
 
-        // Add a dot to play with collisions
-        var dotPos = new game.Shapes.Vect(config.canvas.width / 2, config.canvas.height / 2);
-        var dotCirc = new game.Shapes.Circ(25);
-        var dot = new Entity('dot');
-        dot.attach(new Abilities.Body(dotCirc, 'blue'));
-        dot.attach(new Abilities.Position(dotPos));
-        dot.attach(new Abilities.Collidable());
-        dot.attach(new Abilities.Velocity());
-        dot.attach(new Abilities.Mass(40));
+        // // Add a dot to play with collisions
+        // var dotPos = new game.Shapes.Vect(config.canvas.width / 2, config.canvas.height / 2);
+        // var dotCirc = new game.Shapes.Circ(25);
+        // var dot = new Entity('dot');
+        // dot.attach(new Abilities.Body(dotCirc, 'blue'));
+        // dot.attach(new Abilities.Position(dotPos));
+        // dot.attach(new Abilities.Collidable());
+        // dot.attach(new Abilities.Velocity());
+        // dot.attach(new Abilities.Mass(40));
 
-        dot.attach(new Abilities.Orientation());
-        dot.attach(new Abilities.Gravity());
-        this.subSystems.collision.AddEntity(dot);
-        this.subSystems.physics.AddEntity(dot);
-        this.subSystems.motion.AddEntity(dot);
+        // dot.attach(new Abilities.Orientation());
+        // dot.attach(new Abilities.Gravity());
+        // this.subSystems.collision.AddEntity(dot);
+        // this.subSystems.physics.AddEntity(dot);
+        // this.subSystems.motion.AddEntity(dot);
 
-        this.addEntity(dot, 'players');
+        // this.addEntity(dot, 'players');
 
 
-        var player = new Entity(data.userName);
-        player.attach(new Abilities.Body(playerCirc, 'green'));
-        player.attach(new Abilities.Position(playerPos));
-        player.attach(new Abilities.Velocity());
-        player.attach(new Abilities.Input());
-        player.attach(new Abilities.Mass(20));
-        player.attach(new Abilities.Cor());
-        player.attach(new Abilities.Collidable());
-        player.attach(new Abilities.Gravity());
+        // var player = new Entity(data.userName);
+        // player.attach(new Abilities.Body(playerCirc, 'green'));
+        // player.attach(new Abilities.Position(playerPos));
+        // player.attach(new Abilities.Velocity());
+        // player.attach(new Abilities.Input());
+        // player.attach(new Abilities.Mass(20));
+        // player.attach(new Abilities.Cor());
+        // player.attach(new Abilities.Collidable());
+        // player.attach(new Abilities.Gravity());
 
-        player.attach(new Abilities.Orientation());
+        // player.attach(new Abilities.Orientation());
 
-        this.subSystems.collision.AddEntity(player);
-        this.subSystems.motion.AddEntity(player);
-        this.subSystems.physics.AddEntity(player);
+        // this.subSystems.collision.AddEntity(player);
+        // this.subSystems.motion.AddEntity(player);
+        // this.subSystems.physics.AddEntity(player);
 
-        player.socket_id = data.socketId;
-        this.addEntity(player, 'players');
+        // player.socket_id = data.socketId;
+        // this.addEntity(player, 'players');
 
-        // oconnect player and dot with a string
-        // let connString = new Abilities.String(dot.id, player.id, 100, 0.2);
-        // dot.attach(connString);
-        // player.attach(connString);
+        // // oconnect player and dot with a string
+        // // let connString = new Abilities.String(dot.id, player.id, 100, 0.2);
+        // // dot.attach(connString);
+        // // player.attach(connString);
 
         this.server.letEmPlay(player);
     };

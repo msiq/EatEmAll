@@ -26,12 +26,14 @@ function connectToServer(userName) {
     oldId = localStorage.getItem('eeaid');
     socket.emit('letmeplay', { userName, oldId, socketId: socket.id });
 }
-socket.on('eat', eatingRequestSuccess);
-socket.on('goaway', eatingRequestFail);
+
+socket.on('play', onPlay);
+socket.on('goaway', onNoGameForYou);
 socket.on('tick', onTick);
 
 
 function setup() {
+
     console.log(player);
     if (player.abilities.hasOwnProperty('input')) {
 
@@ -44,9 +46,9 @@ function setup() {
 }
 
 // On request success
-function eatingRequestSuccess(data) {
+function onPlay(data) {
     connected = true;
-    console.log(data.player);
+    console.log(data.player.length);
     player = data.player;
     localStorage.setItem('eeaid', player.id);
     loginSplash.style.display = "none";
@@ -62,15 +64,13 @@ function eatingRequestSuccess(data) {
 };
 
 // on request Reject
-function eatingRequestFail(data) {
+function onNoGameForYou(data) {
     connected = false;
     console.log('refused :(');
 };
 
 // on tick from server
 function onTick(data) {
-    // console.log('yessssssss!', data);
-
 
     data = JSON.parse(data);
 
@@ -87,7 +87,7 @@ function onTick(data) {
 function update(data) {
     cxt.clear();
     var ps = data.players;
-    console.log(ps);
+    // console.log(ps);
     for (p in ps) {
         // console.log(ps[p]);
         renderPlayer(ps[p]);

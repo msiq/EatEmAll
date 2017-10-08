@@ -2,45 +2,38 @@
 // const GameServer = require('./GameServer.js');
 
 // const GameState = require('./GameState.js');
-const GameClass = require('./GameClass.js');
+const Game = require('./GameClass.js');
 // const PlayerState = require('./PlayerState.js');
 // const Player = require('./Player.js');
 
 const Shapes = require('./Shapes.js');
 
-var game = new GameClass();
+var game = new Game();
 game.setup = function() {
+    // const shapes = game.Shapes;
+    // const abilities = game.abilities;
+    // const subSystems = game.subSystems;
+
     game.addEntityType('players');
     game.addEntityType('dots');
 
-    // var player = addPlayer();
-    // console.log(player);
-    // game.addEntity(player, 'players');
-
-    // var player = addPlayer();
-    // // console.log(player);
-    // game.addEntity(player, 'players');
-
-    // for (var i = 0; i < 1; i++) {
-    //     // console.log(JSON.stringify(makeDot()));
-    //     game.addEntity(addDot(), 'dots');
-    // }
-
     console.log('setting up game');
+    // console.log(game.activeConnections);
 
-    // test vector class
-    // let v = new Shapes.Vect(-6, 8, 0);
-    // let v2 = new Shapes.Vect(5, 12, 0);
-    // let v3 = v.rev();
-    // console.log(v);
-    // console.log(v3);
-    // let unit = v.unit();
-    // console.log(unit);
-    // console.log(unit.mag());
-    // return;
 
-    // console.log(game.entities['players']);
+    // add some dots
+    for (let i = 0; i < 10; i++) {
+        initiateDot(this);
+    }
+
+
+    // this.server.letEmPlay(player);
+
 };
+
+game.joinGame = function() {
+    return initiatePlayer(this);
+}
 
 game.update = function() {
     // console.log('I am updating...');
@@ -53,22 +46,66 @@ game.update = function() {
 
 };
 
-function addDot() {
-    var dotPos = new game.Shapes.Vect(
-        Math.floor(Math.random() * (300 - 1 + 1)) + 1,
-        Math.floor(Math.random() * (300 - 1 + 1)) + 1
-    );
-    var dotCirc = new game.Shapes.Circ(Math.floor(Math.random() * (20 - 10 + 1)) + 10, dotPos);
-    return game.Entity.createEnemy();
+
+
+function initiatePlayer(game) {
+
+    console.log(game);
+
+
+
+    const player = new game.Entity(game.activeConnections[Object.keys(game.activeConnections)[0]].userName);
+
+    let playerPos = new game.shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1);
+    let playerCirc = new game.shapes.Circ(15);
+
+    player.attach(new game.abilities.Body(playerCirc, 'green'));
+    player.attach(new game.abilities.Position(playerPos));
+    player.attach(new game.abilities.Velocity());
+    player.attach(new game.abilities.Input());
+    player.attach(new game.abilities.Mass(20));
+    player.attach(new game.abilities.Cor());
+    player.attach(new game.abilities.Collidable());
+    player.attach(new game.abilities.Gravity());
+
+    player.attach(new game.abilities.Orientation());
+
+    game.subSystems.collision.AddEntity(player);
+    game.subSystems.motion.AddEntity(player);
+    game.subSystems.physics.AddEntity(player);
+
+    console.log('-------------------------lll', game.activeConnections);
+
+    player.socket_id = Object.keys(game.activeConnections)[0];
+    game.addEntity(player, 'players');
+
+    return player;
 }
 
-// function addPlayer() {
 
-//     // console.log(game.Entity);
-//     var playerPos = new game.Shapes.Vect(10, 20);
-//     var playerCirc = new game.Shapes.Circ(20, playerPos);
-//     return game.Entity.createPlayer('name', { shapes: playerCirc });
+function initiateDot(game) {
 
-// }
+    var dotPos = new game.shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1)
+        // (game.config.canvas.width / 2, game.config.canvas.height / 2);
+    var dotCirc = new game.shapes.Circ(12);
+    var dot = new game.Entity('dot');
+
+    dot.attach(new game.abilities.Body(dotCirc, 'blue'));
+    dot.attach(new game.abilities.Position(dotPos));
+    dot.attach(new game.abilities.Collidable());
+    dot.attach(new game.abilities.Velocity());
+    dot.attach(new game.abilities.Mass(30));
+
+    dot.attach(new game.abilities.Orientation());
+    dot.attach(new game.abilities.Gravity());
+
+    dot.attach(new game.abilities.Cor());
+
+    game.subSystems.collision.AddEntity(dot);
+    game.subSystems.physics.AddEntity(dot);
+    game.subSystems.motion.AddEntity(dot);
+
+    game.addEntity(dot, 'players');
+}
 
 module.exports = exports = game;
