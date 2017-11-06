@@ -22,7 +22,7 @@ game.setup = function() {
 
 
     // add some dots
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
         initiateDot(this);
     }
 
@@ -50,7 +50,7 @@ game.update = function() {
 
 function initiatePlayer(game) {
 
-    console.log(game);
+    // console.log(game);
 
 
 
@@ -63,12 +63,17 @@ function initiatePlayer(game) {
     player.attach(new game.abilities.Position(playerPos));
     player.attach(new game.abilities.Velocity());
     player.attach(new game.abilities.Input());
-    player.attach(new game.abilities.Mass(20));
-    player.attach(new game.abilities.Cor());
+    player.attach(new game.abilities.Mass(50));
+    player.attach(new game.abilities.Cor(0));
     player.attach(new game.abilities.Collidable());
-    player.attach(new game.abilities.Gravity());
+
+    // player.attach(new game.abilities.Gravity());
 
     player.attach(new game.abilities.Orientation());
+
+    // player.attach(new game.abilities.Torque());
+    // player.attach(new game.abilities.Acceleration());
+    player.attach(new game.abilities.AngularVelocity());
 
     game.subSystems.collision.AddEntity(player);
     game.subSystems.motion.AddEntity(player);
@@ -94,12 +99,14 @@ function initiateDot(game) {
     dot.attach(new game.abilities.Position(dotPos));
     dot.attach(new game.abilities.Collidable());
     dot.attach(new game.abilities.Velocity());
-    dot.attach(new game.abilities.Mass(30));
+    dot.attach(new game.abilities.Mass(110));
 
     dot.attach(new game.abilities.Orientation());
-    dot.attach(new game.abilities.Gravity());
+    // dot.attach(new game.abilities.Gravity());
 
-    dot.attach(new game.abilities.Cor());
+    dot.attach(new game.abilities.AngularVelocity());
+
+    dot.attach(new game.abilities.Cor(0));
 
     game.subSystems.collision.AddEntity(dot);
     game.subSystems.physics.AddEntity(dot);

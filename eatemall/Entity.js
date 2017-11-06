@@ -10,6 +10,7 @@ var Entity = function(name = 'noname') {
     this.socket_id = false;
     this.type = '';
 
+    this.grounded = false;
 
     this.actions = [];
     // Array.pop will remove this action once its applied

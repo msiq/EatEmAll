@@ -123,20 +123,22 @@ function spawnPlayer(plr) {
     // var pos = player.abilities.body.shape.pos;
     // console.log(player.x, player.y, player.radius, 0, Math.PI * 2);
 
+
+    // draw direction line
+    cxt.beginPath();
+    cxt.lineWidth = 4;
+    cxt.moveTo(plr.x, plr.y);
+    cxt.lineTo(plr.x + plr.dir.x * 2, plr.y + plr.dir.y * 2);
+    cxt.stroke();
+    cxt.closePath();
+
+    // Draw objects
     cxt.beginPath();
     cxt.fillStyle = plr.color;
 
     cxt.arc(plr.x, plr.y, plr.radius, 0, Math.PI * 2);
     cxt.fillStyle = plr.color;
     cxt.fill();
-    cxt.closePath();
-
-    // draw direction line
-    cxt.beginPath();
-    cxt.lineWidth = 5;
-    cxt.moveTo(plr.x, plr.y);
-    cxt.lineTo(plr.x + plr.dir.x, plr.y + plr.dir.y);
-    cxt.stroke();
     cxt.closePath();
 
 

@@ -72,11 +72,30 @@ function Mass(mass) {
 }
 Mass.prototype = new Ability;
 
+// Coefficient of restitution
 function Cor(cor = .5) { //elasticity
     this.name = 'cor';
     this.cor = cor;
 }
 Cor.prototype = new Ability;
+
+function Acceleration(vector = null) {
+    this.name = 'acceleration';
+    this.acceleration = vector ? vector : new Shapes.Vect(0, 0, 0);
+}
+Acceleration.prototype = new Ability;
+
+function AngularVelocity(vector = null) {
+    this.name = 'angularVelocity';
+    this.angularVelocity = vector ? vector : new Shapes.Vect(0, 0, 0);
+}
+AngularVelocity.prototype = new Ability;
+
+function Torque(vector = null) {
+    this.name = 'torque';
+    this.torque = vector ? vector : new Shapes.Vect(0, 0, 0);
+}
+Torque.prototype = new Ability;
 
 /**
  * @param {string} head Id of the entity 
@@ -104,5 +123,8 @@ module.exports =
         Cor,
         Mass,
         String,
-        Orientation
+        Orientation,
+        Acceleration,
+        AngularVelocity,
+        Torque
     };

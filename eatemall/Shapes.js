@@ -37,7 +37,7 @@ var Shapes = {
                 this.y * v.y,
                 this.z * v.z
             );
-        }
+        };
         this.div = (v) => {
             if (typeof v !== 'object') {
                 v = new Shapes.Vect(v, v, v);
@@ -47,16 +47,34 @@ var Shapes = {
                 (v.x == 0) ? this.y : this.y / v.y,
                 (v.x == 0) ? this.z : this.z / v.z
             );
-        }
+        };
         this.mag = () => Math.sqrt((this.x * this.x) + (this.y * this.y) + (this.z * this.z));
         this.unit = () => {
             return this.div(this.mag());
-        }
+        };
         this.dot = (v) => {
             let vec = this.multi(v);
             return vec.x + vec.y + vec.z;
-        }
+        };
+        this.cross2D = (v) => {
+            if (typeof v !== 'object') {
+                v = new Shapes.Vect(v, v, v);
+            }
+            return this.x * v.y - this.y * v.x;
+        };
+        this.crossfromScalar = (s) => {
+            return Shapes.Vect(s * this.y, -s * this.x);
+        };
+        this.crossToScalar = (s) => {
+            return Shapes.Vect(-s * this.y, s * this.x);
+        };
         this.empty = () => this.x === this.y === this.z === 0;
+        this.rotate = (deg) => {
+            let cos = Math.cos(this.toRadians(deg));
+            let sin = Math.sin(this.toRadians(deg));
+            return (new Shapes.Vect(this.x * cos - this.y * sin, this.x * sin + this.y * cos, 0)).unit();
+        };
+        this.toRadians = (angle) => angle * (Math.PI / 180);
     },
     Line: function(start, end) {
         name: 'line';
