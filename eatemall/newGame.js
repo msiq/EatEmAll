@@ -18,17 +18,11 @@ game.setup = function() {
     game.addEntityType('dots');
 
     console.log('setting up game');
-    // console.log(game.activeConnections);
-
 
     // add some dots
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
         initiateDot(this);
     }
-
-
-    // this.server.letEmPlay(player);
-
 };
 
 game.joinGame = function() {
@@ -41,7 +35,18 @@ game.update = function() {
     //     console.log(JSON.stringify(entity));
     // }, this);
 
+    game.entities['players'].forEach(function(entity) {
 
+        if (entity.name == 'plr') {
+            return;
+        }
+        // console.log('hjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj');
+        // console.log(JSON.stringify(entity));
+        // entity.abilities.velocity.velocity = entity.abilities.velocity.velocity.add(new Shapes.Vect(
+        //     Math.random() > .5 ? -Math.random() - 1 : Math.random() + 1,
+        //     Math.random() > .5 ? -Math.random() - 1 : Math.random() + 1,
+        //     0));
+    }, this);
 
 
 };
@@ -57,13 +62,13 @@ function initiatePlayer(game) {
     const player = new game.Entity(game.activeConnections[Object.keys(game.activeConnections)[0]].userName);
 
     let playerPos = new game.shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1);
-    let playerCirc = new game.shapes.Circ(15);
+    let playerCirc = new game.shapes.Circ(10);
 
     player.attach(new game.abilities.Body(playerCirc, 'green'));
     player.attach(new game.abilities.Position(playerPos));
     player.attach(new game.abilities.Velocity());
     player.attach(new game.abilities.Input());
-    player.attach(new game.abilities.Mass(50));
+    player.attach(new game.abilities.Mass(180));
     player.attach(new game.abilities.Cor(0));
     player.attach(new game.abilities.Collidable());
 
@@ -90,9 +95,9 @@ function initiatePlayer(game) {
 
 function initiateDot(game) {
 
-    var dotPos = new game.shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1)
+    var dotPos = new game.shapes.Vect(Math.floor(Math.random() * (game.config.canvas.width - 1 + 1)) + 1, Math.floor(Math.random() * (game.config.canvas.height - 1 + 1)) + 1)
         // (game.config.canvas.width / 2, game.config.canvas.height / 2);
-    var dotCirc = new game.shapes.Circ(12);
+    var dotCirc = new game.shapes.Circ(15);
     var dot = new game.Entity('dot');
 
     dot.attach(new game.abilities.Body(dotCirc, 'blue'));

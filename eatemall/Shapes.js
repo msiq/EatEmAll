@@ -29,7 +29,6 @@ var Shapes = {
 
             if (typeof v !== 'object') {
                 v = new Shapes.Vect(v, v, v);
-
             }
 
             return new Shapes.Vect(
@@ -56,18 +55,25 @@ var Shapes = {
             let vec = this.multi(v);
             return vec.x + vec.y + vec.z;
         };
-        this.cross2D = (v) => {
-            if (typeof v !== 'object') {
-                v = new Shapes.Vect(v, v, v);
-            }
-            return this.x * v.y - this.y * v.x;
+        this.cross = (v) => {
+            return new Shapes.Vect(
+                x = this.y * 1 - v.y * 1,
+                y = 1 * v.x - 1 * this.x,
+                0
+            );
         };
-        this.crossfromScalar = (s) => {
-            return Shapes.Vect(s * this.y, -s * this.x);
-        };
-        this.crossToScalar = (s) => {
-            return Shapes.Vect(-s * this.y, s * this.x);
-        };
+        // this.cross2D = (v) => {
+        //     if (typeof v !== 'object') {
+        //         v = new Shapes.Vect(v, v, v);
+        //     }
+        //     return this.x * v.y - this.y * v.x;
+        // };
+        // this.crossfromScalar = (s) => {
+        //     return Shapes.Vect(s * this.y, -s * this.x);
+        // };
+        // this.crossToScalar = (s) => {
+        //     return Shapes.Vect(-s * this.y, s * this.x);
+        // };
         this.empty = () => this.x === this.y === this.z === 0;
         this.rotate = (deg) => {
             let cos = Math.cos(this.toRadians(deg));

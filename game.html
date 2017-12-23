@@ -153,12 +153,54 @@
             border: 5px solid #484848;
             z-index: 100;
         }
+        
+        .list {
+            list-style: none;
+            background-color: floralwhite;
+        }
+        
+        .list ul {
+            list-style: none;
+            display: none;
+        }
+        
+        .list span.summary.open {
+            display: inline-block;
+        }
+        
+        .list span.summary {
+            display: none;
+        }
+        
+        .list ul.open {
+            display: block;
+        }
+        
+        .arrow {
+            display: inline-block;
+            transition-duration: .2s;
+        }
+        
+        .arrow.open {
+            transform: rotate(90deg);
+            transition-duration: .2s;
+        }
+        
+        .list li:not(.open) {
+            height: 0 px;
+        }
     </style>
+
 </head>
 
 <body class="vbox viewport">
     <header>---</header>
     <div id="wrapper">
+        <section class="main">
+            <div>FPS: <span id='current-fps'>00</span></div>
+            <canvas id="canvas" class="canvas" width="600" height="400"></canvas>
+            <div id='player-info'></div>
+        </section>
         <div id="menu" class="menu">
             <section id="login-header">
                 <div id="wrapper">
@@ -175,9 +217,6 @@
                 </div>
             </section>
         </div>
-        <section class="main">
-            <canvas id="canvas" class="canvas" width="600" height="400"></canvas>
-        </section>
     </div>
     <footer>---</footer>
 </body>
@@ -186,6 +225,5 @@
 <!-- load game  -->
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/client.js"></script>
-
 
 </html>

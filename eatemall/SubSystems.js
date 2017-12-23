@@ -59,15 +59,12 @@ function Input(game) {
         '40': 'down',
         '37': 'left',
         '39': 'right',
-        // 'click': 'click'
+        'click': 'click'
     };
     this.handleMessage = (message) => {
-
-        // console.log(this.game.messageBus.messages.length);
         // if (!this.game.messageBus.isEmpty()) {
+        console.log(message);
         if (message.type == this.name) {
-            // console.log(this.name);
-            // console.log(message);
             if (this.actions[message.params.input]) {
                 this.game.messageBus.add(
                     new MessageSystem.Message(
@@ -77,7 +74,6 @@ function Input(game) {
                 );
             }
         }
-        // console.log('----------->>>>>>>>>>>>>>>>>>>>>><<<<<<<<' + this.game.messageBus.messages.length);
         // }
     };
     // this.handle = function(event) {
@@ -107,20 +103,21 @@ function Motion(game) {
         down: (v, c) => new Shapes.Vect(v.x, v.y + c, v.z),
         left: (v, c) => new Shapes.Vect(v.x - c, v.y, v.z),
         right: (v, c) => new Shapes.Vect(v.x + c, v.y, v.z),
+        click: (mouse) => new Shapes.Vect(mouse.x, mouse.y, 0),
     };
 
     this.handleMessage = (message) => {
+        console.log(message);
         if (message.type == this.name) {
-
             if (this.actions[message.params.action]) {
                 message.entities.forEach((eid) => {
                     let entity = this.game.searchEntity(eid, 'players');
 
                     if (entity.has('velocity')) {
                         let vel = entity.abilities.velocity.velocity;
+                        let pos = entity.abilities.position.pos;
 
                         if (entity.has('orientation')) {
-
                             let ort = entity.abilities.orientation.orientation;
                             switch (message.params.action) {
                                 case 'left':
@@ -130,21 +127,23 @@ function Motion(game) {
                                     entity.abilities.orientation.rotate(5);
                                     break;
                                 case 'up':
-                                    entity.abilities.velocity.velocity = vel.add(ort.multi(1));
-                                    return;
+                                    vel = vel.add(ort.multi(1 * game.delta));
                                     break;
                                 case 'down':
-                                    entity.abilities.velocity.velocity = vel.sub(ort.multi(1));
-                                    return;
+                                    vel = vel.sub(ort.multi(1 * game.delta));
                                     break;
+                                case 'click':
+                                    pos = this.actions[message.params.action](message.params.mouse);
+                                    break;
+                                default:
+                                    console.log(message.params.action);
                             }
-
+                            entity.abilities.position.pos = pos;
                         } else {
-                            entity.abilities.velocity.velocity = this.actions[message.params.action](entity.abilities.velocity.velocity, 1);
+                            vel = this.actions[message.params.action](vel, 1 * game.delta);
                         }
+                        entity.abilities.velocity.velocity = vel;
                     }
-
-
                 });
 
 
@@ -216,16 +215,22 @@ function Motion(game) {
                 // /** Apply gravity */
                 if (entity.has('gravity') && entity.has('velocity') && !entity.grounded) {
 
-                    console.log('graaaaaaaaaaaaaaavity' + entity.name);
-                    let g = entity.has('gravity') ? entity.abilities.gravity.gravity : Shapes.Vect;
+                    // console.log('graaaaaaaaaaaaaaavity' + entity.name);
+                    let g = entity.abilities.gravity.gravity;
                     let vel = entity.abilities.velocity.velocity;
                     let pos = entity.abilities.position.pos;
+                    entity.abilities.velocity.velocity = vel.add(g.multi(game.delta));
 
-                    entity.abilities.velocity.velocity = new Shapes.Vect(
-                        vel.x + g.x,
-                        vel.y + g.y,
-                        vel.z + g.z
-                    );
+                    if (entity.grounded) {
+                        console.log(game.delta);
+                        console.log(g);
+                        console.log(g.multi(game.delta));
+
+                        console.log('------------------------------------------------');
+                        console.log(vel);
+                        console.log(vel.add(g.multi(game.delta)));
+                        // console.log(aljshdl)
+                    }
                 }
 
                 // move entity towords velocity
@@ -237,7 +242,6 @@ function Motion(game) {
                         pos.z + velo.z
                     );
                 }
-
             }
 
         }, this);
@@ -506,74 +510,67 @@ function Collision(game) {
                                         // return;
                                     }
 
-                                    let enValX = ((vel.x * (mass - objMass)) + (2 * objMass * objVel.x)) / (mass + objMass);
-                                    let enValY = ((vel.y * (mass - objMass)) + (2 * objMass * objVel.y)) / (mass + objMass);
-                                    let obValX = ((objVel.x * (objMass - mass)) + (2 * mass * vel.x)) / (mass + objMass);
-                                    let obValY = ((objVel.y * (objMass - mass)) + (2 * mass * vel.y)) / (mass + objMass);
+                                    let un = pos.sub(objPos).unit();
 
-                                    // console.log(enValX, enValY);
-                                    // console.log(obValX, obValY);
-
-                                    // find new direction and apply new velocity
-                                    let newEnDir1 = objPos.sub(pos);
-                                    let newEnDir = (new Shapes.Vect(
-                                        newEnDir1.x * -1,
-                                        newEnDir1.y,
+                                    let ut = new Shapes.Vect(
+                                        x = un.y * -1,
+                                        y = un.x,
                                         0
-                                    )).unit();
-                                    // .rotate(-90);
-                                    let newEnVel = newEnDir.multi((new Shapes.Vect(
-                                        x = enValX,
-                                        y = enValY,
-                                        z = 0
-                                    )).mag());
-                                    entity.abilities.velocity.velocity = newEnVel;
-
-                                    // Apply new velocity on calculated direction
-                                    // entity.abilities.velocity.velocity = new Shapes.Vect(
-                                    //     x = enValX,
-                                    //     y = enValY,
-                                    //     z = 0
-                                    // );
-
-                                    // find new direction and apply new velocity
-                                    if (object.has('velocity')) {
-                                        // find direction vector(unit) from object to entity
-                                        let newObjDir = objPos.sub(pos).unit();
-
-                                        // find magnitude of new object velocity
-                                        let newObjvelMag = (new Shapes.Vect(
-                                            x = obValX,
-                                            y = obValY,
-                                            z = 0
-                                        )).mag();
-
-                                        let newObjvel = newObjDir.multi(newObjvelMag);
-
-                                        object.abilities.velocity.velocity = newObjvel;
-                                    }
-                                    // Apply new velocity on calculated direction
-                                    // object.abilities.velocity.velocity = new Shapes.Vect(
-                                    //     x = obValX,
-                                    //     y = obValY,
-                                    //     z = 0
-                                    // );
-
-
-
-                                    console.log(
-                                        vel.mag() + objVel.mag() + '>>>>>>>>' +
-                                        vel.x + '---' + vel.y + '---------------' +
-                                        objVel.x + '---' + objVel.y
                                     );
 
-                                    console.log(
-                                        entity.abilities.velocity.velocity.mag() + entity.abilities.velocity.velocity.mag() + '<<<<<<<<' +
-                                        entity.abilities.velocity.velocity.x + '---' + entity.abilities.velocity.velocity.y + '---------------' +
-                                        object.abilities.velocity.velocity.x + '---' + object.abilities.velocity.velocity.y
-                                    );
+                                    let enVeln = un.dot(vel);
+                                    let objVeln = un.dot(objVel);
+
+                                    let enVelt = ut.dot(vel);
+                                    let objVelt = ut.dot(objVel);
+
+                                    // console.log(enVeln, objVeln);
+                                    // console.log(enVelt, objVelt);
+
+                                    // tangential velocities after the collision is same as initial tangential velocities
+
+                                    // calculate normal velocity after collision from 1 dimension formula
+                                    let enVelX = ((vel.x * (mass - objMass)) + (2 * objMass * objVel.x)) / (mass + objMass);
+                                    let enVelY = ((vel.y * (mass - objMass)) + (2 * objMass * objVel.y)) / (mass + objMass);
+                                    let obVelX = ((objVel.x * (objMass - mass)) + (2 * mass * vel.x)) / (mass + objMass);
+                                    let obVelY = ((objVel.y * (objMass - mass)) + (2 * mass * vel.y)) / (mass + objMass);
+
+                                    // new vels after collisions
+                                    let newEnVel = new Shapes.Vect(enVelX, enVelY);
+                                    let newObjVel = new Shapes.Vect(obVelX, obVelY);
+
+                                    // let enVelan = un.multi(newEnVel);
+                                    // let obVelan = un.multi(newObjVel);
+
+                                    // let enVelat = ut.multi(newEnVel);
+                                    // let obVelat = ut.multi(newObjVel);
+
+                                    // final velocities
+                                    // let enFVel = enVelan.add(enVelat);
+                                    // let obFVel = obVelan.add(obVelat);
+
+                                    // final velocities
+                                    // let enFVel = un.cross(ut).multi(newEnVel);
+                                    // let obFVel = ut.cross(un).multi(newObjVel);
+
+                                    let enFVel = newEnVel;
+                                    let obFVel = newObjVel;
 
 
+                                    entity.abilities.velocity.velocity = enFVel;
+                                    object.abilities.velocity.velocity = obFVel;
+
+                                    // console.log(
+                                    //     vel.mag() + objVel.mag() + '>>>>>>>>' +
+                                    //     vel.x + '---' + vel.y + '---------------' +
+                                    //     objVel.x + '---' + objVel.y
+                                    // );
+
+                                    // console.log(
+                                    //     entity.abilities.velocity.velocity.mag() + entity.abilities.velocity.velocity.mag() + '<<<<<<<<' +
+                                    //     entity.abilities.velocity.velocity.x + '---' + entity.abilities.velocity.velocity.y + '---------------' +
+                                    //     object.abilities.velocity.velocity.x + '---' + object.abilities.velocity.velocity.y
+                                    // );
 
 
                                     // rotate on collision
@@ -585,13 +582,142 @@ function Collision(game) {
                                     // }
 
                                     // change direction on collision
-                                    if (entity.has('orientation') && entity.abilities.velocity.velocity.mag() !== 0) {
-                                        entity.abilities.orientation.orientation = entity.abilities.velocity.velocity.unit();
-                                    }
+                                    // if (entity.has('orientation') && entity.abilities.velocity.velocity.mag() !== 0) {
+                                    //     entity.abilities.orientation.orientation = entity.abilities.velocity.velocity.unit();
+                                    // }
 
-                                    if (object.has('orientation') && object.has('velocity') && object.abilities.velocity.velocity.mag() !== 0) {
-                                        object.abilities.orientation.orientation = object.abilities.velocity.velocity.unit();
-                                    }
+                                    // if (object.has('orientation') && object.has('velocity') && object.abilities.velocity.velocity.mag() !== 0) {
+                                    //     object.abilities.orientation.orientation = object.abilities.velocity.velocity.unit();
+                                    // }
+
+
+                                    return;
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                    // let enValX = ((vel.x * (mass - objMass)) + (2 * objMass * objVel.x)) / (mass + objMass);
+                                    // let enValY = ((vel.y * (mass - objMass)) + (2 * objMass * objVel.y)) / (mass + objMass);
+                                    // let obValX = ((objVel.x * (objMass - mass)) + (2 * mass * vel.x)) / (mass + objMass);
+                                    // let obValY = ((objVel.y * (objMass - mass)) + (2 * mass * vel.y)) / (mass + objMass);
+
+                                    // // console.log(enValX, enValY);
+                                    // // console.log(obValX, obValY);
+
+                                    // // // find new direction and apply new velocity
+                                    // // let newEnDir = objPos.sub(pos).unit().multi((new Shapes.Vect(
+                                    // //     x = enValX,
+                                    // //     y = enValY,
+                                    // //     z = 0
+                                    // // )).mag());
+                                    // // // .rotate(enValY > 0 ? 90 : -90);
+                                    // // // let newEnDir = (new Shapes.Vect(
+                                    // // //     newEnDir1.x,
+                                    // // //     newEnDir1.y,
+                                    // // //     0
+                                    // // // )).unit();
+                                    // // // .rotate(-90);
+                                    // // let newEnVel =
+                                    // //     // newEnDir;
+                                    // //     // .multi(
+                                    // //     // (
+                                    // //     new Shapes.Vect(
+                                    // //         x = newEnDir.y,
+                                    // //         y = newEnDir.x,
+                                    // //         z = 0
+                                    // //     );
+                                    // // // ).mag()); 
+
+                                    // let unitNormal = objPos.sub(pos).unit();
+                                    // let unitTangent = new Shapes.Vect(
+                                    //     x = ((enValY < 0) ? unitNormal.y * -1 : unitNormal.y),
+                                    //     y = (enValX < 0) ? unitNormal.x * -1 : unitNormal.x,
+                                    //     0
+                                    // );
+                                    // let newEnVel = unitTangent.multi((new Shapes.Vect(
+                                    //     x = enValX * -1,
+                                    //     y = enValY,
+                                    //     z = 0
+                                    // )).mag());
+
+
+                                    // entity.abilities.velocity.velocity = newEnVel;
+
+                                    // // Apply new velocity on calculated direction
+                                    // // entity.abilities.velocity.velocity = new Shapes.Vect(
+                                    // //     x = enValX,
+                                    // //     y = enValY,
+                                    // //     z = 0
+                                    // // );
+
+                                    // // find new direction and apply new velocity
+                                    // if (object.has('velocity')) {
+                                    //     // find direction vector(unit) from object to entity
+                                    //     let newObjDir = objPos.sub(pos).unit();
+
+                                    //     // find magnitude of new object velocity
+                                    //     let newObjvelMag = (new Shapes.Vect(
+                                    //         x = obValX,
+                                    //         y = obValY,
+                                    //         z = 0
+                                    //     )).mag();
+
+                                    //     let newObjvel = newObjDir.multi(newObjvelMag);
+
+                                    //     object.abilities.velocity.velocity = newObjvel;
+                                    // }
+                                    // // Apply new velocity on calculated direction
+                                    // // object.abilities.velocity.velocity = new Shapes.Vect(
+                                    // //     x = obValX,
+                                    // //     y = obValY,
+                                    // //     z = 0
+                                    // // );
+
+
+
+                                    // console.log(
+                                    //     vel.mag() + objVel.mag() + '>>>>>>>>' +
+                                    //     vel.x + '---' + vel.y + '---------------' +
+                                    //     objVel.x + '---' + objVel.y
+                                    // );
+
+                                    // console.log(
+                                    //     entity.abilities.velocity.velocity.mag() + entity.abilities.velocity.velocity.mag() + '<<<<<<<<' +
+                                    //     entity.abilities.velocity.velocity.x + '---' + entity.abilities.velocity.velocity.y + '---------------' +
+                                    //     object.abilities.velocity.velocity.x + '---' + object.abilities.velocity.velocity.y
+                                    // );
+
+
+
+
+                                    // // rotate on collision
+                                    // // if (entity.has('angularVelocity')) {
+                                    // //     entity.abilities.angularVelocity.angularVelocity = new Shapes.Vect(180, 2, 2);
+                                    // // }
+                                    // // if (object.has('angularVelocity')) {
+                                    // //     object.abilities.angularVelocity.angularVelocity = new Shapes.Vect(180, 2, 2);
+                                    // // }
+
+                                    // // change direction on collision
+                                    // if (entity.has('orientation') && entity.abilities.velocity.velocity.mag() !== 0) {
+                                    //     entity.abilities.orientation.orientation = entity.abilities.velocity.velocity.unit();
+                                    // }
+
+                                    // if (object.has('orientation') && object.has('velocity') && object.abilities.velocity.velocity.mag() !== 0) {
+                                    //     object.abilities.orientation.orientation = object.abilities.velocity.velocity.unit();
+                                    // }
+
+
+
                                 }
 
 

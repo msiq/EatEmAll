@@ -15,15 +15,26 @@ function GameServer() {
 
     this.serve = (game) => {
         this.game = game;
-        // define routes and start receiving Player connections
-        app.get('/', (req, res) => res.sendFile('game.html', { root: '.' }));
-        // app.get('/', (req, res) => res.sendFile('collision-test.html', { root: '.' }));
-        app.get('/*', (req, res) => res.sendFile(req.params[0], { root: '.' }));
 
-        // start listening to on port 4444  
-        http.listen(config.gameport, () => console.log('listening on : ' + config.gameport));
+        return new Promise((resolve, reject) => {
 
-        io.on('connection', this.onConnection);
+            // define routes and start receiving Player connections
+            app.get('/', (req, res) => res.sendFile('game.html', { root: '.' }));
+            // app.get('/', (req, res) => res.sendFile('collision-test.html', { root: '.' }));
+            app.get('/*', (req, res) => res.sendFile(req.params[0], { root: '.' }));
+
+            let okk = false;
+            // start listening to on port 4444
+            http.listen(this.game.config.gameport, () => console.log('listening on : ' + this.game.config.gameport));
+            okk = io.on('connection', this.onConnection);
+
+            if (!okk) {
+                reject('reject says: no');
+            }
+
+            game.active = true;
+            resolve('resolve says: yes');
+        });
     };
     this.onConnection = (sock) => {
 
@@ -31,7 +42,9 @@ function GameServer() {
         console.log('conneted with something!');
         this.onRequest('letmeplay', game.onletMePlay);
         this.onRequest('input', game.playerInput);
-        // this.onRequest('click', game.playerAction);
+        this.onRequest('click', game.playerClick);
+
+        return 'OK';
     };
     this.onRequest = (request, onRequest) => {
         this.sockets.map((soc) => {
@@ -49,7 +62,7 @@ function GameServer() {
         io.sockets.sockets[socketId].emit('goaway');
     }
     this.doTick = (data) => {
-        io.sockets.emit('tick', JSON.stringify({ players: data }));
+        io.sockets.emit('tick', JSON.stringify({ players: data.players, fps: data.fps }));
     }
 };
 

@@ -22,14 +22,14 @@ var Game = function Game() {
     this.state = false;
     this.players = {};
     this.active = false;
-    this.control = false;
+    // this.control = false;
 
     this.activeConnections = {};
 
     this.events = {};
 
     /*******************************************************************'
-     * Function available to be over ridden by Devs
+     * Function available to be overridden by Devs
      */
     //setup must be overriden by dev 
     this.setup = function() {
@@ -50,28 +50,69 @@ var Game = function Game() {
 
 
     this.start = function() {
-        this.server.serve(this);
-        this.setup();
-        this.loop();
+        this.server.serve(this)
+            .then((mes) => {
+                console.log(mes);
+                this.setup();
+                this.loop();
+            }).catch((er) => {
+                console.log(er);
+            });
+
     }
     this.stop = function() {
-        if (this.active && this.control) {
-            clearInterval(this.control);
+        if (this.active) {
+            // && this.control
+            // clearInterval(this.control);
 
             this.active = false;
         }
     }
-    this.loop = function() {
-        this.doTick();
-        this.update();
-        this.internalUpdate();
 
-        if (!(this.control)) {
-            this.control = setInterval(this.loop.bind(this), 1000 / config.server.frameRate);
+
+    // time delta here and  count FPS somehow
+    this.fps = 0;
+    this.lastFPS = 0;
+    this.lastRun = Date.now();
+    this.fpsLastRun = Date.now();
+    this.now = 0;
+    this.lastFPS = 30;
+
+    this.delta = 1 / 30;
+    this.loop = function() {
+        this.now = Date.now();
+
+        if ((this.now - this.lastRun) >= 1000 / config.server.frameRate) {
+
+
+            this.delta = (1500 / this.lastFPS) / 100;
+
+            // console.time('tick');
+            this.doTick();
+            this.update();
+            this.internalUpdate();
+            // console.timeEnd('tick', 'here-------------');
+            this.lastRun = this.now;
+            this.fps++;
+        }
+
+        if (!this.control) {
+            this.control = setInterval(this.loop.bind(this), 1);
             this.active = true;
         }
 
+        if ((this.now - this.fpsLastRun) > 1000) {
+
+            // console.log(process.memoryUsage().heapUsed / 1024 / 1024 + '-----------------------------------');
+            // console.log(process.cpuUsage());
+
+            this.lastFPS = this.fps;
+            console.log(this.fps);
+            this.fps = 0;
+            this.fpsLastRun = Date.now();
+        }
     };
+
     this.internalUpdate = function() {
         var players = this.getEntities('players');
         if (players.length > 0) {
@@ -118,7 +159,9 @@ var Game = function Game() {
             let vel = player.has('velocity') ? player.abilities.velocity.velocity : new Shapes.Vect();
             let shape = player.abilities.body.shape;
             let dir = ort.multi(shape.radius + 2);
-            return Object.assign({}, {
+            return Object.assign({},
+                player.abilities.position.pos,
+                player.abilities.body.shape, {
                     id: player.id,
                     socketId: player.socketId,
                     color: player.abilities.body.color,
@@ -130,9 +173,9 @@ var Game = function Game() {
                         y: dir.y,
                         z: dir.z
                     }
-                },
-                player.abilities.position.pos,
-                player.abilities.body.shape
+                }
+                // player.abilities.position.pos,
+                // player.abilities.body.shape
 
             );
             // return {
@@ -145,7 +188,8 @@ var Game = function Game() {
             // };
         });
         // console.log(Object.keys(players).length);
-        this.server.doTick(players);
+
+        this.server.doTick({ players, fps: this.lastFPS });
     };
 
     // Set new state
@@ -261,63 +305,22 @@ var Game = function Game() {
         //     return 0;
         // }
 
-        // var playerPos = new game.Shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1);
-        // var playerCirc = new game.Shapes.Circ(10); //Math.floor(Math.random() * (30 - 10 + 1)) + 1);
-
-
-
-
-        // // Add a dot to play with collisions
-        // var dotPos = new game.Shapes.Vect(config.canvas.width / 2, config.canvas.height / 2);
-        // var dotCirc = new game.Shapes.Circ(25);
-        // var dot = new Entity('dot');
-        // dot.attach(new Abilities.Body(dotCirc, 'blue'));
-        // dot.attach(new Abilities.Position(dotPos));
-        // dot.attach(new Abilities.Collidable());
-        // dot.attach(new Abilities.Velocity());
-        // dot.attach(new Abilities.Mass(40));
-
-        // dot.attach(new Abilities.Orientation());
-        // dot.attach(new Abilities.Gravity());
-        // this.subSystems.collision.AddEntity(dot);
-        // this.subSystems.physics.AddEntity(dot);
-        // this.subSystems.motion.AddEntity(dot);
-
-        // this.addEntity(dot, 'players');
-
-
-        // var player = new Entity(data.userName);
-        // player.attach(new Abilities.Body(playerCirc, 'green'));
-        // player.attach(new Abilities.Position(playerPos));
-        // player.attach(new Abilities.Velocity());
-        // player.attach(new Abilities.Input());
-        // player.attach(new Abilities.Mass(20));
-        // player.attach(new Abilities.Cor());
-        // player.attach(new Abilities.Collidable());
-        // player.attach(new Abilities.Gravity());
-
-        // player.attach(new Abilities.Orientation());
-
-        // this.subSystems.collision.AddEntity(player);
-        // this.subSystems.motion.AddEntity(player);
-        // this.subSystems.physics.AddEntity(player);
-
-        // player.socket_id = data.socketId;
-        // this.addEntity(player, 'players');
-
-        // // oconnect player and dot with a string
-        // // let connString = new Abilities.String(dot.id, player.id, 100, 0.2);
-        // // dot.attach(connString);
-        // // player.attach(connString);
-
         this.server.letEmPlay(player);
     };
 
-    this.playerInput = (event) => {
 
+    this.playerClick = (event) => {
+        this.messageBus.add(
+            new MessageSystem.Message(MessageSystem.Type.INPUT, [event.playerId], { input: 'click', mouse: event.params.input })
+        );
+    }
+
+    this.playerInput = (event) => {
         this.messageBus.add(
             new MessageSystem.Message(MessageSystem.Type.INPUT, [event.playerId], { input: event.params.input })
         );
+
+
         // this should go to message bus
 
 

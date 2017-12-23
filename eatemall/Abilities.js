@@ -56,7 +56,6 @@ Gravity.prototype = new Ability;
 
 function Collidable(vector = null) {
     this.name = 'collidable';
-    this.gravity = vector ? vector : new Shapes.Vect(0, 0.5);
     this.collidingWith = [];
 }
 Collidable.prototype = new Ability;
