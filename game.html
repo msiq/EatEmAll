@@ -99,6 +99,27 @@
             flex: 1;
         }
         
+        .game-view {
+            display: flex;
+            flex-basis: 100%;
+            flex-direction: column;
+        }
+        
+        .stats {
+            display: flex;
+            flex-basis: 100%;
+        }
+        
+        .game {
+            display: flex;
+            flex-basis: 100%;
+        }
+        
+        .info {
+            display: flex;
+            flex-basis: 100%;
+        }
+        
         aside,
         nav {
             /* previous syntax */
@@ -196,26 +217,34 @@
 <body class="vbox viewport">
     <header>---</header>
     <div id="wrapper">
-        <section class="main">
-            <div>FPS: <span id='current-fps'>00</span></div>
-            <canvas id="canvas" class="canvas" width="600" height="400"></canvas>
-            <div id='player-info'></div>
-        </section>
-        <div id="menu" class="menu">
-            <section id="login-header">
-                <div id="wrapper">
-                    <div id="heading">Hungry ?</div>
-                    <div id="message">
-                        <p>Tell us who you are and we will let you eat :)</p>
+        <div class="main">
+            <div class="game-view">
+                <div class='stats'>
+                    <div>FPS: <span id='current-fps'>00</span></div>
+                </div>
+                <div class="game">
+                    <canvas id="canvas" class="canvas" width="600" height="400"></canvas>
+                    <div id="menu" class="menu">
+                        <section id="login-header">
+                            <div id="wrapper">
+                                <div id="heading">Hungry ?</div>
+                                <div id="message">
+                                    <p>Tell us who you are and we will let you eat :)</p>
+                                </div>
+                            </div>
+                        </section>
+                        <section id="login-form">
+                            <div id="wrapper">
+                                <input type="text" id="user-name" placeholder="User Name">
+                                <input type="button" id="login-btn" value="Start Eating">
+                            </div>
+                        </section>
                     </div>
                 </div>
-            </section>
-            <section id="login-form">
-                <div id="wrapper">
-                    <input type="text" id="user-name" placeholder="User Name">
-                    <input type="button" id="login-btn" value="Start Eating">
+                <div class="info">
+                    <div id='player-info'></div>
                 </div>
-            </section>
+            </div>
         </div>
     </div>
     <footer>---</footer>

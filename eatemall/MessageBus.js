@@ -1,7 +1,7 @@
 const Type = {
     INPUT: 'input',
     MOTION: 'motion',
-    PHYSICS: 'physics'
+    PHYSICS: 'physics',
 }
 
 function Message(type, entities = [], params = {}) {

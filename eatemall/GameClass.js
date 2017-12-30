@@ -311,13 +311,19 @@ var Game = function Game() {
 
     this.playerClick = (event) => {
         this.messageBus.add(
-            new MessageSystem.Message(MessageSystem.Type.INPUT, [event.playerId], { input: 'click', mouse: event.params.input })
+            new MessageSystem.Message(
+                MessageSystem.Type.INPUT, [event.playerId],
+                Object.assign({}, { action: event.action }, event.params)
+            )
         );
     }
 
     this.playerInput = (event) => {
         this.messageBus.add(
-            new MessageSystem.Message(MessageSystem.Type.INPUT, [event.playerId], { input: event.params.input })
+            new MessageSystem.Message(
+                MessageSystem.Type.INPUT, [event.playerId],
+                Object.assign({}, { action: event.action }, event.params)
+            )
         );
 
 

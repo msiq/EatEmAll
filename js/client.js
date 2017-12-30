@@ -294,11 +294,17 @@ CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.cl
 };
 
 function doMouseClick(evt) {
-    console.log('clickingggggggggggggggggggggggg', mousedown);
+    // console.log('clickingggggggggggggggggggggggg', mousedown);
     evt.preventDefault();
 
     if (mousedown || evt.type == 'click') {
-        socket.emit('click', { playerId: player.id, action: 'click', params: { input: getMouseXY(evt) } });
+        socket.emit('click', {
+            playerId: player.id,
+            action: evt.type,
+            params: {
+                mouse: getMouseXY(evt),
+            }
+        });
     }
 }
 
@@ -309,7 +315,6 @@ function getMouseXY(evt) {
         y: (evt.clientY - canvasBox.top) * (canvas.height / canvasBox.height)
     };
 
-    // console.log(pos);
     return pos;
 }
 
@@ -317,6 +322,12 @@ function doKeyDown(evt) {
     var actions = [38, 40, 37, 39];
     if (actions.indexOf(evt.keyCode) >= 0) {
         evt.preventDefault();
-        socket.emit('input', { playerId: player.id, params: { input: evt.keyCode } });
+        socket.emit('input', {
+            playerId: player.id,
+            action: evt.type,
+            params: {
+                key: evt.keyCode
+            }
+        });
     }
 }

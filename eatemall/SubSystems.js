@@ -28,9 +28,7 @@ function SubSystem(game) {
     this.AddEntity = (entity) => this.entities.push(entity);
 
     this.last = {};
-    // this.now = 0;
     this.debounce = (wait, entityId) => {
-        // this.now = Date.now();
         let canCall = ((Date.now() - this.last[entityId]) > wait) ? true : false;
         this.last[entityId] = (canCall) ? Date.now() : (this.last[entityId]) ? this.last[entityId] : 0;
 
@@ -59,22 +57,25 @@ function Input(game) {
         '40': 'down',
         '37': 'left',
         '39': 'right',
-        'click': 'click'
+        'click': 'click',
+        'mousemove': 'drag',
     };
-    this.handleMessage = (message) => {
-        // if (!this.game.messageBus.isEmpty()) {
-        console.log(message);
-        if (message.type == this.name) {
-            if (this.actions[message.params.input]) {
-                this.game.messageBus.add(
-                    new MessageSystem.Message(
-                        MessageSystem.Type.MOTION, message.entities,
-                        Object.assign({}, message.params, { action: this.actions[message.params.input] })
-                    )
-                );
-            }
+    this.actionMapper = (params) => {
+        if (params.action == "keydown") {
+            return this.actions[params.key];
         }
-        // }
+
+        return this.actions[params.action];
+    }
+    this.handleMessage = (message) => {
+        if (message.type === this.name) {
+            this.game.messageBus.add(
+                new MessageSystem.Message(
+                    MessageSystem.Type.MOTION, message.entities,
+                    Object.assign({}, message.params, { action: this.actionMapper(message.params) })
+                )
+            );
+        }
     };
     // this.handle = function(event) {
     //     if (this.actions[event.action]) {
@@ -104,10 +105,11 @@ function Motion(game) {
         left: (v, c) => new Shapes.Vect(v.x - c, v.y, v.z),
         right: (v, c) => new Shapes.Vect(v.x + c, v.y, v.z),
         click: (mouse) => new Shapes.Vect(mouse.x, mouse.y, 0),
+        drag: (mouse) => new Shapes.Vect(mouse.x, mouse.y, 0),
     };
 
     this.handleMessage = (message) => {
-        console.log(message);
+
         if (message.type == this.name) {
             if (this.actions[message.params.action]) {
                 message.entities.forEach((eid) => {
@@ -134,6 +136,11 @@ function Motion(game) {
                                     break;
                                 case 'click':
                                     pos = this.actions[message.params.action](message.params.mouse);
+                                    vel = new Shapes.Vect();
+                                    break;
+                                case 'drag':
+                                    newPos = this.actions[message.params.action](message.params.mouse);
+                                    vel = newPos.sub(pos);
                                     break;
                                 default:
                                     console.log(message.params.action);
