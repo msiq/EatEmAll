@@ -264,30 +264,48 @@ function Motion(game) {
         }, this);
     };
     this.limit = (entity) => {
+
         let pos = entity.abilities.position.pos;
-        let radius = entity.abilities.body.shape.radius;
         let vel = entity.abilities.velocity.velocity;
+        let height = { min: 0, max: 0 };
+        let width = { min: 0, max: 0 };
+
+        if (entity.abilities.body.shape.name == 'circle') {
+            radius = entity.abilities.body.shape.radius
+            height.min += radius;
+            height.max += radius;
+            width.min += radius;
+            width.max += radius;
+        }
+
+        if (entity.abilities.body.shape.name == 'rectangle') {
+            let shape = entity.abilities.body.shape;
+            height.min;
+            height.max += shape.height;
+            width.min;
+            width.max += shape.height;
+        }
 
         let dirChanged = false;
-        if (pos.x <= radius + vel.x) {
-            pos.x = radius + 1;
+        if (pos.x <= width.min + vel.x) {
+            pos.x = width.min + 1;
             vel.x = vel.x * -1;
             // dirChanged = true;
         }
-        if (pos.x >= config.canvas.width - (radius + vel.x)) {
-            pos.x = config.canvas.width - radius + 1;
+        if (pos.x >= config.canvas.width - (width.max + vel.x)) {
+            pos.x = config.canvas.width - width.max + 1;
             vel.x = vel.x * -1;
             // dirChanged = true;
         }
 
-        if (pos.y <= radius + vel.y) {
-            pos.y = radius + 1;
+        if (pos.y <= height.min + vel.y) {
+            pos.y = height.min + 1;
             vel.y = vel.y * -1;
             // dirChanged = true;
         }
-        if (pos.y >= config.canvas.height - (radius + vel.y)) {
+        if (pos.y >= config.canvas.height - (height.max + vel.y)) {
 
-            pos.y = config.canvas.height - radius;
+            pos.y = config.canvas.height - height.max;
             vel.y = vel.y * -0.5;
 
             if (vel.mag() < 1) {
