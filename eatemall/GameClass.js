@@ -31,19 +31,29 @@ var Game = function Game() {
     /*******************************************************************'
      * Function available to be overridden by Devs
      */
-    //setup must be overriden by dev 
+
+    /**
+     * setup must be overriden by dev 
+     */
     this.setup = function() {
         console.log('hey, i am default setup, look like you are missing something.');
         throw new Error('No setup method implemented.');
     };
-    // update must be overriden by dev
+
+    /**
+     * Update must be overriden by dev
+     */
     this.update = function() {
         console.log('Hey! i am default update, you sould implement your own update method.');
         throw new Error('No update method implemented.');
     };
-    //Dev may override joinGame() to satisfiy their needs on client requests to let them play
-    this.joinGame = function() {
-        console.log('hey, i am default join.');
+
+    /**
+     * Dev may override joinGame(data) to satisfiy their needs on client requests to let them play
+     * data array data needed to join game
+     */
+    this.joinGame = function(data) {
+        console.log('hey, i am default joinGame.');
     };
 
     //******************************************************************** */
@@ -154,14 +164,15 @@ var Game = function Game() {
         players = players.map((player) => {
 
             let ort = (player.has('orientation')) ? player.abilities.orientation.orientation : new Shapes.Vect();
-
+            let angle = (player.has('orientation')) ? player.abilities.orientation.angle : 2;
 
             let vel = player.has('velocity') ? player.abilities.velocity.velocity : new Shapes.Vect();
             let shape = player.abilities.body.shape;
-            let dir = ort.multi(shape.radius + 2);
+            let dir = ort.multi(shape.radius || shape.width + 2);
             return Object.assign({},
                 player.abilities.position.pos,
                 player.abilities.body.shape, {
+                    shape: player.abilities.body.shape.name,
                     id: player.id,
                     socketId: player.socketId,
                     color: player.abilities.body.color,
@@ -172,7 +183,9 @@ var Game = function Game() {
                         x: dir.x,
                         y: dir.y,
                         z: dir.z
-                    }
+                    },
+                    aabb: player.abilities.aabb,
+                    angle: angle,
                 }
                 // player.abilities.position.pos,
                 // player.abilities.body.shape
@@ -295,7 +308,7 @@ var Game = function Game() {
         // connected to client do setup now
         // this.setup();
 
-        let player = this.joinGame();
+        let player = this.joinGame(data);
 
         // // Is returning eater :)
         // if (player = this.searchEntity(pid, 'players')) {

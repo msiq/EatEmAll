@@ -28,6 +28,10 @@ var Entity = function(name = 'noname') {
         if (ability.constructor.name === 'Ability') {
             this.abilities[ability.name] = ability;
         }
+
+        if (ability.name == 'body') {
+            this.attach(new Abilities.Aabb(ability));
+        }
     }
 
     this.distance = function(entity) {

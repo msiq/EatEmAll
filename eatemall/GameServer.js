@@ -55,7 +55,6 @@ function GameServer() {
         io.sockets.sockets[socketId].emit(response, onResponse);
     };
     this.letEmPlay = (player) => {
-        console.log('letttttttttttttttttttt Em Eat!');
         io.sockets.sockets[player.socket_id].emit('play', { player });
     };
     this.goAway = (socketId) => {

@@ -8,6 +8,8 @@ var Shapes = {
         this.y = y;
         this.z = z;
 
+        this.isZero = () => { return this.x < 1 && this.x > -1 && this.y < 1 && this.y > -1; };
+        this.copy = () => new Shapes.Vect(this.x, this.y, this.y);
         this.add = (v) => {
             return new Shapes.Vect(
                 this.x + v.x,
@@ -51,6 +53,19 @@ var Shapes = {
         this.unit = () => {
             return this.div(this.mag());
         };
+        this.projection = (v) => {
+            return new Shapes.Vect(
+                (this.dotProduct() / (v.x * v.x + v.y * v.y)) * v.x,
+                (this.dotProduct() / (v.x * v.x + v.y * v.y)) * v.y,
+                0
+            );
+        };
+        this.dotProduct = () => {
+            return this.x * this.x + this.y * this.y;
+        };
+        this.normal = (left) => {
+            return new Shapes.Vect(this.y * (left ? 1 : -1), this.x * (left ? -1 : 1), 0);
+        };
         this.dot = (v) => {
             let vec = this.multi(v);
             return vec.x + vec.y + vec.z;
@@ -83,18 +98,18 @@ var Shapes = {
         this.toRadians = (angle) => angle * (Math.PI / 180);
     },
     Line: function(start, end) {
-        name: 'line';
+        this.name = 'line';
         this.start = (start !== null) ? start : new this.Vect(0, 0);
         this.end = (end !== null) ? end : new this.Vect(0, 0);
     },
     Circ: function(radius) {
-        name: 'circle';
+        this.name = 'circle';
         this.radius = radius;
     },
     Rect: function(width, height) {
-        name: 'rectangle';
+        this.name = 'rectangle';
         this.width = width;
-        this.height = height;
+        this.height = height || width;
     }
 }
 Shapes.Vect.prototype = new Shape;

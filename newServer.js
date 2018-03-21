@@ -1,11 +1,4 @@
-// const config = require('./eatemall/config.js');
-// const GameServer = require('./eatemall/GameServer.js');
-
-// const GameState = require('./eatemall/GameState.js');
 const GameClass = require('./eatemall/GameClass.js');
-// const PlayerState = require('./eatemall/PlayerState.js');
-// const Player = require('./eatemall/Player.js');
-
 const newGame = require('./eatemall/newGame.js');
 
 if (newGame instanceof GameClass === false) {
@@ -14,13 +7,11 @@ if (newGame instanceof GameClass === false) {
 }
 
 const players = {};
-
 game = newGame;
 
 // game.setState(new GameState.init());
 // let gameInterval = false;
 // doGameLoop();
-
 
 game.start();
 // game.stop();

@@ -124,9 +124,11 @@ function Motion(game) {
                             switch (message.params.action) {
                                 case 'left':
                                     entity.abilities.orientation.rotate(-5);
+                                    entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
                                     break;
                                 case 'right':
                                     entity.abilities.orientation.rotate(5);
+                                    entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
                                     break;
                                 case 'up':
                                     vel = vel.add(ort.multi(1 * game.delta));
@@ -267,24 +269,9 @@ function Motion(game) {
 
         let pos = entity.abilities.position.pos;
         let vel = entity.abilities.velocity.velocity;
-        let height = { min: 0, max: 0 };
-        let width = { min: 0, max: 0 };
 
-        if (entity.abilities.body.shape.name == 'circle') {
-            radius = entity.abilities.body.shape.radius
-            height.min += radius;
-            height.max += radius;
-            width.min += radius;
-            width.max += radius;
-        }
-
-        if (entity.abilities.body.shape.name == 'rectangle') {
-            let shape = entity.abilities.body.shape;
-            height.min;
-            height.max += shape.height;
-            width.min;
-            width.max += shape.height;
-        }
+        let height = entity.abilities.aabb.height;
+        let width = entity.abilities.aabb.width;
 
         let dirChanged = false;
         if (pos.x <= width.min + vel.x) {
@@ -518,14 +505,16 @@ function Collision(game) {
                     if (entity.id != object.id) {
 
                         if (object.has('collidable')) {
+
                             if (this.collisionTest(entity, object)) {
+
 
                                 // Change color for both colliding entities
                                 entity.abilities.body.color = "#ff0000";
                                 object.abilities.body.color = "#ff0000";
 
-                                if (entity.has('velocity')) {
 
+                                if (entity.has('velocity')) {
                                     let objPos = object.abilities.position.pos;
                                     let objMass = object.abilities.mass.mass;
                                     let objVel = object.abilities.velocity.velocity;
@@ -534,6 +523,50 @@ function Collision(game) {
                                         entity.grounded = true;
                                         // return;
                                     }
+
+                                    // find total velocity
+                                    var totalVelocity = entity.abilities.velocity.velocity.add(object.abilities.velocity.velocity);
+
+                                    // find final direction and chenge direction of totalVelocity
+
+                                    // find force applied towards each velocity vector direction before collision
+
+                                    // find new direction after collision
+
+                                    // find force for each entity
+
+                                    // distribute velocity between both based on their mass
+
+
+                                    // console.log('-------------');
+                                    // console.log(totalVelocity);
+
+                                    // move noth out of each other
+                                    entity.abilities.position.pos = entity.abilities.position.pos.sub(
+                                        new Shapes.Vect(entity.abilities.velocity.velocity.x, entity.abilities.velocity.velocity.y)
+                                    );
+                                    object.abilities.position.pos = object.abilities.position.pos.sub(
+                                        new Shapes.Vect(object.abilities.velocity.velocity.x, object.abilities.velocity.velocity.y)
+                                    );
+
+                                    // use mass here , each object will get impulse based on mass
+                                    // check this http://www.randygaul.net/2013/03/27/game-physics-engine-part-1-impulse-resolution/
+
+                                    // distribute velocity between both based on their mass
+                                    object.abilities.velocity.velocity = totalVelocity.copy().multi(
+                                        entity.abilities.cor.cor
+
+                                    );
+
+                                    entity.abilities.velocity.velocity = totalVelocity.copy().multi(
+                                        entity.abilities.cor.cor
+                                    );
+                                    console.log(entity.abilities.velocity.velocity.x, entity.abilities.velocity.velocity.y);
+                                    console.log('-------------');
+                                    console.log(object.abilities.velocity.velocity.x, object.abilities.velocity.velocity.y);
+
+                                    return;
+
 
                                     let un = pos.sub(objPos).unit();
 
@@ -563,7 +596,8 @@ function Collision(game) {
                                     // new vels after collisions
                                     let newEnVel = new Shapes.Vect(enVelX, enVelY);
                                     let newObjVel = new Shapes.Vect(obVelX, obVelY);
-
+                                    obVelX = obVelY = 2;
+                                    // console.log(obVelX, obVelY);
                                     // let enVelan = un.multi(newEnVel);
                                     // let obVelan = un.multi(newObjVel);
 
@@ -584,6 +618,8 @@ function Collision(game) {
 
                                     entity.abilities.velocity.velocity = enFVel;
                                     object.abilities.velocity.velocity = obFVel;
+
+                                    console.log(object.abilities.velocity.velocity);
 
                                     // console.log(
                                     //     vel.mag() + objVel.mag() + '>>>>>>>>' +
@@ -772,30 +808,33 @@ function Collision(game) {
     }
 
     this.collisionTest = function(entity, object) {
+        if (!this.aabbTest(entity, object)) {
+            return false;
+        }
 
         let touching = false;
         let colliding = false;
         let depth = 0;
 
-        let entityPos = entity.abilities.position.pos;
-        let entityRad = entity.abilities.body.shape.radius;
-        let objectPos = object.abilities.position.pos;
-        let objectRad = object.abilities.body.shape.radius;
+        switch (entity.abilities.body.shape.name + object.abilities.body.shape.name) {
+            case 'circlecircle':
+                depth = this.circleToCicle(entity, object);
+                break;
+            case 'rectanglecircle':
+                depth = this.rectToCircle(entity, object);
+                if (depth > -1)
+                    console.log(depth);
+                break;
+            case 'circlerectangle':
+                depth = this.rectToCircle(object, entity);
+                if (depth > -1)
+                    console.log(depth);
+                break;
+            case 'rectanglerectangle':
+                depth = this.rectToRect(entity, object);
+                break;
+        }
 
-        let eVal = entity.abilities.velocity.velocity;
-
-        // add velocity in position to calculate collision before it happens
-        // So we have more time to react
-        entityPos = entityPos.add(eVal);
-        // new Shapes.Vect(
-        //     entityPos.x + eVal.x,
-        //     entityPos.y + eVal.y,
-        //     entityPos.z + eVal.z
-        // );
-
-        var dx = entityPos.x - objectPos.x;
-        var dy = entityPos.y - objectPos.y;
-        depth = entityRad + objectRad - Math.sqrt(dx * dx + dy * dy);
         if (depth > 0) {
 
             /**
@@ -816,6 +855,66 @@ function Collision(game) {
         //     entity.abilities.body.color = entity.abilities.body.originalColor;
         // }
     }
+
+    this.distance = (p1, p2) => {
+        let dx = p1.x - p2.x;
+        let dy = p1.y - p2.y;
+        return Math.sqrt(dx * dx + dy * dy)
+    };
+    this.circleToCicle = (entity, object) => {
+        let entityPos = new Shapes.Vect(
+            entity.abilities.position.pos.x,
+            entity.abilities.position.pos.y
+        );
+        let entityRad = entity.abilities.body.shape.radius;
+        let objectPos = new Shapes.Vect(
+            object.abilities.position.pos.x,
+            object.abilities.position.pos.y
+        );
+        let objectRad = object.abilities.body.shape.radius;
+
+        let eVal = entity.abilities.velocity.velocity;
+
+        // add velocity in position to calculate collision before it happens
+        // So we have more time to react
+        entityPos = entityPos.add(eVal);
+
+        var dx = entityPos.x - objectPos.x;
+        var dy = entityPos.y - objectPos.y;
+
+        return entityRad + objectRad - Math.sqrt(dx * dx + dy * dy);
+    };
+    this.rectToCircle = (rect, crcl) => {
+        return this.aabbToRect(rect, crcl);
+    }
+    this.aabbToRect = (rect, crcl) => {
+        // only works for axis aligned rectagle and circle  ****************************
+        let rectPos = new Shapes.Vect(rect.abilities.position.pos.x, rect.abilities.position.pos.y);
+        let rectWidth = rect.abilities.body.shape.width;
+        let rectHeight = rect.abilities.body.shape.height;
+        let crclPos = new Shapes.Vect(crcl.abilities.position.pos.x, crcl.abilities.position.pos.y);
+        let crclRadius = crcl.abilities.body.shape.radius;
+        // find nearest point on rect
+        var nearestX = Math.max(rectPos.x - rectWidth / 2, Math.min(crclPos.x, rectPos.x + rectWidth / 2));
+        var nearestY = Math.max(rectPos.y - rectHeight / 2, Math.min(crclPos.y, rectPos.y + rectHeight / 2));
+
+        // find distance between center of circle to nearest point on rect
+        var dx = crclPos.x - nearestX;
+        var dy = crclPos.y - nearestY;
+        var dd = (crclRadius * crclRadius) - (dx * dx + dy * dy);
+
+        return dd;
+    };
+    this.rectToRect = (entity, object) => {
+        return this.aabbTest(entity, object) ? 1 : 0;
+    };
+
+    this.aabbTest = (entity, object) => {
+        return entity.abilities.position.pos.x - entity.abilities.aabb.width.min < object.abilities.position.pos.x + object.abilities.aabb.width.max &&
+            entity.abilities.position.pos.y - entity.abilities.aabb.height.min < object.abilities.position.pos.y + object.abilities.aabb.height.max &&
+            object.abilities.position.pos.x - object.abilities.aabb.width.min < entity.abilities.position.pos.x + entity.abilities.aabb.width.max &&
+            object.abilities.position.pos.y - object.abilities.aabb.height.min < entity.abilities.position.pos.y + entity.abilities.aabb.height.max
+    };
 }
 Collision.prototype = new SubSystem;
 
@@ -830,7 +929,6 @@ module.exports =
             physics: new Physics(game),
 
             motion: new Motion(game),
-
 
             renderer: new Renderer(game),
         };

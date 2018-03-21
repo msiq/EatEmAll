@@ -13,7 +13,6 @@ let player = {};
 
 let mousedown = false;
 
-
 // Handel game join button
 $(loginBtn).on('click', (event) => {
     event.defaultPrevented;
@@ -35,7 +34,6 @@ socket.on('play', onPlay);
 socket.on('goaway', onNoGameForYou);
 socket.on('tick', onTick);
 
-
 function setup() {
 
     if (player.abilities.hasOwnProperty('input')) {
@@ -51,26 +49,45 @@ function setup() {
     }
 }
 
+function askOptions() {
+    loginSplash.innerHTML =
+        " <ul> <li>yes</li> <li>noo</li> <//ul>";
+
+    return true;
+}
+
+function showMenu() {
+
+    loginSplash.innerHTML = "<H1>Wait wait!</H1>";
+    return new Promise((resolve, reject) => {
+        setTimeout(function() {
+            if (askOptions()) {
+                resolve('yesss');
+            }
+        }, 500);
+    });
+};
+
 // On request success
 function onPlay(data) {
     connected = true;
-    // console.log(data.player.length);
     player = data.player;
     localStorage.setItem('eeaid', player.id);
-    loginSplash.style.display = "none";
-    canvas.style.display = "inline-flex";
-    canvas.HTML = "<H1>HI Welcome in!</H1>";
-    // console.log(data, 'connected :)');
-    setup();
-    // show player    
-    // spawnPlayer(player);
 
-    // start game loop    
-    // update();
+    showMenu()
+        .then(function(data) {
+            loginSplash.style.display = "none";
+            canvas.style.display = "inline-flex";
+            canvas.HTML = "<H1>HI Welcome in!</H1>";
+
+            setup();
+        });
 };
 
 // on request Reject
 function onNoGameForYou(data) {
+
+    console.log('Noooooooooooooooooooo!');
     connected = false;
     console.log('refused :(');
 };
@@ -79,23 +96,17 @@ function onNoGameForYou(data) {
 function onTick(data) {
     data = JSON.parse(data);
     update(data);
-
-    // if (player) {
-    //     let updatedPlayer = data.players[player.id];
-
-    //     player = updatedPlayer;
-    // }
-    // spawnPlayer(player);
 }
 
 let lastTime = 0;
-let oldInfo = infobox.appendChild(document.createElement('span'));;
+let oldInfo = infobox.appendChild(document.createElement('span'));
 
 function update(data) {
     cxt.clear();
     var ps = data.players;
     // window.fps = data.fps;
     FPSbox.innerHTML = data.fps;
+
 
     // let infolist = '';
     // for (ind in ps) {
@@ -107,14 +118,13 @@ function update(data) {
     // }
 
 
-    if ((Date.now() - lastTime) > 5000) {
-        lastTime = Date.now();
-        infobox.removeChild(oldInfo);
-        oldInfo = infobox.appendChild(treefy(ps));
-    }
+    // if ((Date.now() - lastTime) > 5000) {
+    //     lastTime = Date.now();
+    //     infobox.removeChild(oldInfo);
+    //     oldInfo = infobox.appendChild(treefy(ps));
+    // }
 
     for (p in ps) {
-        // console.log(ps[p]);
         renderPlayer(ps[p]);
     }
 
@@ -139,66 +149,261 @@ function update(data) {
 
     // renderPlayer();
 
+    //-------------------------------------------------------------------------_
+    // let cir = { x: 190, y: 210, radius: 20, shape: 'circle', dir: { x: 2, y: 3 } };
+    // drawNearestPointforRectCirl(ps[1], ps[0], cxt);
+
+    //-------------------------------------------------------------------------_
     // window.requestAnimationFrame(update);
 }
 
-function spawnPlayer(plr) {
-    // var body = player.has('body');
-    // console.log(plr);
-    // var pos = player.abilities.body.shape.pos;
-    // console.log(player.x, player.y, player.radius, 0, Math.PI * 2);
 
+function drawNearestPointforRectCirl(rect, circle, cxt) {
+    let cir = circle || { x: 190, y: 210, radius: 20, shape: 'circle', dir: { x: 2, y: 3 } };
+    let rct = rect || { x: 230, y: 150, width: 20, height: 20, shape: 'rectangle', dir: { x: 2, y: 3 } };
+    // renderPlayer(cir);
 
-    pdir = {
-            x: plr.x + plr.dir.x * 1.2,
-            y: plr.y + plr.dir.y * 1.2
-        }
-        // draw direction line
+    // find nearest point on rect
+    var nearestX = Math.max(rct.x - rct.width / 2, Math.min(cir.x, rct.x + rct.width / 2));
+    var nearestY = Math.max(rct.y - rct.height / 2, Math.min(cir.y, rct.y + rct.height / 2));
+    // render nearest point on rect
     cxt.beginPath();
-    cxt.lineWidth = 4;
-    cxt.moveTo(plr.x, plr.y);
-    cxt.lineTo(pdir.x, pdir.y);
-    // cxt.lineTo(plr.x + plr.dir.x * 1.2, plr.y + plr.dir.y * 1.2);
-    cxt.stroke();
-    cxt.closePath();
-
-
-    // if (plr.name == "plr") {
-
-    //     cxt.beginPath();
-    //     cxt.lineWidth = 2;
-    //     cxt.moveTo(plr.x, plr.y);
-    //     cxt.lineTo(pdir.y * -1, pdir.x)
-    //         // console.log(plr.x + ' : ' + plr.y);
-    //         // console.log(pdir.x + ' :::' + pdir.y);
-    //         // cxt.lineTo(plr.y + plr.dir.x * 5, (plr.x + plr.dir.y * 5) * -1);
-    //         // plr.x + plr.dir.x * 1.2, plr.y + plr.dir.y * 1.2);
-    //     cxt.stroke();
-    //     cxt.closePath();
-
-    // }
-
-    // Draw objects
-    cxt.beginPath();
-    cxt.fillStyle = plr.color;
-
-    cxt.arc(plr.x, plr.y, plr.radius, 0, Math.PI * 2);
-    cxt.fillStyle = plr.color;
+    cxt.fillStyle = "blue";
+    cxt.arc(nearestX, nearestY, 5, 0, Math.PI * 2);
     cxt.fill();
     cxt.closePath();
 
+    // find distance between center of circle to nearest point on rect
+    var dx = nearestX - cir.x;
+    var dy = nearestY - cir.y;
+    var dd = Math.sqrt(dx * dx + dy * dy);
 
-    // console.log(plr);
+    // find nearest point on circle
+    var csx = cir.x + dx / dd * cir.radius;
+    var csy = cir.y + dy / dd * cir.radius;
+
+    // render line between nearest points
+    cxt.beginPath();
+    cxt.fillStyle = 'black';
+    cxt.lineWidth = 2;
+    cxt.moveTo(nearestX, nearestY);
+    cxt.lineTo(csx, csy);
+    cxt.stroke();
+    cxt.closePath();
+
+    // render nearest point on rect
+    cxt.beginPath();
+    cxt.fillStyle = "yellow";
+    cxt.arc(csx, csy, 5, 0, Math.PI * 2);
+    cxt.fill();
+    cxt.closePath();
+}
+
+function renderPlayer(player) {
+    spawnPlayer(player);
+}
+
+function spawnPlayer(plr) {
+    if (plr.shape == 'circle') {
+        drawCircle(cxt, plr);
+    }
+
+    if (plr.shape == 'rectangle') {
+        drawRect(cxt, plr);
+
+    }
+
+    drawAabb(cxt, plr);
+
     if (plr.name == 'plr') {
         cxt.fillStyle = 'red';
         cxt.fillText(JSON.stringify(plr), 0, 30);
     }
 };
 
-function renderPlayer(player) {
-    spawnPlayer(player);
+var drawCircle = (cxt, plr) => {
+    pdir = {
+        x: plr.x + plr.dir.x * 1.2,
+        y: plr.y + plr.dir.y * 1.2
+    };
+    // draw direction line
+    cxt.beginPath();
+    cxt.fillStyle = 'black';
+    cxt.lineWidth = 4;
+    cxt.moveTo(plr.x, plr.y);
+    cxt.lineTo(pdir.x, pdir.y);
+    cxt.stroke();
+    cxt.closePath();
+
+    // draw shape
+    cxt.beginPath();
+    cxt.fillStyle = plr.color;
+    cxt.arc(plr.x, plr.y, plr.radius, 0, Math.PI * 2);
+    cxt.fill();
+    cxt.closePath();
+
+    // drow circle on position
+    cxt.beginPath();
+    cxt.fillStyle = "yellow";
+    cxt.arc(plr.x, plr.y, 5, 0, Math.PI * 2);
+    cxt.fill();
+    cxt.closePath();
 }
 
+
+function makeAABB(rect) {
+    let hw = rect.width / 2;
+    let hh = rect.height / 2;
+    return {
+        tl: { x: rect.x - hw, y: rect.y - hh },
+        bl: { x: rect.x - hw, y: rect.y + hh },
+        br: { x: rect.x + hw, y: rect.y + hh },
+        tr: { x: rect.x + hw, y: rect.y - hh },
+    };
+};
+
+function addToAABB(aabb, aabb2) {
+    return {
+        tl: { x: Math.max(aabb.tl.x, aabb2.tl.x), y: Math.max(aabb.tl.y + aabb2.tl.x) },
+        bl: { x: Math.max(aabb.bl.x, aabb2.bl.x), y: Math.max(aabb.bl.y + aabb2.bl.x) },
+        br: { x: Math.max(aabb.br.x, aabb2.br.x), y: Math.max(aabb.br.y + aabb2.br.x) },
+        tr: { x: Math.max(aabb.tr.x, aabb2.tr.x), y: Math.max(aabb.tr.y + aabb2.tr.x) },
+    };
+}
+
+
+function moveToOrigin(aabb, origin) {
+    if (origin) {
+        return {
+            tl: { x: aabb.tl.x + origin.x, y: aabb.tl.y + origin.y },
+            bl: { x: aabb.bl.x + origin.x, y: aabb.bl.y + origin.y },
+            br: { x: aabb.br.x + origin.x, y: aabb.br.y + origin.y },
+            tr: { x: aabb.tr.x + origin.x, y: aabb.tr.y + origin.y },
+        };
+    }
+
+    origin = { x: 0, y: 0 };
+    let hw = Math.abs(aabb.tr.x - aabb.bl.x) / 2;
+    let hh = Math.abs(aabb.tr.y - aabb.bl.y) / 2;
+    return {
+        tl: { x: origin.x - hw, y: origin.y - hh },
+        bl: { x: origin.x - hw, y: origin.y + hh },
+        br: { x: origin.x + hw, y: origin.y + hh },
+        tr: { x: origin.x + hw, y: origin.y - hh },
+    };
+};
+
+function rotateAABB(aabb, angle) {
+    let cosa = Math.cos(angle);
+    let sina = Math.sin(angle);
+    return {
+        tl: { x: aabb.tl.x * cosa - aabb.tl.y * sina, y: aabb.tl.x * cosa + aabb.tl.y * sina },
+        bl: { x: aabb.bl.x * sina - aabb.bl.y * cosa, y: aabb.bl.x * sina + aabb.bl.y * cosa },
+        br: { x: aabb.br.x * cosa - aabb.br.y * sina, y: aabb.br.x * cosa + aabb.br.y * sina },
+        tr: { x: aabb.tr.x * sina - aabb.tr.y * cosa, y: aabb.tr.x * sina + aabb.tr.y * cosa },
+    };
+};
+
+var drawAabb = (cxt, plr) => {
+    let aabb = makeAABB(plr);
+    aabb = moveToOrigin(aabb);
+    aabb = rotateAABB(aabb, plr.angle);
+    aabb = moveToOrigin(aabb, { x: plr.x, y: plr.y });
+
+    // Draw AABB
+    cxt.beginPath();
+    cxt.lineWidth = "1";
+    cxt.strokeStyle = 'blue';
+    cxt.rect(
+        plr.x - plr.aabb.width.min,
+        plr.y - plr.aabb.height.min,
+        plr.aabb.width.min + plr.aabb.width.max,
+        plr.aabb.height.min + plr.aabb.height.max
+    );
+    cxt.stroke();
+    cxt.closePath();
+
+    // draw rotated AABB
+    cxt.beginPath();
+    cxt.lineWidth = "3";
+    cxt.strokeStyle = 'yellow';
+    cxt.moveTo(aabb.tl.x, aabb.tl.y);
+    cxt.lineTo(aabb.tr.x, aabb.tr.y);
+    cxt.lineTo(aabb.br.x, aabb.br.y);
+    cxt.lineTo(aabb.bl.x, aabb.bl.y);
+    cxt.lineTo(aabb.tl.x, aabb.tl.y);
+    cxt.stroke();
+    cxt.closePath();
+
+
+    // cxt.beginPath();
+    // cxt.fillStyle = "yellow";
+    // cxt.arc(aabb.tl.x, aabb.tl.y, 8, 0, Math.PI * 2);
+    // cxt.fill();
+    // cxt.closePath();
+    // cxt.beginPath();
+    // cxt.fillStyle = "blue";
+    // cxt.arc(aabb.tr.x, aabb.tr.y, 6, 0, Math.PI * 2);
+    // cxt.fill();
+    // cxt.closePath();
+    // cxt.beginPath();
+    // cxt.fillStyle = "red";
+    // cxt.arc(aabb.bl.x, aabb.bl.y, 5, 0, Math.PI * 2);
+    // cxt.fill();
+    // cxt.closePath();
+    // cxt.beginPath();
+    // cxt.fillStyle = "blue";
+    // cxt.arc(aabb.br.x, aabb.br.y, 8, 0, Math.PI * 2);
+    // cxt.fill();
+    // cxt.closePath();
+    cxt.strokeStyle = 'black';
+};
+
+// let rott = 1;
+var drawRect = (cxt, plr) => {
+    pdir = {
+        x: plr.x + plr.dir.x * 1.2,
+        y: plr.y + plr.dir.y * 1.2
+    };
+    // draw direction line
+    cxt.beginPath();
+    cxt.fillStyle = 'black';
+    cxt.lineWidth = 4;
+    cxt.moveTo(plr.x, plr.y);
+    cxt.lineTo(pdir.x, pdir.y);
+    cxt.stroke();
+    cxt.closePath();
+
+    // draw shape
+    cxt.save();
+    cxt.translate(plr.x, plr.y);
+    cxt.rotate(plr.angle);
+    cxt.translate((plr.x) * -1, (plr.y) * -1);
+
+    cxt.fillStyle = plr.color;
+    cxt.beginPath();
+    cxt.fillRect(
+        plr.x - plr.width / 2,
+        plr.y - plr.height / 2,
+        plr.width,
+        plr.height
+    );
+    cxt.closePath();
+
+    cxt.restore();
+
+    // drow circle on position
+    cxt.beginPath();
+    cxt.fillStyle = "yellow";
+    cxt.arc(plr.x, plr.y, 5, 0, Math.PI * 2);
+    cxt.fill();
+    cxt.closePath();
+
+    // if (rott > 360) {
+    //     rott = 1;
+    // }
+    // rott += .05;
+};
 
 function treefy(data, child = false) {
     let tree = document.createElement('ul')
