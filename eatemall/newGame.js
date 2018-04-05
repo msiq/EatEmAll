@@ -1,4 +1,5 @@
 const Game = require('./GameClass.js');
+const Shapes = require('./Shapes.js');
 
 var game = new Game();
 game.setup = function() {
@@ -19,23 +20,19 @@ game.joinGame = function(data) {
 }
 
 game.update = function() {
+    game.entities['players'].forEach(
+        function(entity) {
+            (entity.name != 'plr') ? true: moveRandom(entity);
 
-    game.entities['players'].forEach(function(entity) {
-
-        if (entity.name == 'plr') {
-            return;
-        }
-
-        // entity.abilities.velocity.velocity = entity.abilities.velocity.velocity.add(new Shapes.Vect(
-        //     Math.random() > .5 ? -Math.random() - 1 : Math.random() + 1,
-        //     Math.random() > .5 ? -Math.random() - 1 : Math.random() + 1,
-        //     0));
-    }, this);
-
-
+        }, this);
 };
 
-
+function moveRandom(entity) {
+    entity.abilities.velocity.velocity = entity.abilities.velocity.velocity.add(new Shapes.Vect(
+        Math.random() > .5 ? -Math.random() - 1 : Math.random() + 1,
+        Math.random() > .5 ? -Math.random() - 1 : Math.random() + 1,
+        0));
+}
 
 function initiatePlayer(game, data) {
 
@@ -52,13 +49,17 @@ function initiatePlayer(game, data) {
     player.attach(new game.abilities.Cor(.4));
     player.attach(new game.abilities.Collidable());
 
+    player.attach(new game.abilities.Score());
+    player.attach(new game.abilities.Rank({ 1: 300, 2: 500, 3: 600 }));
+    player.attach(new game.abilities.Experience(1000));
+
     // player.attach(new game.abilities.Gravity());
 
     player.attach(new game.abilities.Orientation());
 
     // player.attach(new game.abilities.Torque());
     // player.attach(new game.abilities.Acceleration());
-    player.attach(new game.abilities.AngularVelocity());
+    // player.attach(new game.abilities.AngularVelocity());
 
     game.subSystems.collision.AddEntity(player);
     game.subSystems.motion.AddEntity(player);

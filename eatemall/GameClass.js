@@ -186,6 +186,9 @@ var Game = function Game() {
                     },
                     aabb: player.abilities.aabb,
                     angle: angle,
+                    score: player.has('score') ? player.abilities.score.score : 'nono',
+                    rank: player.has('rank') ? player.abilities.rank.rank : 'nono',
+                    xp: player.has('experience') ? player.abilities.experience.xp : 'nono',
                 }
                 // player.abilities.position.pos,
                 // player.abilities.body.shape

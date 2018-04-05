@@ -107,7 +107,6 @@ function update(data) {
     // window.fps = data.fps;
     FPSbox.innerHTML = data.fps;
 
-
     // let infolist = '';
     // for (ind in ps) {
     //     psob = ps[ind];
@@ -126,6 +125,7 @@ function update(data) {
 
     for (p in ps) {
         renderPlayer(ps[p]);
+        // console.log(ps[p]);
     }
 
     // data.dots.forEach((p) => {
@@ -215,9 +215,10 @@ function spawnPlayer(plr) {
 
     drawAabb(cxt, plr);
 
-    if (plr.name == 'plr') {
+    if (plr.name != 'dot') {
         cxt.fillStyle = 'red';
-        cxt.fillText(JSON.stringify(plr), 0, 30);
+        // cxt.fillText(JSON.stringify(plr), 0, 30);
+        cxt.fillText(JSON.stringify('Score: ' + plr.score + ' Rank: ' + plr.rank + ' Xp: ' + plr.xp), 5, 20);
     }
 };
 

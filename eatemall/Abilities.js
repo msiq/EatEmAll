@@ -186,6 +186,61 @@ function String(head, tail, length = 10, elasticity = 0.5) {
 }
 String.prototype = new Ability;
 
+function Score(step) {
+    this.name = 'score';
+    this.score = 0;
+    this.step = step || 1;
+    this.add = (points) => this.score = this.score + points;
+    this.sub = (points) => {
+        this.score = this.score - points;
+        return this.score = this.score < 0 ? 0 : this.score;
+    };
+    this.reset = () => this.score = 0;
+}
+Score.prototype = new Ability;
+
+function Experience(config) {
+    this.name = 'experience';
+    this.xp = 0;
+    this.update = (score) => this.xp = Math.floor(score / 100);
+    this.add = (xp) => this.xp = this.xp + xp || 1;
+    this.sub = (xp) => {
+        this.xp = this.xp - xp || 1;
+        return this.xp = this.xp < 0 ? 0 : this.xp;
+    };
+    this.reset = () => this.xp = 0;
+}
+Experience.prototype = new Ability;
+
+function Rank(config) {
+    this.name = 'rank';
+    this.rank = 0;
+    this.ranks = { 1: 1000 };
+    this.threshold = 1000;
+    this.config = config || 1000;
+    if (typeof this.config == Number) {
+        this.threshold = this.config;
+    } else {
+        this.ranks = this.config;
+        this.threshold = this.ranks[1];
+    }
+    this.update = (score) => {
+        if (this.rank < Object.keys(this.ranks).length) {
+            if (score >= this.threshold) {
+                this.raise();
+                this.threshold = this.ranks[this.rank + 1]
+            }
+        }
+    };
+    this.raise = () => this.rank = this.rank + 1;
+    this.drop = () => {
+        this.rank = this.rank - this.step;
+        return this.renk = this.rank < 0 ? 0 : this.rank;
+    };
+    this.reset = () => this.rank = 0;
+}
+Rank.prototype = new Ability;
+
 module.exports =
     exports = {
         Body,
@@ -201,5 +256,8 @@ module.exports =
         Acceleration,
         AngularVelocity,
         Torque,
-        Aabb
+        Aabb,
+        Score,
+        Experience,
+        Rank,
     };

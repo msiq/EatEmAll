@@ -508,6 +508,19 @@ function Collision(game) {
 
                             if (this.collisionTest(entity, object)) {
 
+                                mentity = entity.name == 'dot' ? object : entity;
+                                if (mentity.has('score')) {
+                                    this.game.messageBus.add(
+                                        new MessageSystem.Message(
+                                            MessageSystem.Type.SCORE, [mentity], {
+                                                action: 'add',
+                                                points: 1 * mentity.abilities.score.step,
+                                            }
+                                        )
+                                    );
+                                }
+
+
 
                                 // Change color for both colliding entities
                                 entity.abilities.body.color = "#ff0000";
@@ -561,9 +574,6 @@ function Collision(game) {
                                     entity.abilities.velocity.velocity = totalVelocity.copy().multi(
                                         entity.abilities.cor.cor
                                     );
-                                    console.log(entity.abilities.velocity.velocity.x, entity.abilities.velocity.velocity.y);
-                                    console.log('-------------');
-                                    console.log(object.abilities.velocity.velocity.x, object.abilities.velocity.velocity.y);
 
                                     return;
 
@@ -822,13 +832,9 @@ function Collision(game) {
                 break;
             case 'rectanglecircle':
                 depth = this.rectToCircle(entity, object);
-                if (depth > -1)
-                    console.log(depth);
                 break;
             case 'circlerectangle':
                 depth = this.rectToCircle(object, entity);
-                if (depth > -1)
-                    console.log(depth);
                 break;
             case 'rectanglerectangle':
                 depth = this.rectToRect(entity, object);
@@ -919,6 +925,30 @@ function Collision(game) {
 Collision.prototype = new SubSystem;
 
 
+function Score(game) {
+    this.game = game;
+    this.name = 'score';
+    this.handleMessage = (message) => {
+        if (message.type === this.name) {
+            message.entities.forEach((entity) => {
+
+                var newScore = entity.abilities.score[message.params['action']](message.params['points']);
+
+                if (entity.has('rank')) {
+                    entity.abilities.rank.update(newScore);
+                }
+
+                if (entity.has('experience')) {
+                    entity.abilities.experience.update(newScore);
+                }
+            });
+        }
+    };
+
+    this.update = () => {};
+}
+Score.prototype = new SubSystem;
+
 module.exports =
     exports = function SubSystem(game) {
         return {
@@ -931,5 +961,7 @@ module.exports =
             motion: new Motion(game),
 
             renderer: new Renderer(game),
+
+            score: new Score(game),
         };
     };
