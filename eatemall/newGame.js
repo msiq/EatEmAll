@@ -10,8 +10,11 @@ game.setup = function() {
     console.log('setting up game');
 
     // add some dots
-    for (let i = 0; i < 1; i++) {
-        initiateDot(this);
+    let dotx = 160;
+    let doty = 180;
+    for (let i = 0; i < 4; i++) {
+        initiateDot(this, dotx, doty);
+        dotx += 60;
     }
 };
 
@@ -20,11 +23,42 @@ game.joinGame = function(data) {
 }
 
 game.update = function() {
-    game.entities['players'].forEach(
-        function(entity) {
-            (entity.name != 'plr') ? true: moveRandom(entity);
+    colliding(game);
+};
 
-        }, this);
+
+function colliding(game) {
+    if (game.entities['players']) {
+        game.entities['players'].forEach(
+            function(entity) {
+                entity.abilities.collidable.onCollisionStart((object) => {
+                    entity.abilities.body.color = "#ff0000";
+                });
+                entity.abilities.collidable.onCollision((object) => {
+                    // entity.abilities.body.color = "#ffff00";
+                });
+                entity.abilities.collidable.onCollisionEnd((object) => {
+                    entity.abilities.body.color = entity.abilities.body.originalColor;
+                });
+            },
+            this);
+    }
+
+    if (game.entities['dots']) {
+        game.entities['dots'].forEach(
+            function(entity) {
+                entity.abilities.collidable.onCollisionStart((object) => {
+                    entity.abilities.body.color = "#ffff00";
+                });
+                entity.abilities.collidable.onCollision((object) => {
+                    // entity.abilities.body.color = "#ffff00";
+                });
+                entity.abilities.collidable.onCollisionEnd((object) => {
+                    entity.abilities.body.color = entity.abilities.body.originalColor;
+                });
+            },
+            this);
+    }
 };
 
 function moveRandom(entity) {
@@ -39,7 +73,7 @@ function initiatePlayer(game, data) {
     const player = new game.Entity(data.userName);
 
     let playerPos = new game.shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1);
-    let playerCirc = new game.shapes.Rect(30);
+    let playerCirc = new game.shapes.Circ(20);
 
     player.attach(new game.abilities.Body(playerCirc, 'green'));
     player.attach(new game.abilities.Position(playerPos));
@@ -74,10 +108,13 @@ function initiatePlayer(game, data) {
 }
 
 
-function initiateDot(game) {
+function initiateDot(game, x, y) {
 
-    var dotPos = new game.shapes.Vect(Math.floor(Math.random() * (game.config.canvas.width - 1 + 1)) + 1, Math.floor(Math.random() * (game.config.canvas.height - 1 + 1)) + 1)
-        // (game.config.canvas.width / 2, game.config.canvas.height / 2);
+    var dotPos = new game.shapes.Vect(
+        x || Math.floor(Math.random() * (game.config.canvas.width - 1 + 1)) + 1,
+        y || Math.floor(Math.random() * (game.config.canvas.height - 1 + 1)) + 1
+    );
+    // (game.config.canvas.width / 2, game.config.canvas.height / 2);
     var dotCirc = new game.shapes.Circ(20);
     var dot = new game.Entity('dot');
     dot.attach(new game.abilities.Body(dotCirc, 'blue'));
@@ -100,7 +137,7 @@ function initiateDot(game) {
     game.subSystems.physics.AddEntity(dot);
     game.subSystems.motion.AddEntity(dot);
 
-    game.addEntity(dot, 'players');
+    game.addEntity(dot, 'dots');
 }
 
 module.exports = exports = game;

@@ -2,7 +2,9 @@ const Shapes = require('./Shapes.js');
 
 function Ability() {
     this.name = 'ability';
+    this.preUpdate = function(player) { console.log(this.name + ' is pre updated!.....'); }
     this.update = function(player) { console.log(this.name + ' is updated!.....'); }
+    this.postUpdate = function(player) { console.log(this.name + ' is post updated!.....'); }
 }
 
 function Body(shape, color = 'red') {
@@ -129,9 +131,68 @@ function Gravity(vector = null) {
 }
 Gravity.prototype = new Ability;
 
-function Collidable(vector = null) {
+function Collidable() {
     this.name = 'collidable';
     this.collidingWith = [];
+    this.collidingStart = [];
+    this.collidingEnd = [];
+    this.inCollision = false;
+    this.onCollisionStartCallback = false;
+    this.onCollisionEndCallback = false;
+    this.onCollisionCallback = false;
+    this.colliding = (object, collision) => {
+        let colliding = this.collidingWith.indexOf(object) >= 0;
+        let goingto = this.collidingStart.indexOf(object) >= 0;
+        if (collision && !goingto && !colliding) {
+            console.log('yessssss ' + object.name);
+            this.collidingStart.push(object);
+        }
+
+        if (!collision) {
+            console.log('noooooo ' + object.name);
+            this.collidingWith.splice(this.collidingWith.indexOf(object), 1);
+            this.collidingEnd.push(object);
+        }
+    };
+    this.collisionStart = () => {
+        this.collidingStart.forEach((object) => {
+            if (this.onCollisionStartCallback) {
+                this.onCollisionStartCallback(object);
+            }
+            this.collidingWith.push(object);
+            this.collidingStart.splice(this.collidingStart.indexOf(object), 1);
+        });
+    };
+    this.collision = () => {
+        this.collidingWith.forEach((object) => {
+            if (this.onCollisionCallback) {
+                this.onCollisionCallback(object);
+            }
+        });
+    };
+    this.collisionEnd = () => {
+        this.collidingEnd.forEach((object) => {
+            if (this.onCollisionEndCallback) {
+                this.onCollisionEndCallback(object);
+            }
+            this.collidingEnd.splice(this.collidingEnd.indexOf(object), 1);
+        });
+    };
+    this.onCollisionStart = (callback = false) => {
+        this.onCollisionStartCallback = callback;
+    };
+    this.onCollision = (callback = false) => {
+        this.onCollisionCallback = callback;
+    };
+    this.onCollisionEnd = (callback = false) => {
+        this.onCollisionEndCallback = callback;
+    };
+    this.preUpdate = () => {};
+    this.update = (entity) => {
+        this.collisionStart();
+        this.collision();
+        this.collisionEnd();
+    };
 }
 Collidable.prototype = new Ability;
 
@@ -195,6 +256,9 @@ function Score(step) {
         this.score = this.score - points;
         return this.score = this.score < 0 ? 0 : this.score;
     };
+    this.update = (action, params) => {
+
+    }
     this.reset = () => this.score = 0;
 }
 Score.prototype = new Ability;

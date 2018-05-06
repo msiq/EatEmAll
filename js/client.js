@@ -123,15 +123,13 @@ function update(data) {
     //     oldInfo = infobox.appendChild(treefy(ps));
     // }
 
-    for (p in ps) {
-        renderPlayer(ps[p]);
-        // console.log(ps[p]);
-    }
-
-    // data.dots.forEach((p) => {
-    //     spawnPlayer(p);
-    // }, this);
-
+    Object.keys(ps).map((entityType) => {
+        if (Object.keys(ps[entityType]).length > 0) {
+            for (p in ps[entityType]) {
+                renderPlayer(ps[entityType][p]);
+            }
+        }
+    });
 
     // cxt.clear();
     // player.x = player.x + 1;

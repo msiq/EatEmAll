@@ -131,7 +131,9 @@ var Game = function Game() {
             if (!this.messageBus.isEmpty()) {
                 while (message = this.messageBus.messages.pop()) {
                     Object.keys(this.subSystems).forEach((subSystem) => {
-                        this.subSystems[subSystem].handleMessage(message)
+                        if (this.subSystems[subSystem].name == message.type) {
+                            this.subSystems[subSystem].handleMessage(message);
+                        }
                     });
                 }
             }
@@ -156,54 +158,47 @@ var Game = function Game() {
         return !!this.active;
     };
 
+    this.formatToRender = (player) => {
+
+        let ort = (player.has('orientation')) ? player.abilities.orientation.orientation : new Shapes.Vect();
+        let angle = (player.has('orientation')) ? player.abilities.orientation.angle : 2;
+
+        let vel = player.has('velocity') ? player.abilities.velocity.velocity : new Shapes.Vect();
+        let shape = player.abilities.body.shape;
+        let dir = ort.multi(shape.radius || shape.width + 2);
+        return Object.assign({},
+            player.abilities.position.pos,
+            player.abilities.body.shape, {
+                shape: player.abilities.body.shape.name,
+                id: player.id,
+                socketId: player.socketId,
+                color: player.abilities.body.color,
+                vel,
+                name: player.name,
+                type: player.type,
+                dir: {
+                    x: dir.x,
+                    y: dir.y,
+                    z: dir.z
+                },
+                aabb: player.abilities.aabb,
+                angle: angle,
+                score: player.has('score') ? player.abilities.score.score : 'nono',
+                rank: player.has('rank') ? player.abilities.rank.rank : 'nono',
+                xp: player.has('experience') ? player.abilities.experience.xp : 'nono',
+            }
+        );
+    };
     this.doTick = function() {
-
-        // console.log(this.entities);
-        let players = this.getEntities('players');
-
-        players = players.map((player) => {
-
-            let ort = (player.has('orientation')) ? player.abilities.orientation.orientation : new Shapes.Vect();
-            let angle = (player.has('orientation')) ? player.abilities.orientation.angle : 2;
-
-            let vel = player.has('velocity') ? player.abilities.velocity.velocity : new Shapes.Vect();
-            let shape = player.abilities.body.shape;
-            let dir = ort.multi(shape.radius || shape.width + 2);
-            return Object.assign({},
-                player.abilities.position.pos,
-                player.abilities.body.shape, {
-                    shape: player.abilities.body.shape.name,
-                    id: player.id,
-                    socketId: player.socketId,
-                    color: player.abilities.body.color,
-                    vel,
-                    name: player.name,
-                    type: player.type,
-                    dir: {
-                        x: dir.x,
-                        y: dir.y,
-                        z: dir.z
-                    },
-                    aabb: player.abilities.aabb,
-                    angle: angle,
-                    score: player.has('score') ? player.abilities.score.score : 'nono',
-                    rank: player.has('rank') ? player.abilities.rank.rank : 'nono',
-                    xp: player.has('experience') ? player.abilities.experience.xp : 'nono',
-                }
-                // player.abilities.position.pos,
-                // player.abilities.body.shape
-
-            );
-            // return {
-            //     id: player.id,
-            //     socketId: player.socketId,
-            //     x: player.abilities.position.pos.x,
-            //     y: player.abilities.position.pos.y,
-            //     radius: player.abilities.body.shape.radius,
-            //     color: player.abilities.body.color
-            // };
+        let players = {};
+        Object.keys(this.entities).map((entityType) => {
+            players[entityType] = this.entities[entityType].map(this.formatToRender);
         });
-        // console.log(Object.keys(players).length);
+
+        // // console.log(this.entities);
+        // let players = this.getEntities('players');
+
+        // players = players.map(this.formatToRender);
 
         this.server.doTick({ players, fps: this.lastFPS });
     };

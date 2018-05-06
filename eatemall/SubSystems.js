@@ -436,7 +436,7 @@ function Physics(game) {
 
         if (message.type == this.name) {
             // console.log(this.name);
-            console.log(message);
+            // console.log(message);
             // console.log('----------->>>>>>>>>>>>>>>>>>>>>><<<<<<<<' + message.type + '   ' + this.game.messageBus.messages.length);
             if (this.actions[message.params.action]) {
                 message.entities.forEach((eid) => {
@@ -465,18 +465,25 @@ Renderer.prototype = new SubSystem;
 function Collision(game) {
     this.game = game;
     this.name = 'collision';
-    this.rotate = (vec, deg) => {
-        let originalVec = vec.unit();
-        let cos = Math.cos(this.toRadians(deg));
-        let sin = Math.sin(this.toRadians(deg));
-        let newDir = new Shapes.Vect(vec.x * cos - vec.y * sin, vec.x * sin + vec.y * cos, 0);
-
-        return newDir.multi(originalVec.mag());
+    this.handleMessage = (message) => {
+        // trigger on Collision event for all colliding entities
+        message.entities.forEach(
+            (entity) => {
+                entity.abilities.collidable.colliding(message.params.object, message.params.collision);
+            }
+        );
     };
-    this.toRadians = (degree) => degree * (Math.PI / 180);
-    this.toDegree = (radian) => (180 / Math.PI) * radian;
-
     this.update = function() {
+        this.testCollisions();
+        this.entities.filter((entity) => entity.has('collidable'))
+            .forEach((entity) => {
+                entity.abilities.collidable.update(entity);
+            });
+
+        // return here after checking collisions..................................................
+        return;
+
+
 
         this.entities.filter((entity) => entity.has('cor')).forEach((entity) => {
 
@@ -508,17 +515,17 @@ function Collision(game) {
 
                             if (this.collisionTest(entity, object)) {
 
-                                mentity = entity.name == 'dot' ? object : entity;
-                                if (mentity.has('score')) {
-                                    this.game.messageBus.add(
-                                        new MessageSystem.Message(
-                                            MessageSystem.Type.SCORE, [mentity], {
-                                                action: 'add',
-                                                points: 1 * mentity.abilities.score.step,
-                                            }
-                                        )
-                                    );
-                                }
+                                // mentity = entity.name == 'dot' ? object : entity;
+                                // if (mentity.has('score')) {
+                                //     this.game.messageBus.add(
+                                //         new MessageSystem.Message(
+                                //             MessageSystem.Type.SCORE, [mentity], {
+                                //                 action: 'add',
+                                //                 points: 1 * mentity.abilities.score.step,
+                                //             }
+                                //         )
+                                //     );
+                                // }
 
 
 
@@ -526,6 +533,7 @@ function Collision(game) {
                                 entity.abilities.body.color = "#ff0000";
                                 object.abilities.body.color = "#ff0000";
 
+                                return;
 
                                 if (entity.has('velocity')) {
                                     let objPos = object.abilities.position.pos;
@@ -815,7 +823,17 @@ function Collision(game) {
                 });
             }
         });
-    }
+    };
+
+    this.testCollisions = () => {
+        this.entities.filter((entity) => entity.has('collidable'))
+            .forEach((entity) => {
+                this.entities.filter((object) => entity.id !== object.id)
+                    .forEach((object) => {
+                        this.collisionTest(entity, object);
+                    });
+            });
+    };
 
     this.collisionTest = function(entity, object) {
         if (!this.aabbTest(entity, object)) {
@@ -842,12 +860,23 @@ function Collision(game) {
         }
 
         if (depth > 0) {
+            // send collision message
+            if (entity.abilities.collidable.collidingWith.indexOf(object) < 0) {
+                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], { 'collision': true, 'object': object }));
+                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], { 'collision': true, 'object': entity }));
+            }
 
             /**
              * Stop entity to move inside another entity
              */
             // entity.abilities.position.pos = entity.abilities.position.pos.sub(eVal);
             touching = true;
+        } else {
+            if (entity.abilities.collidable.collidingWith.indexOf(object) >= 0) {
+                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], { 'collision': false, 'object': object }));
+                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], { 'collision': false, 'object': entity }));
+            }
+            // this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], { 'collision': false, 'object': entity }));
         }
         // if (depth > 5) {
         //     entityRad = entityRad + objectRad / 100;
@@ -862,6 +891,16 @@ function Collision(game) {
         // }
     }
 
+    this.rotate = (vec, deg) => {
+        let originalVec = vec.unit();
+        let cos = Math.cos(this.toRadians(deg));
+        let sin = Math.sin(this.toRadians(deg));
+        let newDir = new Shapes.Vect(vec.x * cos - vec.y * sin, vec.x * sin + vec.y * cos, 0);
+
+        return newDir.multi(originalVec.mag());
+    };
+    this.toRadians = (degree) => degree * (Math.PI / 180);
+    this.toDegree = (radian) => (180 / Math.PI) * radian;
     this.distance = (p1, p2) => {
         let dx = p1.x - p2.x;
         let dy = p1.y - p2.y;

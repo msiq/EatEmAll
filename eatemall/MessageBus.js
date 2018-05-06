@@ -3,6 +3,7 @@ const Type = {
     MOTION: 'motion',
     PHYSICS: 'physics',
     SCORE: 'score',
+    COLLISION: 'collision',
 }
 
 function Message(type, entities = [], params = {}) {

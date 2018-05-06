@@ -53,6 +53,18 @@ var Entity = function(name = 'noname') {
         };
     }
 
+
+    // this.collidingWith = null;
+    // this.colliding = (entities) => {
+    //     this.collidingWith = entities;
+    // };
+    // this.onCollision = (callback = null) => {
+    //     if (typeof callback === "function" && this.collidingWith) {
+    //         callback(this.collidingWith);
+    //     }
+    //     this.collidingWith = null;
+    // };
+
     this.update = () => {
 
         // if (this.debounce(1000)) {
