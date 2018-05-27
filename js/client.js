@@ -27,7 +27,11 @@ $(loginBtn).on('click', (event) => {
 function connectToServer(userName) {
     console.log('Trying to connect');
     oldId = localStorage.getItem('eeaid');
-    socket.emit('letmeplay', { userName, oldId, socketId: socket.id });
+    socket.emit('letmeplay', {
+        userName,
+        oldId,
+        socketId: socket.id
+    });
 }
 
 socket.on('play', onPlay);
@@ -124,9 +128,22 @@ function update(data) {
     // }
 
     Object.keys(ps).map((entityType) => {
+
         if (Object.keys(ps[entityType]).length > 0) {
             for (p in ps[entityType]) {
-                renderPlayer(ps[entityType][p]);
+                if (Object.keys(ps[entityType]).length > 0 && ps[entityType][p].entityType !== "main") {
+                    renderPlayer(ps[entityType][p]);
+                }
+            }
+        }
+    });
+
+    Object.keys(ps).map((entityType) => {
+        if (Object.keys(ps[entityType]).length > 0) {
+            for (p in ps[entityType]) {
+                if (Object.keys(ps[entityType]).length > 0 && ps[entityType][p].entityType == "main") {
+                    renderPlayer(ps[entityType][p]);
+                }
             }
         }
     });
@@ -157,8 +174,27 @@ function update(data) {
 
 
 function drawNearestPointforRectCirl(rect, circle, cxt) {
-    let cir = circle || { x: 190, y: 210, radius: 20, shape: 'circle', dir: { x: 2, y: 3 } };
-    let rct = rect || { x: 230, y: 150, width: 20, height: 20, shape: 'rectangle', dir: { x: 2, y: 3 } };
+    let cir = circle || {
+        x: 190,
+        y: 210,
+        radius: 20,
+        shape: 'circle',
+        dir: {
+            x: 2,
+            y: 3
+        }
+    };
+    let rct = rect || {
+        x: 230,
+        y: 150,
+        width: 20,
+        height: 20,
+        shape: 'rectangle',
+        dir: {
+            x: 2,
+            y: 3
+        }
+    };
     // renderPlayer(cir);
 
     // find nearest point on rect
@@ -211,12 +247,14 @@ function spawnPlayer(plr) {
 
     }
 
-    drawAabb(cxt, plr);
+    // Draw AABB for everything
+    // drawAabb(cxt, plr);
 
     if (plr.name != 'dot') {
         cxt.fillStyle = 'red';
         // cxt.fillText(JSON.stringify(plr), 0, 30);
         cxt.fillText(JSON.stringify('Score: ' + plr.score + ' Rank: ' + plr.rank + ' Xp: ' + plr.xp), 5, 20);
+        cxt.fillText(JSON.stringify('Power: ' + plr.power), 200, 20);
     }
 };
 
@@ -254,19 +292,43 @@ function makeAABB(rect) {
     let hw = rect.width / 2;
     let hh = rect.height / 2;
     return {
-        tl: { x: rect.x - hw, y: rect.y - hh },
-        bl: { x: rect.x - hw, y: rect.y + hh },
-        br: { x: rect.x + hw, y: rect.y + hh },
-        tr: { x: rect.x + hw, y: rect.y - hh },
+        tl: {
+            x: rect.x - hw,
+            y: rect.y - hh
+        },
+        bl: {
+            x: rect.x - hw,
+            y: rect.y + hh
+        },
+        br: {
+            x: rect.x + hw,
+            y: rect.y + hh
+        },
+        tr: {
+            x: rect.x + hw,
+            y: rect.y - hh
+        },
     };
 };
 
 function addToAABB(aabb, aabb2) {
     return {
-        tl: { x: Math.max(aabb.tl.x, aabb2.tl.x), y: Math.max(aabb.tl.y + aabb2.tl.x) },
-        bl: { x: Math.max(aabb.bl.x, aabb2.bl.x), y: Math.max(aabb.bl.y + aabb2.bl.x) },
-        br: { x: Math.max(aabb.br.x, aabb2.br.x), y: Math.max(aabb.br.y + aabb2.br.x) },
-        tr: { x: Math.max(aabb.tr.x, aabb2.tr.x), y: Math.max(aabb.tr.y + aabb2.tr.x) },
+        tl: {
+            x: Math.max(aabb.tl.x, aabb2.tl.x),
+            y: Math.max(aabb.tl.y + aabb2.tl.x)
+        },
+        bl: {
+            x: Math.max(aabb.bl.x, aabb2.bl.x),
+            y: Math.max(aabb.bl.y + aabb2.bl.x)
+        },
+        br: {
+            x: Math.max(aabb.br.x, aabb2.br.x),
+            y: Math.max(aabb.br.y + aabb2.br.x)
+        },
+        tr: {
+            x: Math.max(aabb.tr.x, aabb2.tr.x),
+            y: Math.max(aabb.tr.y + aabb2.tr.x)
+        },
     };
 }
 
@@ -274,21 +336,48 @@ function addToAABB(aabb, aabb2) {
 function moveToOrigin(aabb, origin) {
     if (origin) {
         return {
-            tl: { x: aabb.tl.x + origin.x, y: aabb.tl.y + origin.y },
-            bl: { x: aabb.bl.x + origin.x, y: aabb.bl.y + origin.y },
-            br: { x: aabb.br.x + origin.x, y: aabb.br.y + origin.y },
-            tr: { x: aabb.tr.x + origin.x, y: aabb.tr.y + origin.y },
+            tl: {
+                x: aabb.tl.x + origin.x,
+                y: aabb.tl.y + origin.y
+            },
+            bl: {
+                x: aabb.bl.x + origin.x,
+                y: aabb.bl.y + origin.y
+            },
+            br: {
+                x: aabb.br.x + origin.x,
+                y: aabb.br.y + origin.y
+            },
+            tr: {
+                x: aabb.tr.x + origin.x,
+                y: aabb.tr.y + origin.y
+            },
         };
     }
 
-    origin = { x: 0, y: 0 };
+    origin = {
+        x: 0,
+        y: 0
+    };
     let hw = Math.abs(aabb.tr.x - aabb.bl.x) / 2;
     let hh = Math.abs(aabb.tr.y - aabb.bl.y) / 2;
     return {
-        tl: { x: origin.x - hw, y: origin.y - hh },
-        bl: { x: origin.x - hw, y: origin.y + hh },
-        br: { x: origin.x + hw, y: origin.y + hh },
-        tr: { x: origin.x + hw, y: origin.y - hh },
+        tl: {
+            x: origin.x - hw,
+            y: origin.y - hh
+        },
+        bl: {
+            x: origin.x - hw,
+            y: origin.y + hh
+        },
+        br: {
+            x: origin.x + hw,
+            y: origin.y + hh
+        },
+        tr: {
+            x: origin.x + hw,
+            y: origin.y - hh
+        },
     };
 };
 
@@ -296,10 +385,22 @@ function rotateAABB(aabb, angle) {
     let cosa = Math.cos(angle);
     let sina = Math.sin(angle);
     return {
-        tl: { x: aabb.tl.x * cosa - aabb.tl.y * sina, y: aabb.tl.x * cosa + aabb.tl.y * sina },
-        bl: { x: aabb.bl.x * sina - aabb.bl.y * cosa, y: aabb.bl.x * sina + aabb.bl.y * cosa },
-        br: { x: aabb.br.x * cosa - aabb.br.y * sina, y: aabb.br.x * cosa + aabb.br.y * sina },
-        tr: { x: aabb.tr.x * sina - aabb.tr.y * cosa, y: aabb.tr.x * sina + aabb.tr.y * cosa },
+        tl: {
+            x: aabb.tl.x * cosa - aabb.tl.y * sina,
+            y: aabb.tl.x * cosa + aabb.tl.y * sina
+        },
+        bl: {
+            x: aabb.bl.x * sina - aabb.bl.y * cosa,
+            y: aabb.bl.x * sina + aabb.bl.y * cosa
+        },
+        br: {
+            x: aabb.br.x * cosa - aabb.br.y * sina,
+            y: aabb.br.x * cosa + aabb.br.y * sina
+        },
+        tr: {
+            x: aabb.tr.x * sina - aabb.tr.y * cosa,
+            y: aabb.tr.x * sina + aabb.tr.y * cosa
+        },
     };
 };
 
@@ -307,7 +408,10 @@ var drawAabb = (cxt, plr) => {
     let aabb = makeAABB(plr);
     aabb = moveToOrigin(aabb);
     aabb = rotateAABB(aabb, plr.angle);
-    aabb = moveToOrigin(aabb, { x: plr.x, y: plr.y });
+    aabb = moveToOrigin(aabb, {
+        x: plr.x,
+        y: plr.y
+    });
 
     // Draw AABB
     cxt.beginPath();

@@ -5,10 +5,14 @@ const config = require('./config.js');
 const Abilities = require('./Abilities.js');
 
 var Entity = function(name = 'noname') {
+
+    this.TYPE_DEFAULT = 'default';
+    this.TYPE_MAIN = 'main';
+
     this.id = UUID();
     this.name = name;
     this.socket_id = false;
-    this.type = '';
+    this.type = 'default';
 
     this.grounded = false;
 
@@ -37,14 +41,9 @@ var Entity = function(name = 'noname') {
     this.distance = function(entity) {
         let thisPos = this.abilities.position.pos;
         let enPos = entity.abilities.position.pos;
-
-        console.log(thisPos.x, enPos.x, thisPos.y, enPos.y, 'ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ');
         let deltaX = thisPos.x - enPos.x;
         let deltaY = thisPos.y - enPos.y;
-
-
-
-        console.log((deltaX * deltaY), (deltaX * deltaY), '---------------------------------------------------------::::::');
+        
         return {
             x: deltaX,
             y: deltaY,
@@ -52,18 +51,6 @@ var Entity = function(name = 'noname') {
             mag: Math.sqrt((deltaX * deltaX) + (deltaY * deltaY))
         };
     }
-
-
-    // this.collidingWith = null;
-    // this.colliding = (entities) => {
-    //     this.collidingWith = entities;
-    // };
-    // this.onCollision = (callback = null) => {
-    //     if (typeof callback === "function" && this.collidingWith) {
-    //         callback(this.collidingWith);
-    //     }
-    //     this.collidingWith = null;
-    // };
 
     this.update = () => {
 

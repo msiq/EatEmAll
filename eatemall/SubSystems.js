@@ -970,13 +970,10 @@ function Score(game) {
     this.handleMessage = (message) => {
         if (message.type === this.name) {
             message.entities.forEach((entity) => {
-
                 var newScore = entity.abilities.score[message.params['action']](message.params['points']);
-
                 if (entity.has('rank')) {
                     entity.abilities.rank.update(newScore);
                 }
-
                 if (entity.has('experience')) {
                     entity.abilities.experience.update(newScore);
                 }

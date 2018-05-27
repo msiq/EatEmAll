@@ -93,15 +93,10 @@ var Game = function Game() {
         this.now = Date.now();
 
         if ((this.now - this.lastRun) >= 1000 / config.server.frameRate) {
-
-
             this.delta = (1500 / this.lastFPS) / 100;
-
-            // console.time('tick');
             this.doTick();
             this.update();
             this.internalUpdate();
-            // console.timeEnd('tick', 'here-------------');
             this.lastRun = this.now;
             this.fps++;
         }
@@ -112,10 +107,6 @@ var Game = function Game() {
         }
 
         if ((this.now - this.fpsLastRun) > 1000) {
-
-            // console.log(process.memoryUsage().heapUsed / 1024 / 1024 + '-----------------------------------');
-            // console.log(process.cpuUsage());
-
             this.lastFPS = this.fps;
             console.log(this.fps);
             this.fps = 0;
@@ -186,6 +177,8 @@ var Game = function Game() {
                 score: player.has('score') ? player.abilities.score.score : 'nono',
                 rank: player.has('rank') ? player.abilities.rank.rank : 'nono',
                 xp: player.has('experience') ? player.abilities.experience.xp : 'nono',
+                entityType: this.entityTypes[player.type],
+                power: player.has('power') ? player.abilities.power.power : 'nono',
             }
         );
     };
@@ -244,23 +237,27 @@ var Game = function Game() {
     this.entities = {
         default: []
     };
-    this.addEntity = function(entity, type = 'default') {
+    this.entityTypes = {
+        default: Entity.TYPE_DEFAULT
+    };
+    this.addEntity = function(entity, type = Entity.TYPE_DEFAULT) {
         entity.type = type;
         this.entities[type].push(entity);
     };
-    this.addEntityType = function(name) {
+    this.addEntityType = function(name, type = Entity.TYPE_DEFAULT) {
         this.entities[name] = [];
+        delete this.entities['default'];
+        delete this.entityTypes['default'];
+        this.entityTypes[name] = type;
     };
     this.getEntityById = function(id) {
-        // this.entities.forEach(function(entities) {
-        for (entitGroup in this.entities) {
-            for (entity in this.entities[entitGroup]) {
-                if (this.entities[entitGroup][entity].id == id) {
-                    return this.entities[entitGroup][entity];
+        for (entityGroup in this.entities) {
+            for (entity in this.entities[entityGroup]) {
+                if (this.entities[entityGroup][entity].id == id) {
+                    return this.entities[entityGroup][entity];
                 }
             }
         }
-        // });
 
         return false;
     };
@@ -337,22 +334,9 @@ var Game = function Game() {
             )
         );
 
-
         // this should go to message bus
 
-
-
-
-
-
         // this.subSystems.input.handle(event);
-
-
-
-
-
-
-
 
         // this.handle = function(event) {
         //     if (this.actions[event.action]) {

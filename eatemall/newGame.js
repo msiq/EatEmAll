@@ -1,19 +1,20 @@
 const Game = require('./GameClass.js');
 const Shapes = require('./Shapes.js');
+const Entity = require('./Entity.js');
 
 var game = new Game();
 game.setup = function() {
 
-    game.addEntityType('players');
-    game.addEntityType('dots');
+    game.addEntityType('players', Entity.TYPE_MAIN);
+    game.addEntityType('dots', Entity.TYPE_DEFAULT);
 
     console.log('setting up game');
 
     // add some dots
     let dotx = 160;
     let doty = 180;
-    for (let i = 0; i < 4; i++) {
-        initiateDot(this, dotx, doty);
+    for (let i = 0; i < 1; i++) {
+        initiateDot(this);
         dotx += 60;
     }
 };
@@ -33,9 +34,18 @@ function colliding(game) {
             function(entity) {
                 entity.abilities.collidable.onCollisionStart((object) => {
                     entity.abilities.body.color = "#ff0000";
+                    entity.abilities.score.add(1);
+                    entity.abilities.power.sub(1);
+                    if (entity.abilities.score.score > 0 && entity.abilities.score.score % 10 == 0) {
+                        entity.abilities.experience.add(1);
+                        if (entity.abilities.experience.xp > 0 && entity.abilities.experience.xp % 5 == 0) {
+                            entity.abilities.rank.raise();
+                        }
+                    }
                 });
                 entity.abilities.collidable.onCollision((object) => {
                     // entity.abilities.body.color = "#ffff00";
+
                 });
                 entity.abilities.collidable.onCollisionEnd((object) => {
                     entity.abilities.body.color = entity.abilities.body.originalColor;
@@ -87,6 +97,8 @@ function initiatePlayer(game, data) {
     player.attach(new game.abilities.Rank({ 1: 300, 2: 500, 3: 600 }));
     player.attach(new game.abilities.Experience(1000));
 
+    player.attach(new game.abilities.Power(100));
+
     // player.attach(new game.abilities.Gravity());
 
     player.attach(new game.abilities.Orientation());
@@ -98,6 +110,7 @@ function initiatePlayer(game, data) {
     game.subSystems.collision.AddEntity(player);
     game.subSystems.motion.AddEntity(player);
     game.subSystems.physics.AddEntity(player);
+    game.subSystems.score.AddEntity(player);
 
     console.log('-------------------------lll', game.activeConnections);
 
@@ -122,6 +135,7 @@ function initiateDot(game, x, y) {
     dot.attach(new game.abilities.Collidable());
     dot.attach(new game.abilities.Velocity());
     dot.attach(new game.abilities.Mass(50));
+    dot.attach(new game.abilities.Power(100));
 
     dot.attach(new game.abilities.Orientation());
     // dot.attach(new game.abilities.Gravity());

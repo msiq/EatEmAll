@@ -144,12 +144,10 @@ function Collidable() {
         let colliding = this.collidingWith.indexOf(object) >= 0;
         let goingto = this.collidingStart.indexOf(object) >= 0;
         if (collision && !goingto && !colliding) {
-            console.log('yessssss ' + object.name);
             this.collidingStart.push(object);
         }
 
         if (!collision) {
-            console.log('noooooo ' + object.name);
             this.collidingWith.splice(this.collidingWith.indexOf(object), 1);
             this.collidingEnd.push(object);
         }
@@ -305,6 +303,31 @@ function Rank(config) {
 }
 Rank.prototype = new Ability;
 
+function Power(max) {
+    this.name = 'power';
+    this.max = max | 100;
+    this.power = this.max;
+    this.addPercent = (percent) => {
+        this.power = this.power + percent;
+        return this.add(this.max * (percent(100)));
+    };
+    this.subPercent = (percent) => {
+        this.power = this.power + percent;
+        return this.sub(this.max * (percent(100)));
+    };
+    this.add = (points) => {
+        this.power = this.power + points;
+        return this.power = this.power <= this.max ? this.power : this.max;
+    };
+    this.sub = (points) => {
+        this.power = this.power - points;
+        return this.power = this.power < 0 ? 0 : this.power;
+    };
+    this.update = (action, params) => {}
+    this.reset = () => this.power = this.max;
+}
+Power.prototype = new Ability;
+
 module.exports =
     exports = {
         Body,
@@ -324,4 +347,5 @@ module.exports =
         Score,
         Experience,
         Rank,
+        Power,
     };

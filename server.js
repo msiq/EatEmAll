@@ -33,8 +33,8 @@ state = new State();
 var settings = {
     gameport: 4444,
     canvas: {
-        width: 600,
-        height: 300
+        width: 800,
+        height: 600
     },
     dots: {
         minRad: 15,
