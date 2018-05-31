@@ -253,8 +253,8 @@ function spawnPlayer(plr) {
     if (plr.name != 'dot') {
         cxt.fillStyle = 'red';
         // cxt.fillText(JSON.stringify(plr), 0, 30);
-        cxt.fillText(JSON.stringify('Score: ' + plr.score + ' Rank: ' + plr.rank + ' Xp: ' + plr.xp), 5, 20);
-        cxt.fillText(JSON.stringify('Power: ' + plr.power), 200, 20);
+        cxt.fillText(JSON.stringify('Score: ' + plr.score + ' Rank: ' + plr.rank + ' Xp: ' + plr.xp+ ' Health: ' + plr.health), 5, 20);
+        cxt.fillText(JSON.stringify('Power: ' + plr.power), 250, 20);
     }
 };
 

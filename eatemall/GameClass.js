@@ -157,6 +157,7 @@ var Game = function Game() {
         let vel = player.has('velocity') ? player.abilities.velocity.velocity : new Shapes.Vect();
         let shape = player.abilities.body.shape;
         let dir = ort.multi(shape.radius || shape.width + 2);
+// console.log(player.has('health') ? player.abilities.health.health : 'nono');
         return Object.assign({},
             player.abilities.position.pos,
             player.abilities.body.shape, {
@@ -179,6 +180,7 @@ var Game = function Game() {
                 xp: player.has('experience') ? player.abilities.experience.xp : 'nono',
                 entityType: this.entityTypes[player.type],
                 power: player.has('power') ? player.abilities.power.power : 'nono',
+                health: player.has('health') ? player.abilities.health.health : 'nono',
             }
         );
     };

@@ -13,7 +13,7 @@ game.setup = function() {
     // add some dots
     let dotx = 160;
     let doty = 180;
-    for (let i = 0; i < 1; i++) {
+    for (let i = 0; i < 5; i++) {
         initiateDot(this);
         dotx += 60;
     }
@@ -36,6 +36,7 @@ function colliding(game) {
                     entity.abilities.body.color = "#ff0000";
                     entity.abilities.score.add(1);
                     entity.abilities.power.sub(1);
+                    entity.abilities.health.sub(2);
                     if (entity.abilities.score.score > 0 && entity.abilities.score.score % 10 == 0) {
                         entity.abilities.experience.add(1);
                         if (entity.abilities.experience.xp > 0 && entity.abilities.experience.xp % 5 == 0) {
@@ -98,6 +99,7 @@ function initiatePlayer(game, data) {
     player.attach(new game.abilities.Experience(1000));
 
     player.attach(new game.abilities.Power(100));
+    player.attach(new game.abilities.Health(100));
 
     // player.attach(new game.abilities.Gravity());
 

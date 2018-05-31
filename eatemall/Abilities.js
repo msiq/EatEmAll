@@ -309,11 +309,11 @@ function Power(max) {
     this.power = this.max;
     this.addPercent = (percent) => {
         this.power = this.power + percent;
-        return this.add(this.max * (percent(100)));
+        return this.add(this.max * (percent*(100)));
     };
     this.subPercent = (percent) => {
         this.power = this.power + percent;
-        return this.sub(this.max * (percent(100)));
+        return this.sub(this.max * (percent*(100)));
     };
     this.add = (points) => {
         this.power = this.power + points;
@@ -327,6 +327,33 @@ function Power(max) {
     this.reset = () => this.power = this.max;
 }
 Power.prototype = new Ability;
+
+function Health(max) {
+    this.name = 'health';
+    this.max = max | 100;
+    this.health = this.max;
+    this.addPercent = (percent) => {
+        this.health = this.health + percent;
+        return this.add(this.max * (percent*(100)));
+    };
+    this.subPercent = (percent) => {    
+        this.health = this.health + percent;
+        return this.sub(this.max * (percent*(100)));
+    };
+    this.add = (points) => {
+        this.health = this.health + points;
+        return this.health = this.health <= this.max ? this.health : this.max;
+    };
+    this.sub = (points) => {
+
+        this.health = this.health - points;
+        return this.health = this.health < 0 ? 0 : this.health;
+    };
+    this.update = (action, params) => {}
+    this.reset = () => this.Health = this.max;
+}
+Health.prototype = new Ability;
+
 
 module.exports =
     exports = {
@@ -348,4 +375,5 @@ module.exports =
         Experience,
         Rank,
         Power,
+        Health,
     };
