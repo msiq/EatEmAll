@@ -3,13 +3,14 @@ let loginSplash = document.getElementById('menu');
 
 let loginBtn = document.getElementById('login-btn');
 let UserName = document.getElementById('user-name');
-const canvas = document.getElementById('canvas');
+let canvas = document.getElementById('canvas');
 const FPSbox = document.getElementById('current-fps');
 const infobox = document.getElementById('player-info');
-const cxt = canvas.getContext('2d');
+let cxt = canvas.getContext('2d');
 
 let connected = false;
 let player = {};
+let world = {};
 
 let mousedown = false;
 
@@ -39,6 +40,24 @@ socket.on('goaway', onNoGameForYou);
 socket.on('tick', onTick);
 
 function setup() {
+
+    let viewport = document.createElement('canvas');
+    viewport.width = player.abilities.viewport.width;
+    viewport.height = player.abilities.viewport.height;
+console.log(viewport.width, viewport.height);
+    
+    viewport.id = 'canvas';
+    viewport.className = 'canvas';
+    canvas.parentNode.replaceChild(viewport, canvas)
+    canvas = document.getElementById('canvas');
+    canvas.style.display = "inline-flex";
+    // canvas.style.display = "block";
+    // canvas.style.width = player.abilities.viewport.width;
+    // canvas.style.height = player.abilities.viewport.height;
+
+    cxt = canvas.getContext('2d');
+    // cxt.rect(0, 0, canvas.width, canvas.height)
+
 
     if (player.abilities.hasOwnProperty('input')) {
 
@@ -111,6 +130,76 @@ function update(data) {
     // window.fps = data.fps;
     FPSbox.innerHTML = data.fps;
 
+    let thisPlayer = {};
+    for (ind in Object.keys(ps['players'])) {
+        if (ps['players'][ind].id == player.id) {
+            thisPlayer = ps['players'][ind];
+            break;
+        }
+    }
+    
+    // draw grid on players viewport
+    for (let hor = 0; hor < cxt.canvas.width; hor = hor + 100) {
+        for (let ver = 0; ver < cxt.canvas.height; ver=ver + 100) {
+            if (hor % 100 == 0 && ver % 100 == 0) {
+                cxt.beginPath();
+                cxt.lineWidth = ".1";
+                cxt.strokeStyle = 'blue';
+                cxt.rect(hor, ver, 90, 90);
+                cxt.stroke();
+                cxt.closePath();
+                cxt.strokeStyle = 'black';
+            }
+        }
+    }
+        
+
+
+
+//    this should work   for all player how have viewport or notDeepEqual
+    
+    // Translate canvas to show only player viewport
+    cxt.save()
+    let newOrigin = { x: 0, y: 0 };
+    if (thisPlayer.camera && thisPlayer.viewport) {
+        newOrigin.x = thisPlayer.x - thisPlayer.viewport.width / 2;
+        newOrigin.y = thisPlayer.y - thisPlayer.viewport.height / 2;
+
+        if (thisPlayer.x < (thisPlayer.viewport.width / 2)) {
+            newOrigin.x = 0;
+        }
+        if (thisPlayer.x > 2000 - (thisPlayer.viewport.width / 2)) {
+            newOrigin.x = 2000 - thisPlayer.viewport.width;
+        }
+
+        if (thisPlayer.y < (thisPlayer.viewport.height / 2)) {
+            newOrigin.y = 0;
+        }
+        if (thisPlayer.y > 2000 - (thisPlayer.viewport.height / 2)) {
+            newOrigin.y = 2000 - thisPlayer.viewport.height;
+        }
+    }
+    cxt.translate(-newOrigin.x, -newOrigin.y);
+
+
+    let hor = newOrigin.x;
+    let ver = newOrigin.y;
+    // draw grid for whole world
+    for (hor = 0; hor < 2000; hor = hor + 200) {
+        for (ver = 0; ver < 2000; ver=ver + 200) {
+            if (hor % 200 == 0 && ver % 200 == 0) {
+                cxt.beginPath();
+                cxt.lineWidth = ".2";
+                cxt.strokeStyle = 'green';
+                cxt.rect(hor, ver, 190, 190);
+                cxt.stroke();
+                cxt.closePath();
+                cxt.strokeStyle = 'black';
+            }
+        }
+    }
+
+
     // let infolist = '';
     // for (ind in ps) {
     //     psob = ps[ind];
@@ -128,25 +217,30 @@ function update(data) {
     // }
 
     Object.keys(ps).map((entityType) => {
-
         if (Object.keys(ps[entityType]).length > 0) {
             for (p in ps[entityType]) {
                 if (Object.keys(ps[entityType]).length > 0 && ps[entityType][p].entityType !== "main") {
-                    renderPlayer(ps[entityType][p]);
+                    if (
+                            (thisPlayer.viewport && thisPlayer.viewport.visibleThings.indexOf(ps[entityType][p].id) >= 0)
+                            ||
+                            ps[entityType][p].id == thisPlayer.id    
+                    ) {
+                        renderPlayer(ps[entityType][p]);
+                    }
                 }
             }
         }
     });
 
-    Object.keys(ps).map((entityType) => {
-        if (Object.keys(ps[entityType]).length > 0) {
-            for (p in ps[entityType]) {
-                if (Object.keys(ps[entityType]).length > 0 && ps[entityType][p].entityType == "main") {
-                    renderPlayer(ps[entityType][p]);
-                }
-            }
-        }
-    });
+    // Object.keys(ps).map((entityType) => {
+    //     if (Object.keys(ps[entityType]).length > 0) {
+    //         for (p in ps[entityType]) {
+    //             if (Object.keys(ps[entityType]).length > 0 && ps[entityType][p].entityType == "main") {
+    //                 renderPlayer(ps[entityType][p]);
+    //             }
+    //         }
+    //     }
+    // });
 
     // cxt.clear();
     // player.x = player.x + 1;
@@ -170,6 +264,8 @@ function update(data) {
 
     //-------------------------------------------------------------------------_
     // window.requestAnimationFrame(update);
+
+    cxt.restore();
 }
 
 
@@ -233,29 +329,48 @@ function drawNearestPointforRectCirl(rect, circle, cxt) {
     cxt.closePath();
 }
 
-function renderPlayer(player) {
-    spawnPlayer(player);
-}
+function renderPlayer(plr) {
 
-function spawnPlayer(plr) {
     if (plr.shape == 'circle') {
         drawCircle(cxt, plr);
     }
-
     if (plr.shape == 'rectangle') {
         drawRect(cxt, plr);
-
     }
 
     // Draw AABB for everything
-    // drawAabb(cxt, plr);
+    drawAabb(cxt, plr);
+
+    // Draw camera viewport
+    if (plr.id == player.id) {
+        drawCameraViewPort(cxt, plr);
+    }    
 
     if (plr.name != 'dot') {
         cxt.fillStyle = 'red';
         // cxt.fillText(JSON.stringify(plr), 0, 30);
         cxt.fillText(JSON.stringify('Score: ' + plr.score + ' Rank: ' + plr.rank + ' Xp: ' + plr.xp+ ' Health: ' + plr.health), 5, 20);
         cxt.fillText(JSON.stringify('Power: ' + plr.power), 250, 20);
+
+        // console.log(plr);
     }
+
+
+};
+var drawCameraViewPort = (cxt, plr) => {
+    // Draw AABB
+    cxt.beginPath();
+    cxt.lineWidth = "2";
+    cxt.strokeStyle = 'blue';
+    cxt.rect(
+        plr.camera.pos.x - plr.viewport.width/2,
+        plr.camera.pos.y - plr.viewport.height/2,
+        plr.viewport.width,
+        plr.viewport.height
+    );
+    cxt.stroke();
+    cxt.closePath();
+    cxt.strokeStyle = 'black';
 };
 
 var drawCircle = (cxt, plr) => {

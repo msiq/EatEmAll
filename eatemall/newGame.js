@@ -13,7 +13,7 @@ game.setup = function() {
     // add some dots
     let dotx = 160;
     let doty = 180;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 100; i++) {
         initiateDot(this);
         dotx += 60;
     }
@@ -114,11 +114,16 @@ function initiatePlayer(game, data) {
     game.subSystems.physics.AddEntity(player);
     game.subSystems.score.AddEntity(player);
 
-    console.log('-------------------------lll', game.activeConnections);
+    let camera = new game.abilities.Camera(player.abilities.position.pos);
+    player.attach(camera);
+    player.attach(new game.abilities.Viewport(600, 600, camera));
+    game.subSystems.display.AddEntity(player);
+
+    // console.log('-------------------------lll', game.activeConnections);
 
     player.socket_id = data.socketId;
     game.addEntity(player, 'players');
-
+console.log(player.abilities.viewport);
     return player;
 }
 

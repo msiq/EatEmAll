@@ -5,7 +5,7 @@ const config = require('./config.js');
 var ops = {
     '+': (a, b) => a + b,
     '-': (a, b) => a - b,
-}
+};
 
 function SubSystem(game) {
     this.game = game;
@@ -836,9 +836,27 @@ function Collision(game) {
     };
 
     this.collisionTest = function(entity, object) {
+        
+        if (entity.has('viewport') && entity.id != object.id) {
+            if (!this.inViewPort(entity, object)) {
+                // Add all object in viewport visible things array
+                let objectIndex = entity.abilities.viewport.visibleThings.indexOf(object.id);
+                if (objectIndex >= 0) {
+                    console.log('it was in ', objectIndex);
+                    entity.abilities.viewport.visibleThings.splice(objectIndex, 1);
+                }
+            } else {
+                // Add all object in viewport visible things array
+                if (entity.abilities.viewport.visibleThings.indexOf(object.id) == -1) {
+                    console.log('it is innnnnnnnnnnnnnn ', object.id);
+                    entity.abilities.viewport.visibleThings.push(object.id);
+                }
+            }
+        }
+
         if (!this.aabbTest(entity, object)) {
             return false;
-        }
+        }  
 
         let touching = false;
         let colliding = false;
@@ -960,6 +978,31 @@ function Collision(game) {
             object.abilities.position.pos.x - object.abilities.aabb.width.min < entity.abilities.position.pos.x + entity.abilities.aabb.width.max &&
             object.abilities.position.pos.y - object.abilities.aabb.height.min < entity.abilities.position.pos.y + entity.abilities.aabb.height.max
     };
+
+    this.inViewPort = (entity, object) => {
+        let viewPortAABB = {
+            width: {
+                min: entity.abilities.camera.pos.x - entity.abilities.viewport.width / 2,
+                max: entity.abilities.camera.pos.x + entity.abilities.viewport.width / 2,
+            },
+            height: {
+                min: entity.abilities.camera.pos.y - entity.abilities.viewport.height / 2,
+                max: entity.abilities.camera.pos.y + entity.abilities.viewport.height / 2,
+            }
+        };
+        // console.log(viewPortAABB);  
+        // console.log(
+        // // viewPortAABB.width.min , ' < ', object.abilities.position.pos.x + object.abilities.aabb.width.max , ' && ',
+        // viewPortAABB.height.min ,' < ', object.abilities.position.pos.y + object.abilities.aabb.height.max , '&& ',
+        // // object.abilities.position.pos.x - object.abilities.aabb.width.min ,' < ', viewPortAABB.width.max , ' && ',
+        //     object.abilities.position.pos.y - object.abilities.aabb.height.min ,' < ', viewPortAABB.height.max
+        // );
+        
+        return viewPortAABB.width.min < object.abilities.position.pos.x + object.abilities.aabb.width.max &&
+            viewPortAABB.height.min < object.abilities.position.pos.y + object.abilities.aabb.height.max &&
+            object.abilities.position.pos.x - object.abilities.aabb.width.min < viewPortAABB.width.max &&
+            object.abilities.position.pos.y - object.abilities.aabb.height.min < viewPortAABB.height.max;
+    };
 }
 Collision.prototype = new SubSystem;
 
@@ -985,19 +1028,30 @@ function Score(game) {
 }
 Score.prototype = new SubSystem;
 
-module.exports =
-    exports = function SubSystem(game) {
-        return {
-            input: new Input(game),
-
-            collision: new Collision(game),
-
-            physics: new Physics(game),
-
-            motion: new Motion(game),
-
-            renderer: new Renderer(game),
-
-            score: new Score(game),
-        };
+function Display(game) {
+    this.game = game;
+    this.name = 'display';
+    this.handleMessage = (message) => {};
+    this.update = () => {
+        this.entities.forEach(function (entity) {
+            if (entity.has('camera') && entity.has('viewport')) {
+                entity.abilities.camera.update(entity);
+                entity.abilities.viewport.update(entity);
+            }
+        }, this);
     };
+}
+Display.prototype = new SubSystem;
+
+module.exports =
+exports = function SubSystem(game) {
+    return {
+        input: new Input(game),
+        collision: new Collision(game),
+        physics: new Physics(game),
+        motion: new Motion(game),
+        renderer: new Renderer(game),
+        score: new Score(game),
+        display: new Display(game),
+    };
+};

@@ -10,7 +10,6 @@ function Ability() {
 function Body(shape, color = 'red') {
     this.name = 'body';
     if (shape.constructor.name !== 'Shape') {
-        // console.log(shape.constructor.name);
         throw 'Body requires a Shape, that must be of type Shape!';
     }
     this.shape = shape;
@@ -305,7 +304,7 @@ Rank.prototype = new Ability;
 
 function Power(max) {
     this.name = 'power';
-    this.max = max | 100;
+    this.max = max || 100;
     this.power = this.max;
     this.addPercent = (percent) => {
         this.power = this.power + percent;
@@ -330,13 +329,13 @@ Power.prototype = new Ability;
 
 function Health(max) {
     this.name = 'health';
-    this.max = max | 100;
+    this.max = max || 100;
     this.health = this.max;
     this.addPercent = (percent) => {
         this.health = this.health + percent;
         return this.add(this.max * (percent*(100)));
     };
-    this.subPercent = (percent) => {    
+    this.subPercent = (percent) => {
         this.health = this.health + percent;
         return this.sub(this.max * (percent*(100)));
     };
@@ -345,7 +344,6 @@ function Health(max) {
         return this.health = this.health <= this.max ? this.health : this.max;
     };
     this.sub = (points) => {
-
         this.health = this.health - points;
         return this.health = this.health < 0 ? 0 : this.health;
     };
@@ -354,6 +352,60 @@ function Health(max) {
 }
 Health.prototype = new Ability;
 
+function Camera(pos, id) {
+    this.pos = pos ? pos : new Shapes.Vect(200, 200);
+    this.name = 'camera';
+    this.id = id || 'default';
+    this.update = (player) => {
+        this.pos = new Shapes.Vect(
+            player.abilities.position.pos.x,
+            player.abilities.position.pos.y,
+            player.abilities.position.pos.z
+        );
+    };
+}
+Camera.prototype = new Ability;
+
+// view port is not updateding as it should fix it;
+function Viewport(width, height, camera) {
+    this.name = 'viewport';
+    this.width = width || 400;
+    this.height = height || 400;
+    this.cameras = {};
+    camera = camera || new Camera();
+    // let cameraId = camera.id;
+    this.cameras[camera.id] = camera;
+    this.visibleThings = [];
+    this.addCamera = (camera) => {
+        this.cameras[camera.id] = camera;
+        return this.health = this.health < 0 ? 0 : this.health;
+    };
+    this.removeCamera = (cameraId) => {
+        if (!this.cameras[cameraId]) {
+            return false;
+        }
+        delete this.cameras[cameraId];
+        return true;
+    };
+    this.update = (player) => {
+        Object.keys(this.cameras).forEach((cameraId) => {
+            if (this.cameras[cameraId].pos.x < this.width / 2) {
+                this.cameras[cameraId].pos.x = this.width / 2
+            }
+            if (this.cameras[cameraId].pos.y < this.height / 2) {
+                this.cameras[cameraId].pos.y = this.height / 2
+            }
+
+            if (this.cameras[cameraId].pos.x > 2000 - (this.width / 2)) {
+                this.cameras[cameraId].pos.x = 2000 - (this.width / 2)
+            }
+            if (this.cameras[cameraId].pos.y > 2000 - (this.height / 2)) {
+                this.cameras[cameraId].pos.y = 2000 - (this.height / 2)
+            }
+        });
+    };
+}
+Viewport.prototype = new Ability;
 
 module.exports =
     exports = {
@@ -376,4 +428,6 @@ module.exports =
         Rank,
         Power,
         Health,
+        Camera,
+        Viewport,
     };

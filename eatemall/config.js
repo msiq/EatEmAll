@@ -5,8 +5,8 @@ module.exports =
             frameRate: 30
         },
         canvas: {
-            width: 600,
-            height: 400
+            width: 2000,
+            height: 2000
         },
         dots: {
             minRad: 15,

@@ -82,11 +82,10 @@ var Game = function Game() {
 
     // time delta here and  count FPS somehow
     this.fps = 0;
-    this.lastFPS = 0;
+    this.lastFPS = 30;
     this.lastRun = Date.now();
     this.fpsLastRun = Date.now();
     this.now = 0;
-    this.lastFPS = 30;
 
     this.delta = 1 / 30;
     this.loop = function() {
@@ -157,10 +156,10 @@ var Game = function Game() {
         let vel = player.has('velocity') ? player.abilities.velocity.velocity : new Shapes.Vect();
         let shape = player.abilities.body.shape;
         let dir = ort.multi(shape.radius || shape.width + 2);
-// console.log(player.has('health') ? player.abilities.health.health : 'nono');
         return Object.assign({},
             player.abilities.position.pos,
-            player.abilities.body.shape, {
+            player.abilities.body.shape,
+            {
                 shape: player.abilities.body.shape.name,
                 id: player.id,
                 socketId: player.socketId,
@@ -168,7 +167,7 @@ var Game = function Game() {
                 vel,
                 name: player.name,
                 type: player.type,
-                dir: {
+                dir: {  
                     x: dir.x,
                     y: dir.y,
                     z: dir.z
@@ -181,9 +180,12 @@ var Game = function Game() {
                 entityType: this.entityTypes[player.type],
                 power: player.has('power') ? player.abilities.power.power : 'nono',
                 health: player.has('health') ? player.abilities.health.health : 'nono',
+                camera: player.has('camera') ? player.abilities.camera : 'nono',
+                viewport: player.has('camera') ? player.abilities.viewport : 'nono',
             }
         );
     };
+
     this.doTick = function() {
         let players = {};
         Object.keys(this.entities).map((entityType) => {
