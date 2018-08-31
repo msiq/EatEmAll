@@ -31,7 +31,7 @@ function connectToServer(userName) {
     socket.emit('letmeplay', {
         userName,
         oldId,
-        socketId: socket.id
+        socketId: socket.id,
     });
 }
 
@@ -40,17 +40,16 @@ socket.on('goaway', onNoGameForYou);
 socket.on('tick', onTick);
 
 function setup() {
-
     let viewport = document.createElement('canvas');
     viewport.width = player.abilities.viewport.width;
     viewport.height = player.abilities.viewport.height;
 console.log(viewport.width, viewport.height);
-    
+
     viewport.id = 'canvas';
     viewport.className = 'canvas';
-    canvas.parentNode.replaceChild(viewport, canvas)
+    canvas.parentNode.replaceChild(viewport, canvas);
     canvas = document.getElementById('canvas');
-    canvas.style.display = "inline-flex";
+    canvas.style.display = 'inline-flex';
     // canvas.style.display = "block";
     // canvas.style.width = player.abilities.viewport.width;
     // canvas.style.height = player.abilities.viewport.height;
@@ -60,28 +59,26 @@ console.log(viewport.width, viewport.height);
 
 
     if (player.abilities.hasOwnProperty('input')) {
-
         // set up key press listner
         document.addEventListener('keydown', doKeyDown, true);
 
-        // set up click listener 
-        canvas.addEventListener("mousedown", () => mousedown = true, true);
-        canvas.addEventListener("mouseup", () => mousedown = false, true);
-        canvas.addEventListener("mousemove", doMouseClick, true);
-        canvas.addEventListener("click", doMouseClick, true);
+        // set up click listener
+        canvas.addEventListener('mousedown', () => mousedown = true, true);
+        canvas.addEventListener('mouseup', () => mousedown = false, true);
+        canvas.addEventListener('mousemove', doMouseClick, true);
+        canvas.addEventListener('click', doMouseClick, true);
     }
 }
 
 function askOptions() {
     loginSplash.innerHTML =
-        " <ul> <li>yes</li> <li>noo</li> <//ul>";
+        ' <ul> <li>yes</li> <li>noo</li> <//ul>';
 
     return true;
 }
 
 function showMenu() {
-
-    loginSplash.innerHTML = "<H1>Wait wait!</H1>";
+    loginSplash.innerHTML = '<H1>Wait wait!</H1>';
     return new Promise((resolve, reject) => {
         setTimeout(function() {
             if (askOptions()) {
@@ -99,9 +96,9 @@ function onPlay(data) {
 
     showMenu()
         .then(function(data) {
-            loginSplash.style.display = "none";
-            canvas.style.display = "inline-flex";
-            canvas.HTML = "<H1>HI Welcome in!</H1>";
+            loginSplash.style.display = 'none';
+            canvas.style.display = 'inline-flex';
+            canvas.HTML = '<H1>HI Welcome in!</H1>';
 
             setup();
         });
@@ -109,7 +106,6 @@ function onPlay(data) {
 
 // on request Reject
 function onNoGameForYou(data) {
-
     console.log('Noooooooooooooooooooo!');
     connected = false;
     console.log('refused :(');
@@ -126,7 +122,7 @@ let oldInfo = infobox.appendChild(document.createElement('span'));
 
 function update(data) {
     cxt.clear();
-    var ps = data.players;
+    let ps = data.players;
     // window.fps = data.fps;
     FPSbox.innerHTML = data.fps;
 
@@ -137,13 +133,13 @@ function update(data) {
             break;
         }
     }
-    
+
     // draw grid on players viewport
     for (let hor = 0; hor < cxt.canvas.width; hor = hor + 100) {
         for (let ver = 0; ver < cxt.canvas.height; ver=ver + 100) {
             if (hor % 100 == 0 && ver % 100 == 0) {
                 cxt.beginPath();
-                cxt.lineWidth = ".1";
+                cxt.lineWidth = '.1';
                 cxt.strokeStyle = 'blue';
                 cxt.rect(hor, ver, 90, 90);
                 cxt.stroke();
@@ -152,15 +148,13 @@ function update(data) {
             }
         }
     }
-        
-
 
 
 //    this should work   for all player how have viewport or notDeepEqual
-    
+
     // Translate canvas to show only player viewport
-    cxt.save()
-    let newOrigin = { x: 0, y: 0 };
+    cxt.save();
+    let newOrigin = {x: 0, y: 0};
     if (thisPlayer.camera && thisPlayer.viewport) {
         newOrigin.x = thisPlayer.x - thisPlayer.viewport.width / 2;
         newOrigin.y = thisPlayer.y - thisPlayer.viewport.height / 2;
@@ -189,7 +183,7 @@ function update(data) {
         for (ver = 0; ver < 2000; ver=ver + 200) {
             if (hor % 200 == 0 && ver % 200 == 0) {
                 cxt.beginPath();
-                cxt.lineWidth = ".2";
+                cxt.lineWidth = '.2';
                 cxt.strokeStyle = 'green';
                 cxt.rect(hor, ver, 190, 190);
                 cxt.stroke();
@@ -219,11 +213,11 @@ function update(data) {
     Object.keys(ps).map((entityType) => {
         if (Object.keys(ps[entityType]).length > 0) {
             for (p in ps[entityType]) {
-                if (Object.keys(ps[entityType]).length > 0 && ps[entityType][p].entityType !== "main") {
+                if (Object.keys(ps[entityType]).length > 0 && ps[entityType][p].entityType !== 'main') {
                     if (
                             (thisPlayer.viewport && thisPlayer.viewport.visibleThings.indexOf(ps[entityType][p].id) >= 0)
                             ||
-                            ps[entityType][p].id == thisPlayer.id    
+                            ps[entityType][p].id == thisPlayer.id
                     ) {
                         renderPlayer(ps[entityType][p]);
                     }
@@ -258,11 +252,11 @@ function update(data) {
 
     // renderPlayer();
 
-    //-------------------------------------------------------------------------_
+    // -------------------------------------------------------------------------_
     // let cir = { x: 190, y: 210, radius: 20, shape: 'circle', dir: { x: 2, y: 3 } };
     // drawNearestPointforRectCirl(ps[1], ps[0], cxt);
 
-    //-------------------------------------------------------------------------_
+    // -------------------------------------------------------------------------_
     // window.requestAnimationFrame(update);
 
     cxt.restore();
@@ -277,8 +271,8 @@ function drawNearestPointforRectCirl(rect, circle, cxt) {
         shape: 'circle',
         dir: {
             x: 2,
-            y: 3
-        }
+            y: 3,
+        },
     };
     let rct = rect || {
         x: 230,
@@ -288,29 +282,29 @@ function drawNearestPointforRectCirl(rect, circle, cxt) {
         shape: 'rectangle',
         dir: {
             x: 2,
-            y: 3
-        }
+            y: 3,
+        },
     };
     // renderPlayer(cir);
 
     // find nearest point on rect
-    var nearestX = Math.max(rct.x - rct.width / 2, Math.min(cir.x, rct.x + rct.width / 2));
-    var nearestY = Math.max(rct.y - rct.height / 2, Math.min(cir.y, rct.y + rct.height / 2));
+    let nearestX = Math.max(rct.x - rct.width / 2, Math.min(cir.x, rct.x + rct.width / 2));
+    let nearestY = Math.max(rct.y - rct.height / 2, Math.min(cir.y, rct.y + rct.height / 2));
     // render nearest point on rect
     cxt.beginPath();
-    cxt.fillStyle = "blue";
+    cxt.fillStyle = 'blue';
     cxt.arc(nearestX, nearestY, 5, 0, Math.PI * 2);
     cxt.fill();
     cxt.closePath();
 
     // find distance between center of circle to nearest point on rect
-    var dx = nearestX - cir.x;
-    var dy = nearestY - cir.y;
-    var dd = Math.sqrt(dx * dx + dy * dy);
+    let dx = nearestX - cir.x;
+    let dy = nearestY - cir.y;
+    let dd = Math.sqrt(dx * dx + dy * dy);
 
     // find nearest point on circle
-    var csx = cir.x + dx / dd * cir.radius;
-    var csy = cir.y + dy / dd * cir.radius;
+    let csx = cir.x + dx / dd * cir.radius;
+    let csy = cir.y + dy / dd * cir.radius;
 
     // render line between nearest points
     cxt.beginPath();
@@ -323,14 +317,13 @@ function drawNearestPointforRectCirl(rect, circle, cxt) {
 
     // render nearest point on rect
     cxt.beginPath();
-    cxt.fillStyle = "yellow";
+    cxt.fillStyle = 'yellow';
     cxt.arc(csx, csy, 5, 0, Math.PI * 2);
     cxt.fill();
     cxt.closePath();
 }
 
 function renderPlayer(plr) {
-
     if (plr.shape == 'circle') {
         drawCircle(cxt, plr);
     }
@@ -344,7 +337,7 @@ function renderPlayer(plr) {
     // Draw camera viewport
     if (plr.id == player.id) {
         drawCameraViewPort(cxt, plr);
-    }    
+    }
 
     if (plr.name != 'dot') {
         cxt.fillStyle = 'red';
@@ -354,13 +347,11 @@ function renderPlayer(plr) {
 
         // console.log(plr);
     }
-
-
 };
 var drawCameraViewPort = (cxt, plr) => {
     // Draw AABB
     cxt.beginPath();
-    cxt.lineWidth = "2";
+    cxt.lineWidth = '2';
     cxt.strokeStyle = 'blue';
     cxt.rect(
         plr.camera.pos.x - plr.viewport.width/2,
@@ -376,7 +367,7 @@ var drawCameraViewPort = (cxt, plr) => {
 var drawCircle = (cxt, plr) => {
     pdir = {
         x: plr.x + plr.dir.x * 1.2,
-        y: plr.y + plr.dir.y * 1.2
+        y: plr.y + plr.dir.y * 1.2,
     };
     // draw direction line
     cxt.beginPath();
@@ -396,11 +387,11 @@ var drawCircle = (cxt, plr) => {
 
     // drow circle on position
     cxt.beginPath();
-    cxt.fillStyle = "yellow";
+    cxt.fillStyle = 'yellow';
     cxt.arc(plr.x, plr.y, 5, 0, Math.PI * 2);
     cxt.fill();
     cxt.closePath();
-}
+};
 
 
 function makeAABB(rect) {
@@ -409,19 +400,19 @@ function makeAABB(rect) {
     return {
         tl: {
             x: rect.x - hw,
-            y: rect.y - hh
+            y: rect.y - hh,
         },
         bl: {
             x: rect.x - hw,
-            y: rect.y + hh
+            y: rect.y + hh,
         },
         br: {
             x: rect.x + hw,
-            y: rect.y + hh
+            y: rect.y + hh,
         },
         tr: {
             x: rect.x + hw,
-            y: rect.y - hh
+            y: rect.y - hh,
         },
     };
 };
@@ -430,19 +421,19 @@ function addToAABB(aabb, aabb2) {
     return {
         tl: {
             x: Math.max(aabb.tl.x, aabb2.tl.x),
-            y: Math.max(aabb.tl.y + aabb2.tl.x)
+            y: Math.max(aabb.tl.y + aabb2.tl.x),
         },
         bl: {
             x: Math.max(aabb.bl.x, aabb2.bl.x),
-            y: Math.max(aabb.bl.y + aabb2.bl.x)
+            y: Math.max(aabb.bl.y + aabb2.bl.x),
         },
         br: {
             x: Math.max(aabb.br.x, aabb2.br.x),
-            y: Math.max(aabb.br.y + aabb2.br.x)
+            y: Math.max(aabb.br.y + aabb2.br.x),
         },
         tr: {
             x: Math.max(aabb.tr.x, aabb2.tr.x),
-            y: Math.max(aabb.tr.y + aabb2.tr.x)
+            y: Math.max(aabb.tr.y + aabb2.tr.x),
         },
     };
 }
@@ -453,45 +444,45 @@ function moveToOrigin(aabb, origin) {
         return {
             tl: {
                 x: aabb.tl.x + origin.x,
-                y: aabb.tl.y + origin.y
+                y: aabb.tl.y + origin.y,
             },
             bl: {
                 x: aabb.bl.x + origin.x,
-                y: aabb.bl.y + origin.y
+                y: aabb.bl.y + origin.y,
             },
             br: {
                 x: aabb.br.x + origin.x,
-                y: aabb.br.y + origin.y
+                y: aabb.br.y + origin.y,
             },
             tr: {
                 x: aabb.tr.x + origin.x,
-                y: aabb.tr.y + origin.y
+                y: aabb.tr.y + origin.y,
             },
         };
     }
 
     origin = {
         x: 0,
-        y: 0
+        y: 0,
     };
     let hw = Math.abs(aabb.tr.x - aabb.bl.x) / 2;
     let hh = Math.abs(aabb.tr.y - aabb.bl.y) / 2;
     return {
         tl: {
             x: origin.x - hw,
-            y: origin.y - hh
+            y: origin.y - hh,
         },
         bl: {
             x: origin.x - hw,
-            y: origin.y + hh
+            y: origin.y + hh,
         },
         br: {
             x: origin.x + hw,
-            y: origin.y + hh
+            y: origin.y + hh,
         },
         tr: {
             x: origin.x + hw,
-            y: origin.y - hh
+            y: origin.y - hh,
         },
     };
 };
@@ -502,19 +493,19 @@ function rotateAABB(aabb, angle) {
     return {
         tl: {
             x: aabb.tl.x * cosa - aabb.tl.y * sina,
-            y: aabb.tl.x * cosa + aabb.tl.y * sina
+            y: aabb.tl.x * cosa + aabb.tl.y * sina,
         },
         bl: {
             x: aabb.bl.x * sina - aabb.bl.y * cosa,
-            y: aabb.bl.x * sina + aabb.bl.y * cosa
+            y: aabb.bl.x * sina + aabb.bl.y * cosa,
         },
         br: {
             x: aabb.br.x * cosa - aabb.br.y * sina,
-            y: aabb.br.x * cosa + aabb.br.y * sina
+            y: aabb.br.x * cosa + aabb.br.y * sina,
         },
         tr: {
             x: aabb.tr.x * sina - aabb.tr.y * cosa,
-            y: aabb.tr.x * sina + aabb.tr.y * cosa
+            y: aabb.tr.x * sina + aabb.tr.y * cosa,
         },
     };
 };
@@ -525,12 +516,12 @@ var drawAabb = (cxt, plr) => {
     aabb = rotateAABB(aabb, plr.angle);
     aabb = moveToOrigin(aabb, {
         x: plr.x,
-        y: plr.y
+        y: plr.y,
     });
 
     // Draw AABB
     cxt.beginPath();
-    cxt.lineWidth = "1";
+    cxt.lineWidth = '1';
     cxt.strokeStyle = 'blue';
     cxt.rect(
         plr.x - plr.aabb.width.min,
@@ -543,7 +534,7 @@ var drawAabb = (cxt, plr) => {
 
     // draw rotated AABB
     cxt.beginPath();
-    cxt.lineWidth = "3";
+    cxt.lineWidth = '3';
     cxt.strokeStyle = 'yellow';
     cxt.moveTo(aabb.tl.x, aabb.tl.y);
     cxt.lineTo(aabb.tr.x, aabb.tr.y);
@@ -581,7 +572,7 @@ var drawAabb = (cxt, plr) => {
 var drawRect = (cxt, plr) => {
     pdir = {
         x: plr.x + plr.dir.x * 1.2,
-        y: plr.y + plr.dir.y * 1.2
+        y: plr.y + plr.dir.y * 1.2,
     };
     // draw direction line
     cxt.beginPath();
@@ -612,7 +603,7 @@ var drawRect = (cxt, plr) => {
 
     // drow circle on position
     cxt.beginPath();
-    cxt.fillStyle = "yellow";
+    cxt.fillStyle = 'yellow';
     cxt.arc(plr.x, plr.y, 5, 0, Math.PI * 2);
     cxt.fill();
     cxt.closePath();
@@ -624,23 +615,23 @@ var drawRect = (cxt, plr) => {
 };
 
 function treefy(data, child = false) {
-    let tree = document.createElement('ul')
-    tree.className = "list dropable";
-    Object.keys(data).map(key => {
+    let tree = document.createElement('ul');
+    tree.className = 'list dropable';
+    Object.keys(data).map((key) => {
         let li = document.createElement('li');
         let keyName = document.createElement('span');
         keyName.textContent = key + ': ';
         let summary = document.createElement('span');
-        summary.className = "summary open";
+        summary.className = 'summary open';
         summary.textContent = dotify(data[key]);
         let keyValue = document.createElement('span');
 
         li.appendChild(keyName);
         if (typeof data[key] === 'object') {
             let arrow = document.createElement('span');
-            arrow.textContent = ">";
-            arrow.className = "arrow";
-            arrow.setAttribute('onClick', "clickedMe(this)");
+            arrow.textContent = '>';
+            arrow.className = 'arrow';
+            arrow.setAttribute('onClick', 'clickedMe(this)');
             li.appendChild(arrow);
             li.appendChild(summary);
             keyValue = treefy(data[key]);
@@ -667,7 +658,7 @@ function treefy(data, child = false) {
 }
 
 function dotify(str, length = 30) {
-    return ((typeof str === 'object') ? JSON.stringify(str) : "'" + str + "'").substr(0, length) + '...';
+    return ((typeof str === 'object') ? JSON.stringify(str) : '\'' + str + '\'').substr(0, length) + '...';
 }
 
 function clickedMe(elm) {
@@ -675,40 +666,6 @@ function clickedMe(elm) {
     elm.nextSibling.classList.toggle('open');
     elm.nextSibling.nextSibling.classList.toggle('open');
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // polyfix for canvas clear
@@ -726,31 +683,31 @@ function doMouseClick(evt) {
             action: evt.type,
             params: {
                 mouse: getMouseXY(evt),
-            }
+            },
         });
     }
 }
 
 function getMouseXY(evt) {
-    var canvasBox = canvas.getBoundingClientRect();
+    let canvasBox = canvas.getBoundingClientRect();
     let pos = {
         x: (evt.clientX - canvasBox.left) * (canvas.width / canvasBox.width),
-        y: (evt.clientY - canvasBox.top) * (canvas.height / canvasBox.height)
+        y: (evt.clientY - canvasBox.top) * (canvas.height / canvasBox.height),
     };
 
     return pos;
 }
 
 function doKeyDown(evt) {
-    var actions = [38, 40, 37, 39];
+    let actions = [38, 40, 37, 39];
     if (actions.indexOf(evt.keyCode) >= 0) {
         evt.preventDefault();
         socket.emit('input', {
             playerId: player.id,
             action: evt.type,
             params: {
-                key: evt.keyCode
-            }
+                key: evt.keyCode,
+            },
         });
     }
 }

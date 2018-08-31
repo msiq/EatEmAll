@@ -4,7 +4,7 @@ const Type = {
     PHYSICS: 'physics',
     SCORE: 'score',
     COLLISION: 'collision',
-}
+};
 
 function Message(type, entities = [], params = {}) {
     this.type = type;
@@ -22,11 +22,11 @@ const MessageBus = function(game) {
     };
     this.getNext = () => this.isEmpty() ? false : this.messages.pop();
     this.isEmpty = () => this.messages.length === 0;
-}
+};
 
 module.exports =
     exports = {
         Type,
         Message,
-        MessageBus
+        MessageBus,
     };

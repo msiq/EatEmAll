@@ -2,9 +2,15 @@ const Shapes = require('./Shapes.js');
 
 function Ability() {
     this.name = 'ability';
-    this.preUpdate = function(player) { console.log(this.name + ' is pre updated!.....'); }
-    this.update = function(player) { console.log(this.name + ' is updated!.....'); }
-    this.postUpdate = function(player) { console.log(this.name + ' is post updated!.....'); }
+    this.preUpdate = function(player) {
+        console.log(this.name + ' is pre updated!.....');
+    };
+    this.update = function(player) {
+        console.log(this.name + ' is updated!.....');
+    };
+    this.postUpdate = function(player) {
+        console.log(this.name + ' is post updated!.....');
+    };
 }
 
 function Body(shape, color = 'red') {
@@ -20,8 +26,14 @@ Body.prototype = new Ability;
 
 function Aabb(body, angle = false) {
     this.name = 'aabb';
-    this.height = { min: 0, max: 0 };
-    this.width = { min: 0, max: 0 };
+    this.height = {
+        min: 0,
+        max: 0,
+    };
+    this.width = {
+        min: 0,
+        max: 0,
+    };
 
     if (body.shape.name == 'circle') {
         this.height.min = Math.abs(this.height.min - body.shape.radius);
@@ -31,50 +43,100 @@ function Aabb(body, angle = false) {
     }
 
     if (body.shape.name == 'rectangle') {
-
         this.height.min = Math.abs(this.height.min + body.shape.height / 2);
         this.height.max = Math.abs(this.height.max + body.shape.height / 2);
         this.width.min = Math.abs(this.width.min + body.shape.width / 2);
         this.width.max = Math.abs(this.width.max + body.shape.width / 2);
-    };
+    }
 
     this.makeAABB = (rect) => {
         let hw = rect.width / 2;
         let hh = rect.height / 2;
         return {
-            tl: { x: rect.x - hw, y: rect.y - hh },
-            bl: { x: rect.x - hw, y: rect.y + hh },
-            br: { x: rect.x + hw, y: rect.y + hh },
-            tr: { x: rect.x + hw, y: rect.y - hh },
+            tl: {
+                x: rect.x - hw,
+                y: rect.y - hh,
+            },
+            bl: {
+                x: rect.x - hw,
+                y: rect.y + hh,
+            },
+            br: {
+                x: rect.x + hw,
+                y: rect.y + hh,
+            },
+            tr: {
+                x: rect.x + hw,
+                y: rect.y - hh,
+            },
         };
     };
     this.moveToOrigin = (aabb, origin) => {
         if (origin) {
             return {
-                tl: { x: aabb.tl.x + origin.x, y: aabb.tl.y + origin.y },
-                bl: { x: aabb.bl.x + origin.x, y: aabb.bl.y + origin.y },
-                br: { x: aabb.br.x + origin.x, y: aabb.br.y + origin.y },
-                tr: { x: aabb.tr.x + origin.x, y: aabb.tr.y + origin.y },
+                tl: {
+                    x: aabb.tl.x + origin.x,
+                    y: aabb.tl.y + origin.y,
+                },
+                bl: {
+                    x: aabb.bl.x + origin.x,
+                    y: aabb.bl.y + origin.y,
+                },
+                br: {
+                    x: aabb.br.x + origin.x,
+                    y: aabb.br.y + origin.y,
+                },
+                tr: {
+                    x: aabb.tr.x + origin.x,
+                    y: aabb.tr.y + origin.y,
+                },
             };
         }
-        origin = { x: 0, y: 0 };
+        origin = {
+            x: 0,
+            y: 0,
+        };
         let hw = Math.abs(aabb.tr.x - aabb.bl.x) / 2;
         let hh = Math.abs(aabb.tr.y - aabb.bl.y) / 2;
         return {
-            tl: { x: origin.x - hw, y: origin.y - hh },
-            bl: { x: origin.x - hw, y: origin.y + hh },
-            br: { x: origin.x + hw, y: origin.y + hh },
-            tr: { x: origin.x + hw, y: origin.y - hh },
+            tl: {
+                x: origin.x - hw,
+                y: origin.y - hh,
+            },
+            bl: {
+                x: origin.x - hw,
+                y: origin.y + hh,
+            },
+            br: {
+                x: origin.x + hw,
+                y: origin.y + hh,
+            },
+            tr: {
+                x: origin.x + hw,
+                y: origin.y - hh,
+            },
         };
     };
     this.rotateAABB = (aabb, angle) => {
         let cosa = Math.cos(angle);
         let sina = Math.sin(angle);
         return {
-            tl: { x: aabb.tl.x * cosa - aabb.tl.y * sina, y: aabb.tl.x * cosa + aabb.tl.y * sina },
-            bl: { x: aabb.bl.x * sina - aabb.bl.y * cosa, y: aabb.bl.x * sina + aabb.bl.y * cosa },
-            br: { x: aabb.br.x * cosa - aabb.br.y * sina, y: aabb.br.x * cosa + aabb.br.y * sina },
-            tr: { x: aabb.tr.x * sina - aabb.tr.y * cosa, y: aabb.tr.x * sina + aabb.tr.y * cosa },
+            tl: {
+                x: aabb.tl.x * cosa - aabb.tl.y * sina,
+                y: aabb.tl.x * cosa + aabb.tl.y * sina,
+            },
+            bl: {
+                x: aabb.bl.x * sina - aabb.bl.y * cosa,
+                y: aabb.bl.x * sina + aabb.bl.y * cosa,
+            },
+            br: {
+                x: aabb.br.x * cosa - aabb.br.y * sina,
+                y: aabb.br.x * cosa + aabb.br.y * sina,
+            },
+            tr: {
+                x: aabb.tr.x * sina - aabb.tr.y * cosa,
+                y: aabb.tr.x * sina + aabb.tr.y * cosa,
+            },
         };
     };
 }
@@ -186,9 +248,9 @@ function Collidable() {
     };
     this.preUpdate = () => {};
     this.update = (entity) => {
-        this.collisionStart();
-        this.collision();
-        this.collisionEnd();
+        this.collisionStart(entity);
+        this.collision(entity);
+        this.collisionEnd(entity);
     };
 }
 Collidable.prototype = new Ability;
@@ -205,7 +267,7 @@ function Mass(mass) {
 Mass.prototype = new Ability;
 
 // Coefficient of restitution
-function Cor(cor = .5) { //elasticity
+function Cor(cor = .5) { // elasticity
     this.name = 'cor';
     this.cor = cor;
 }
@@ -230,9 +292,9 @@ function Torque(vector = null) {
 Torque.prototype = new Ability;
 
 /**
- * @param {string} head Id of the entity 
+ * @param {string} head Id of the entity
  * @param {string} tail Id of the entity
- * @param {float} length 
+ * @param {float} length
  * @param {float} elasticity  between 0 - 1
  */
 function String(head, tail, length = 10, elasticity = 0.5) {
@@ -255,7 +317,7 @@ function Score(step) {
     };
     this.update = (action, params) => {
 
-    }
+    };
     this.reset = () => this.score = 0;
 }
 Score.prototype = new Ability;
@@ -276,7 +338,9 @@ Experience.prototype = new Ability;
 function Rank(config) {
     this.name = 'rank';
     this.rank = 0;
-    this.ranks = { 1: 1000 };
+    this.ranks = {
+        1: 1000,
+    };
     this.threshold = 1000;
     this.config = config || 1000;
     if (typeof this.config == Number) {
@@ -289,7 +353,7 @@ function Rank(config) {
         if (this.rank < Object.keys(this.ranks).length) {
             if (score >= this.threshold) {
                 this.raise();
-                this.threshold = this.ranks[this.rank + 1]
+                this.threshold = this.ranks[this.rank + 1];
             }
         }
     };
@@ -308,11 +372,11 @@ function Power(max) {
     this.power = this.max;
     this.addPercent = (percent) => {
         this.power = this.power + percent;
-        return this.add(this.max * (percent*(100)));
+        return this.add(this.max * (percent * (100)));
     };
     this.subPercent = (percent) => {
         this.power = this.power + percent;
-        return this.sub(this.max * (percent*(100)));
+        return this.sub(this.max * (percent * (100)));
     };
     this.add = (points) => {
         this.power = this.power + points;
@@ -322,7 +386,7 @@ function Power(max) {
         this.power = this.power - points;
         return this.power = this.power < 0 ? 0 : this.power;
     };
-    this.update = (action, params) => {}
+    this.update = (action, params) => {};
     this.reset = () => this.power = this.max;
 }
 Power.prototype = new Ability;
@@ -333,11 +397,11 @@ function Health(max) {
     this.health = this.max;
     this.addPercent = (percent) => {
         this.health = this.health + percent;
-        return this.add(this.max * (percent*(100)));
+        return this.add(this.max * (percent * (100)));
     };
     this.subPercent = (percent) => {
         this.health = this.health + percent;
-        return this.sub(this.max * (percent*(100)));
+        return this.sub(this.max * (percent * (100)));
     };
     this.add = (points) => {
         this.health = this.health + points;
@@ -347,7 +411,7 @@ function Health(max) {
         this.health = this.health - points;
         return this.health = this.health < 0 ? 0 : this.health;
     };
-    this.update = (action, params) => {}
+    this.update = (action, params) => {};
     this.reset = () => this.Health = this.max;
 }
 Health.prototype = new Ability;
@@ -390,17 +454,17 @@ function Viewport(width, height, camera) {
     this.update = (player) => {
         Object.keys(this.cameras).forEach((cameraId) => {
             if (this.cameras[cameraId].pos.x < this.width / 2) {
-                this.cameras[cameraId].pos.x = this.width / 2
+                this.cameras[cameraId].pos.x = this.width / 2;
             }
             if (this.cameras[cameraId].pos.y < this.height / 2) {
-                this.cameras[cameraId].pos.y = this.height / 2
+                this.cameras[cameraId].pos.y = this.height / 2;
             }
 
             if (this.cameras[cameraId].pos.x > 2000 - (this.width / 2)) {
-                this.cameras[cameraId].pos.x = 2000 - (this.width / 2)
+                this.cameras[cameraId].pos.x = 2000 - (this.width / 2);
             }
             if (this.cameras[cameraId].pos.y > 2000 - (this.height / 2)) {
-                this.cameras[cameraId].pos.y = 2000 - (this.height / 2)
+                this.cameras[cameraId].pos.y = 2000 - (this.height / 2);
             }
         });
     };

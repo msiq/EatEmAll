@@ -1,15 +1,14 @@
 const app = require('express')();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
-
 const config = require('./config.js');
+var path = require('path');
 
 let gameInterval = false;
 
 let socket;
 
 function GameServer() {
-
     this.sockets = [];
     this.game = {};
 
@@ -17,11 +16,14 @@ function GameServer() {
         this.game = game;
 
         return new Promise((resolve, reject) => {
-
             // define routes and start receiving Player connections
-            app.get('/', (req, res) => res.sendFile('game.html', { root: '.' }));
+            app.get('/', (req, res) => res.sendFile(path.resolve('/Client/game.html'), {
+                root: '.',
+            }));
             // app.get('/', (req, res) => res.sendFile('collision-test.html', { root: '.' }));
-            app.get('/*', (req, res) => res.sendFile(req.params[0], { root: '.' }));
+            app.get('/*', (req, res) => res.sendFile(req.params[0], {
+                root: '.',
+            }));
 
             let okk = false;
             // start listening to on port 4444
@@ -37,7 +39,6 @@ function GameServer() {
         });
     };
     this.onConnection = (sock) => {
-
         this.sockets.push(sock);
         console.log('conneted with something!');
         this.onRequest('letmeplay', game.onletMePlay);
@@ -55,14 +56,19 @@ function GameServer() {
         io.sockets.sockets[socketId].emit(response, onResponse);
     };
     this.letEmPlay = (player) => {
-        io.sockets.sockets[player.socket_id].emit('play', { player });
+        io.sockets.sockets[player.socket_id].emit('play', {
+            player,
+        });
     };
     this.goAway = (socketId) => {
         io.sockets.sockets[socketId].emit('goaway');
-    }
+    };
     this.doTick = (data) => {
-        io.sockets.emit('tick', JSON.stringify({ players: data.players, fps: data.fps }));
-    }
+        io.sockets.emit('tick', JSON.stringify({
+            players: data.players,
+            fps: data.fps,
+        }));
+    };
 };
 
 // io.on('connection', );
@@ -135,10 +141,10 @@ function GameServer() {
 // function initializePlayer(name, options) {
 //     const newplayer = new Player(name, options);
 //     // console.log(newplayer);
-//     // Save Player in players collection    
+//     // Save Player in players collection
 //     players[newplayer.id] = newplayer;
 
-//     // Initialize new player    
+//     // Initialize new player
 //     newplayer.currentState.execute()
 //         .then((data) => {
 //             console.log(data);
@@ -150,8 +156,6 @@ function GameServer() {
 
 //     return newplayer.id;
 // }
-
-
 
 
 module.exports = exports = GameServer;

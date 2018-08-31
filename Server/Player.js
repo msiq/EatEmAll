@@ -3,8 +3,6 @@ const Entity = require('./Entity.js');
 const Shapes = require('./Shapes.js');
 
 Player = function(name, options = {}) {
-
-
     // console.log(options.shape.constructor.name, options.shape);
     const uuid = UUID();
     // Set up basic player
@@ -21,11 +19,11 @@ Player = function(name, options = {}) {
 
     this.setState = function(newState) {
         this.currentState = newState;
-    }
+    };
     this.setSocket = function(socketId) {
         this.socketId = socketId;
-    }
-}
+    };
+};
 
 // Player.prototype = new Entity;
 

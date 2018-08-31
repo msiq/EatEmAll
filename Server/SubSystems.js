@@ -61,18 +61,18 @@ function Input(game) {
         'mousemove': 'drag',
     };
     this.actionMapper = (params) => {
-        if (params.action == "keydown") {
+        if (params.action == 'keydown') {
             return this.actions[params.key];
         }
 
         return this.actions[params.action];
-    }
+    };
     this.handleMessage = (message) => {
         if (message.type === this.name) {
             this.game.messageBus.add(
                 new MessageSystem.Message(
                     MessageSystem.Type.MOTION, message.entities,
-                    Object.assign({}, message.params, { action: this.actionMapper(message.params) })
+                    Object.assign({}, message.params, {action: this.actionMapper(message.params)})
                 )
             );
         }
@@ -109,7 +109,6 @@ function Motion(game) {
     };
 
     this.handleMessage = (message) => {
-
         if (message.type == this.name) {
             if (this.actions[message.params.action]) {
                 message.entities.forEach((eid) => {
@@ -166,7 +165,6 @@ function Motion(game) {
         }
     };
     this.update = function() {
-
         // if (!this.game.messageBus.isEmpty()) {
         //     console.log('motiooooooooooooooooooooooooooooooooooooooooooonnnnnn');
         //     let message = this.game.messageBus.messages[this.game.messageBus.messages.length - 1];
@@ -193,10 +191,10 @@ function Motion(game) {
         this.entities.forEach(function(entity) {
             // Update postion of entities
             if (entity.has('velocity')) {
-                let velo = entity.abilities.velocity.velocity
+                let velo = entity.abilities.velocity.velocity;
 
 
-                //apply new velocity to the direction
+                // apply new velocity to the direction
                 if (entity.has('orientation')) {
                     let ort = entity.abilities.orientation.orientation;
                     // let newDir = ort.sub(entity.abilities.velocity.velocity.unit()).unit();
@@ -207,10 +205,7 @@ function Motion(game) {
                     // );
 
 
-
-
-
-                    /**************************************************************************************************************************************************
+                    /** ************************************************************************************************************************************************
                      * this was adding velcity only on objects direction. :( bad code
                      */
                     // entity.abilities.velocity.velocity =
@@ -223,7 +218,6 @@ function Motion(game) {
                 }
                 // /** Apply gravity */
                 if (entity.has('gravity') && entity.has('velocity') && !entity.grounded) {
-
                     // console.log('graaaaaaaaaaaaaaavity' + entity.name);
                     let g = entity.abilities.gravity.gravity;
                     let vel = entity.abilities.velocity.velocity;
@@ -252,7 +246,6 @@ function Motion(game) {
                     );
                 }
             }
-
         }, this);
     };
     this.postUpdate = function() {
@@ -266,7 +259,6 @@ function Motion(game) {
         }, this);
     };
     this.limit = (entity) => {
-
         let pos = entity.abilities.position.pos;
         let vel = entity.abilities.velocity.velocity;
 
@@ -291,7 +283,6 @@ function Motion(game) {
             // dirChanged = true;
         }
         if (pos.y >= config.canvas.height - (height.max + vel.y)) {
-
             pos.y = config.canvas.height - height.max;
             vel.y = vel.y * -0.5;
 
@@ -325,7 +316,6 @@ function Motion(game) {
             // } else {
             //     vel = new Shapes.Vect();
             // }
-
         } else {
             entity.grounded = false;
         }
@@ -349,13 +339,11 @@ function Physics(game) {
         gravity: (g) => {
             console.log('ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg');
             console.log(g);
-            return g
+            return g;
         },
     };
 
     this.update = () => {
-
-
         // if (!this.game.messageBus.isEmpty()) {
         //     let message = this.game.messageBus.messages[this.game.messageBus.messages.length - 1];
         //     console.log(message);
@@ -374,7 +362,6 @@ function Physics(game) {
         // }
 
         this.entities.forEach((entity) => {
-
             // /** Apply gravity */
             // if (entity.has('gravity') && entity.has('velocity')) {
             //     let g = entity.has('gravity') ? entity.abilities.gravity.gravity : Shapes.Vect;
@@ -389,7 +376,7 @@ function Physics(game) {
 
             // apply all forces
             if (this.debounce(1000, entity.id)) {
-                // apply environmental forces 
+                // apply environmental forces
                 if (entity.has('velocity') && !entity.abilities.velocity.velocity.empty()) {
                     let vel = entity.abilities.velocity.velocity;
                     let air = vel.multi(config.env.airResistance);
@@ -404,11 +391,9 @@ function Physics(game) {
             // fix strings here
             // console.log(entity.name);
             if (entity.has('string') && false) {
-
                 let stringConn = entity.abilities.string;
                 // console.log(stringConn);
                 if (entity.id == stringConn.tail) {
-
                     let head = this.game.getEntityById(stringConn.head);
                     let distance = entity.distance(head);
                     // > stringConn.distance;
@@ -433,7 +418,6 @@ function Physics(game) {
         });
     };
     this.handleMessage = (message) => {
-
         if (message.type == this.name) {
             // console.log(this.name);
             // console.log(message);
@@ -484,12 +468,9 @@ function Collision(game) {
         return;
 
 
-
         this.entities.filter((entity) => entity.has('cor')).forEach((entity) => {
-
             // Decrease angular velocity
             if (entity.has('angularVelocity')) {
-
                 let av = entity.abilities.angularVelocity.angularVelocity;
 
                 entity.abilities.orientation.orientation =
@@ -508,13 +489,9 @@ function Collision(game) {
                 let vel = entity.abilities.velocity.velocity;
 
                 this.entities.forEach((object) => {
-
                     if (entity.id != object.id) {
-
                         if (object.has('collidable')) {
-
                             if (this.collisionTest(entity, object)) {
-
                                 // mentity = entity.name == 'dot' ? object : entity;
                                 // if (mentity.has('score')) {
                                 //     this.game.messageBus.add(
@@ -528,10 +505,9 @@ function Collision(game) {
                                 // }
 
 
-
                                 // Change color for both colliding entities
-                                entity.abilities.body.color = "#ff0000";
-                                object.abilities.body.color = "#ff0000";
+                                entity.abilities.body.color = '#ff0000';
+                                object.abilities.body.color = '#ff0000';
 
                                 return;
 
@@ -546,7 +522,7 @@ function Collision(game) {
                                     }
 
                                     // find total velocity
-                                    var totalVelocity = entity.abilities.velocity.velocity.add(object.abilities.velocity.velocity);
+                                    let totalVelocity = entity.abilities.velocity.velocity.add(object.abilities.velocity.velocity);
 
                                     // find final direction and chenge direction of totalVelocity
 
@@ -673,17 +649,6 @@ function Collision(game) {
                                     return;
 
 
-
-
-
-
-
-
-
-
-
-
-
                                     // let enValX = ((vel.x * (mass - objMass)) + (2 * objMass * objVel.x)) / (mass + objMass);
                                     // let enValY = ((vel.y * (mass - objMass)) + (2 * objMass * objVel.y)) / (mass + objMass);
                                     // let obValX = ((objVel.x * (objMass - mass)) + (2 * mass * vel.x)) / (mass + objMass);
@@ -714,7 +679,7 @@ function Collision(game) {
                                     // //         y = newEnDir.x,
                                     // //         z = 0
                                     // //     );
-                                    // // // ).mag()); 
+                                    // // // ).mag());
 
                                     // let unitNormal = objPos.sub(pos).unit();
                                     // let unitTangent = new Shapes.Vect(
@@ -762,7 +727,6 @@ function Collision(game) {
                                     // // );
 
 
-
                                     // console.log(
                                     //     vel.mag() + objVel.mag() + '>>>>>>>>' +
                                     //     vel.x + '---' + vel.y + '---------------' +
@@ -774,8 +738,6 @@ function Collision(game) {
                                     //     entity.abilities.velocity.velocity.x + '---' + entity.abilities.velocity.velocity.y + '---------------' +
                                     //     object.abilities.velocity.velocity.x + '---' + object.abilities.velocity.velocity.y
                                     // );
-
-
 
 
                                     // // rotate on collision
@@ -794,13 +756,7 @@ function Collision(game) {
                                     // if (object.has('orientation') && object.has('velocity') && object.abilities.velocity.velocity.mag() !== 0) {
                                     //     object.abilities.orientation.orientation = object.abilities.velocity.velocity.unit();
                                     // }
-
-
-
                                 }
-
-
-
                             } else {
                                 // entity.abilities.collidable.collidingWith = [];
                                 let obInd = entity.abilities.collidable.collidingWith.indexOf(object.id);
@@ -836,7 +792,6 @@ function Collision(game) {
     };
 
     this.collisionTest = function(entity, object) {
-        
         if (entity.has('viewport') && entity.id != object.id) {
             if (!this.inViewPort(entity, object)) {
                 // Add all object in viewport visible things array
@@ -856,7 +811,7 @@ function Collision(game) {
 
         if (!this.aabbTest(entity, object)) {
             return false;
-        }  
+        }
 
         let touching = false;
         let colliding = false;
@@ -880,8 +835,8 @@ function Collision(game) {
         if (depth > 0) {
             // send collision message
             if (entity.abilities.collidable.collidingWith.indexOf(object) < 0) {
-                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], { 'collision': true, 'object': object }));
-                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], { 'collision': true, 'object': entity }));
+                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], {'collision': true, 'object': object}));
+                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], {'collision': true, 'object': entity}));
             }
 
             /**
@@ -891,8 +846,8 @@ function Collision(game) {
             touching = true;
         } else {
             if (entity.abilities.collidable.collidingWith.indexOf(object) >= 0) {
-                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], { 'collision': false, 'object': object }));
-                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], { 'collision': false, 'object': entity }));
+                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], {'collision': false, 'object': object}));
+                this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], {'collision': false, 'object': entity}));
             }
             // this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], { 'collision': false, 'object': entity }));
         }
@@ -907,7 +862,7 @@ function Collision(game) {
         // } else {
         //     entity.abilities.body.color = entity.abilities.body.originalColor;
         // }
-    }
+    };
 
     this.rotate = (vec, deg) => {
         let originalVec = vec.unit();
@@ -922,7 +877,7 @@ function Collision(game) {
     this.distance = (p1, p2) => {
         let dx = p1.x - p2.x;
         let dy = p1.y - p2.y;
-        return Math.sqrt(dx * dx + dy * dy)
+        return Math.sqrt(dx * dx + dy * dy);
     };
     this.circleToCicle = (entity, object) => {
         let entityPos = new Shapes.Vect(
@@ -942,14 +897,14 @@ function Collision(game) {
         // So we have more time to react
         entityPos = entityPos.add(eVal);
 
-        var dx = entityPos.x - objectPos.x;
-        var dy = entityPos.y - objectPos.y;
+        let dx = entityPos.x - objectPos.x;
+        let dy = entityPos.y - objectPos.y;
 
         return entityRad + objectRad - Math.sqrt(dx * dx + dy * dy);
     };
     this.rectToCircle = (rect, crcl) => {
         return this.aabbToRect(rect, crcl);
-    }
+    };
     this.aabbToRect = (rect, crcl) => {
         // only works for axis aligned rectagle and circle  ****************************
         let rectPos = new Shapes.Vect(rect.abilities.position.pos.x, rect.abilities.position.pos.y);
@@ -958,13 +913,13 @@ function Collision(game) {
         let crclPos = new Shapes.Vect(crcl.abilities.position.pos.x, crcl.abilities.position.pos.y);
         let crclRadius = crcl.abilities.body.shape.radius;
         // find nearest point on rect
-        var nearestX = Math.max(rectPos.x - rectWidth / 2, Math.min(crclPos.x, rectPos.x + rectWidth / 2));
-        var nearestY = Math.max(rectPos.y - rectHeight / 2, Math.min(crclPos.y, rectPos.y + rectHeight / 2));
+        let nearestX = Math.max(rectPos.x - rectWidth / 2, Math.min(crclPos.x, rectPos.x + rectWidth / 2));
+        let nearestY = Math.max(rectPos.y - rectHeight / 2, Math.min(crclPos.y, rectPos.y + rectHeight / 2));
 
         // find distance between center of circle to nearest point on rect
-        var dx = crclPos.x - nearestX;
-        var dy = crclPos.y - nearestY;
-        var dd = (crclRadius * crclRadius) - (dx * dx + dy * dy);
+        let dx = crclPos.x - nearestX;
+        let dy = crclPos.y - nearestY;
+        let dd = (crclRadius * crclRadius) - (dx * dx + dy * dy);
 
         return dd;
     };
@@ -976,7 +931,7 @@ function Collision(game) {
         return entity.abilities.position.pos.x - entity.abilities.aabb.width.min < object.abilities.position.pos.x + object.abilities.aabb.width.max &&
             entity.abilities.position.pos.y - entity.abilities.aabb.height.min < object.abilities.position.pos.y + object.abilities.aabb.height.max &&
             object.abilities.position.pos.x - object.abilities.aabb.width.min < entity.abilities.position.pos.x + entity.abilities.aabb.width.max &&
-            object.abilities.position.pos.y - object.abilities.aabb.height.min < entity.abilities.position.pos.y + entity.abilities.aabb.height.max
+            object.abilities.position.pos.y - object.abilities.aabb.height.min < entity.abilities.position.pos.y + entity.abilities.aabb.height.max;
     };
 
     this.inViewPort = (entity, object) => {
@@ -988,16 +943,16 @@ function Collision(game) {
             height: {
                 min: entity.abilities.camera.pos.y - entity.abilities.viewport.height / 2,
                 max: entity.abilities.camera.pos.y + entity.abilities.viewport.height / 2,
-            }
+            },
         };
-        // console.log(viewPortAABB);  
+        // console.log(viewPortAABB);
         // console.log(
         // // viewPortAABB.width.min , ' < ', object.abilities.position.pos.x + object.abilities.aabb.width.max , ' && ',
         // viewPortAABB.height.min ,' < ', object.abilities.position.pos.y + object.abilities.aabb.height.max , '&& ',
         // // object.abilities.position.pos.x - object.abilities.aabb.width.min ,' < ', viewPortAABB.width.max , ' && ',
         //     object.abilities.position.pos.y - object.abilities.aabb.height.min ,' < ', viewPortAABB.height.max
         // );
-        
+
         return viewPortAABB.width.min < object.abilities.position.pos.x + object.abilities.aabb.width.max &&
             viewPortAABB.height.min < object.abilities.position.pos.y + object.abilities.aabb.height.max &&
             object.abilities.position.pos.x - object.abilities.aabb.width.min < viewPortAABB.width.max &&
@@ -1013,7 +968,7 @@ function Score(game) {
     this.handleMessage = (message) => {
         if (message.type === this.name) {
             message.entities.forEach((entity) => {
-                var newScore = entity.abilities.score[message.params['action']](message.params['points']);
+                let newScore = entity.abilities.score[message.params['action']](message.params['points']);
                 if (entity.has('rank')) {
                     entity.abilities.rank.update(newScore);
                 }
@@ -1033,7 +988,7 @@ function Display(game) {
     this.name = 'display';
     this.handleMessage = (message) => {};
     this.update = () => {
-        this.entities.forEach(function (entity) {
+        this.entities.forEach(function(entity) {
             if (entity.has('camera') && entity.has('viewport')) {
                 entity.abilities.camera.update(entity);
                 entity.abilities.viewport.update(entity);

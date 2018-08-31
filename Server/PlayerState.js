@@ -1,14 +1,14 @@
 function AbstractState(player) {
     this.execute = function() {
         console.log('You should never see this execute message :( \n, fix it! ');
-    }
+    };
     this.setup = function() {
         return this.execute();
         console.log('You should never see this setup message :( \n, fix it! ');
-    }
+    };
     this.update = function() {
         console.log('You should never see this update message :( \n, fix it! ');
-    }
+    };
 }
 const abstractState = new AbstractState();
 
@@ -23,7 +23,7 @@ function InitState(player) {
                 resolve('Initializing player state resolved');
             }, 3000);
         });
-    }
+    };
 }
 InitState.prototype = abstractState;
 
@@ -32,7 +32,7 @@ function MenuState(player) {
         return new Promise(function(resolve, reject) {
             console.log('you are in menu do whatever you wanted to do and press x to continue!');
         });
-    }
+    };
 }
 MenuState.prototype = abstractState;
 
@@ -41,7 +41,7 @@ function PlayingState(player) {
         return new Promise(function(resolve, reject) {
             console.log('player are playing now!');
         });
-    }
+    };
 }
 PlayingState.prototype = abstractState;
 
@@ -50,7 +50,7 @@ function KilledState(player) {
         return new Promise(function(resolve, reject) {
             console.log('you dieded!');
         });
-    }
+    };
 }
 KilledState.prototype = abstractState;
 
@@ -59,5 +59,5 @@ module.exports = exports =
         init: InitState,
         menu: MenuState,
         playing: PlayingState,
-        killed: KilledState
-    }
+        killed: KilledState,
+    };

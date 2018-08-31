@@ -54,6 +54,9 @@ Except:
 
 Collisions needs some realistic calculations
 
+Use player states
+Use Game states
+
 Add some tests please...
 
 ## Creator

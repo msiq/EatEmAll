@@ -5,7 +5,6 @@ const config = require('./config.js');
 const Abilities = require('./Abilities.js');
 
 var Entity = function(name = 'noname') {
-
     this.TYPE_DEFAULT = 'default';
     this.TYPE_MAIN = 'main';
 
@@ -19,14 +18,14 @@ var Entity = function(name = 'noname') {
     this.actions = [];
     // Array.pop will remove this action once its applied
     this.addAction = function(action, params = {}) {
-        this.actions.push({ name: action, params: params });
+        this.actions.push({name: action, params: params});
     };
 
     this.abilities = {};
     // this.abilities[Abilities.Orientation.name] = new Abilities.Orientation();
     this.has = (ability) => {
         return this.abilities.hasOwnProperty(ability) ? this.abilities[ability] : false;
-    }
+    };
 
     this.attach = function(ability) {
         if (ability.constructor.name === 'Ability') {
@@ -36,21 +35,21 @@ var Entity = function(name = 'noname') {
         if (ability.name == 'body') {
             this.attach(new Abilities.Aabb(ability));
         }
-    }
+    };
 
     this.distance = function(entity) {
         let thisPos = this.abilities.position.pos;
         let enPos = entity.abilities.position.pos;
         let deltaX = thisPos.x - enPos.x;
         let deltaY = thisPos.y - enPos.y;
-        
+
         return {
             x: deltaX,
             y: deltaY,
             z: 0,
-            mag: Math.sqrt((deltaX * deltaX) + (deltaY * deltaY))
+            mag: Math.sqrt((deltaX * deltaX) + (deltaY * deltaY)),
         };
-    }
+    };
 
     this.update = () => {
 
@@ -110,7 +109,7 @@ var Entity = function(name = 'noname') {
 
     //     return enemy;
     // }
-}
+};
 
 
 module.exports = exports = Entity;

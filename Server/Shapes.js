@@ -8,7 +8,9 @@ var Shapes = {
         this.y = y;
         this.z = z;
 
-        this.isZero = () => { return this.x < 1 && this.x > -1 && this.y < 1 && this.y > -1; };
+        this.isZero = () => {
+ return this.x < 1 && this.x > -1 && this.y < 1 && this.y > -1;
+};
         this.copy = () => new Shapes.Vect(this.x, this.y, this.y);
         this.add = (v) => {
             return new Shapes.Vect(
@@ -28,7 +30,6 @@ var Shapes = {
             return this.add(v.rev());
         };
         this.multi = (v) => {
-
             if (typeof v !== 'object') {
                 v = new Shapes.Vect(v, v, v);
             }
@@ -110,8 +111,8 @@ var Shapes = {
         this.name = 'rectangle';
         this.width = width;
         this.height = height || width;
-    }
-}
+    },
+};
 Shapes.Vect.prototype = new Shape;
 Shapes.Line.prototype = new Shape;
 Shapes.Circ.prototype = new Shape;

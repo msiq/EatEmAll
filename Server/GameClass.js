@@ -28,12 +28,12 @@ var Game = function Game() {
 
     this.events = {};
 
-    /*******************************************************************'
+    /** *****************************************************************'
      * Function available to be overridden by Devs
      */
 
     /**
-     * setup must be overriden by dev 
+     * setup must be overriden by dev
      */
     this.setup = function() {
         console.log('hey, i am default setup, look like you are missing something.');
@@ -56,7 +56,7 @@ var Game = function Game() {
         console.log('hey, i am default joinGame.');
     };
 
-    //******************************************************************** */
+    //* ******************************************************************* */
 
 
     this.start = function() {
@@ -68,8 +68,7 @@ var Game = function Game() {
             }).catch((er) => {
                 console.log(er);
             });
-
-    }
+    };
     this.stop = function() {
         if (this.active) {
             // && this.control
@@ -77,7 +76,7 @@ var Game = function Game() {
 
             this.active = false;
         }
-    }
+    };
 
 
     // time delta here and  count FPS somehow
@@ -114,9 +113,8 @@ var Game = function Game() {
     };
 
     this.internalUpdate = function() {
-        var players = this.getEntities('players');
+        let players = this.getEntities('players');
         if (players.length > 0) {
-
             // handle all messages
             if (!this.messageBus.isEmpty()) {
                 while (message = this.messageBus.messages.pop()) {
@@ -149,7 +147,6 @@ var Game = function Game() {
     };
 
     this.formatToRender = (player) => {
-
         let ort = (player.has('orientation')) ? player.abilities.orientation.orientation : new Shapes.Vect();
         let angle = (player.has('orientation')) ? player.abilities.orientation.angle : 2;
 
@@ -167,10 +164,10 @@ var Game = function Game() {
                 vel,
                 name: player.name,
                 type: player.type,
-                dir: {  
+                dir: {
                     x: dir.x,
                     y: dir.y,
-                    z: dir.z
+                    z: dir.z,
                 },
                 aabb: player.abilities.aabb,
                 angle: angle,
@@ -197,34 +194,33 @@ var Game = function Game() {
 
         // players = players.map(this.formatToRender);
 
-        this.server.doTick({ players, fps: this.lastFPS });
+        this.server.doTick({players, fps: this.lastFPS});
     };
 
     // Set new state
     this.changeState = function(state, options = []) {
-
-        [].push.call(this.events, { event: events.CHANGE_STATE, enitity: state, option: option });
+        [].push.call(this.events, {event: events.CHANGE_STATE, enitity: state, option: option});
         // let evet = [].pop.call(this.events);
         console.log(this.events);
-    }
+    };
 
     // Set new state
     this.setState = function(state) {
         this.state = state;
-    }
+    };
 
     // execute any new events
     this.handleEvents = function() {
         return this.state.handleEvents(this);
-    }
+    };
 
     // render all eater and food
     this.render = function() {
         this.state.render(this);
-    }
+    };
 
     /**
-     * Shapes object constructor 
+     * Shapes object constructor
      */
     this.shapes = Shapes;
 
@@ -239,10 +235,10 @@ var Game = function Game() {
      * type Type of Entity, defaults to "Default"
      */
     this.entities = {
-        default: []
+        default: [],
     };
     this.entityTypes = {
-        default: Entity.TYPE_DEFAULT
+        default: Entity.TYPE_DEFAULT,
     };
     this.addEntity = function(entity, type = Entity.TYPE_DEFAULT) {
         entity.type = type;
@@ -266,7 +262,6 @@ var Game = function Game() {
         return false;
     };
     this.getEntities = function(type) {
-
         // return this.entities.filter((entity) => entity['type'] === type);
         if (this.entities[type] !== undefined) {
             return this.entities[type];
@@ -300,7 +295,7 @@ var Game = function Game() {
 
         this.activeConnections[data.socketId] = {
             'socketId': data.socketId,
-            'userName': data.userName
+            'userName': data.userName,
         };
 
 
@@ -325,16 +320,16 @@ var Game = function Game() {
         this.messageBus.add(
             new MessageSystem.Message(
                 MessageSystem.Type.INPUT, [event.playerId],
-                Object.assign({}, { action: event.action }, event.params)
+                Object.assign({}, {action: event.action}, event.params)
             )
         );
-    }
+    };
 
     this.playerInput = (event) => {
         this.messageBus.add(
             new MessageSystem.Message(
                 MessageSystem.Type.INPUT, [event.playerId],
-                Object.assign({}, { action: event.action }, event.params)
+                Object.assign({}, {action: event.action}, event.params)
             )
         );
 
@@ -360,8 +355,6 @@ var Game = function Game() {
         // player.addAction(event.action, event.params);
     };
 };
-
-
 
 
 module.exports = exports = Game;

@@ -1,5 +1,5 @@
-const GameClass = require('./eatemall/GameClass.js');
-const newGame = require('./eatemall/newGame.js');
+const GameClass = require('./Server/GameClass.js');
+const newGame = require('./Game.js');
 
 if (newGame instanceof GameClass === false) {
     console.log('Game Must be an instance of GameClass, instance of ' + newGame.constructor.name + ' given!');
@@ -20,7 +20,6 @@ game.start();
 /** Dont do loop here it should be hidden in Game someehow */
 
 
-
 // // do Game Loop
 // function doGameLoop() {
 
@@ -37,7 +36,7 @@ game.start();
 // /* Initialize Game */
 // (function() {
 
-//     // start initializing all the things needed to run Server, 
+//     // start initializing all the things needed to run Server,
 //     // init state is set on declaration
 //     const initializeGame = game.currentState.setup()
 
