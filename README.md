@@ -1,26 +1,68 @@
-# [Start Bootstrap](http://startbootstrap.com/) - [Shop Item](http://startbootstrap.com/template-overviews/shop-item/)
+# EAT EM ALL
 
-[Shop Item](http://startbootstrap.com/template-overviews/shop-item/) is a basic HTML store item template for [Bootstrap](http://getbootstrap.com/) created by [Start Bootstrap](http://startbootstrap.com/).
+Simple 2D multiplayer game engine based on nodejs and canvas...
 
-## Getting Started
+## Architecture
 
-To use this template, choose one of the following options to get started:
-* Download the latest release on Start Bootstrap
-* Fork this repository on GitHub
+### ECS: (no! no aws) Entity/Component system.
+
+- Entity is called Entity()
+- Components are called Abilities()
+
+An Entity can have many Abilities.
+All available Abilities are:
+
+- Body
+- Position
+- Velocity
+- Input
+- Gravity\*\*
+- Collidable
+- Cor\*\*
+- Mass
+- String\*\*
+- Orientation
+- Acceleration
+- AngularVelocity\*\*
+- Torque\*\*
+- Aabb
+- Score
+- Experience
+- Rank
+- Power
+- Health
+- Camera
+- Viewport\*\*
+
+\*\* work in progress
+
+Subsystems
+
+- input
+- collision
+- physics
+- motion
+- renderer
+- score
+- display
 
 ## Bugs and Issues
 
-Have a bug or an issue with this template? [Open a new issue](https://github.com/IronSummitMedia/startbootstrap-shop-item/issues) here on GitHub or leave a comment on the [template overview page at Start Bootstrap](http://startbootstrap.com/template-overviews/shop-item/).
+Most of things works ok
+
+Except:
+
+Collisions needs some realistic calculations
+
+Use player states
+Use Game states
+
+Add some tests please...
 
 ## Creator
 
-Start Bootstrap was created by and is maintained by **David Miller**, Managing Parter at [Iron Summit Media Strategies](http://www.ironsummitmedia.com/).
-
-* https://twitter.com/davidmillerskt
-* https://github.com/davidtmiller
-
-Start Bootstrap is based on the [Bootstrap](http://getbootstrap.com/) framework created by [Mark Otto](https://twitter.com/mdo) and [Jacob Thorton](https://twitter.com/fat).
+@msiq
 
 ## Copyright and License
 
-Copyright 2013-2015 Iron Summit Media Strategies, LLC. Code released under the [Apache 2.0](https://github.com/IronSummitMedia/startbootstrap-shop-item/blob/gh-pages/LICENSE) license.
+Copyright 2016-2018 Code released under MyOwnLicense.
