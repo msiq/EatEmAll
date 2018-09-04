@@ -66,3 +66,4 @@ Add some tests please...
 ## Copyright and License
 
 Copyright 2016-2018 Code released under MyOwnLicense.
+
