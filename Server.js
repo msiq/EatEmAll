@@ -2,8 +2,12 @@ const GameClass = require('./Server/GameClass.js');
 const newGame = require('./Game.js');
 
 if (newGame instanceof GameClass === false) {
-    console.log('Game Must be an instance of GameClass, instance of ' + newGame.constructor.name + ' given!');
-    console.log('Please correct the problem and try again!');
+  console.log(
+    `Game Must be an instance of GameClass, instance of ${
+      newGame.constructor.name
+    } given!`,
+  );
+  console.log('Please correct the problem and try again!');
 }
 
 const players = {};
@@ -16,9 +20,7 @@ game = newGame;
 game.start();
 // game.stop();
 
-
 /** Dont do loop here it should be hidden in Game someehow */
-
 
 // // do Game Loop
 // function doGameLoop() {
