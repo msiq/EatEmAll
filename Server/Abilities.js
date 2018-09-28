@@ -1,4 +1,5 @@
 const Shapes = require('./Shapes.js');
+const Shape = require('./Shapes.js');
 
 function Ability() {
   this.name = 'ability';
@@ -9,8 +10,8 @@ function Ability() {
 
 function Body(shape, color = 'red') {
   this.name = 'body';
-  if (shape.constructor.name !== 'Shape') {
-    throw 'Body requires a Shape, that must be of Type Shape!';
+  if (!(shape instanceof Shapes.Shape)) {
+    throw new Error('Body requires a Shape, that must be of Type Shape!');
   }
   this.shape = shape;
   this.color = color;
