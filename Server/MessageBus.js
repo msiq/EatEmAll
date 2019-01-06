@@ -12,7 +12,7 @@ function Message(type, entities = [], params = {}) {
   this.params = params;
 }
 
-const MessageBus = function (game) {
+function MessageBus(game) {
   this.game = game;
   this.messages = [];
 
@@ -22,9 +22,9 @@ const MessageBus = function (game) {
   };
   this.getNext = () => (this.isEmpty() ? false : this.messages.pop());
   this.isEmpty = () => this.messages.length === 0;
-};
+}
 
-module.exports = exports = {
+module.exports = {
   Type,
   Message,
   MessageBus,

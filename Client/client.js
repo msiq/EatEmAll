@@ -26,7 +26,7 @@ $(loginBtn).on('click', (event) => {
 // Connect to Server
 function connectToServer(userName) {
   console.log('Trying to connect');
-  oldId = localStorage.getItem('eeaid');
+  const oldId = localStorage.getItem('eeaid');
   socket.emit('letmeplay', {
     userName,
     oldId,
@@ -123,7 +123,7 @@ function update(data) {
   FPSbox.innerHTML = data.fps;
 
   let thisPlayer = {};
-  for (ind in Object.keys(ps.players)) {
+  for (let ind in Object.keys(ps.players)) {
     if (ps.players[ind].id == player.id) {
       thisPlayer = ps.players[ind];
       break;
@@ -204,7 +204,7 @@ function update(data) {
 
   Object.keys(ps).map((entityType) => {
     if (Object.keys(ps[entityType]).length > 0) {
-      for (p in ps[entityType]) {
+      for (let p in ps[entityType]) {
         if (
           Object.keys(ps[entityType]).length > 0
           && ps[entityType][p].entityType !== 'main'
@@ -374,7 +374,7 @@ var drawCameraViewPort = (cxt, plr) => {
 };
 
 var drawCircle = (cxt, plr) => {
-  pdir = {
+  const pdir = {
     x: plr.x + plr.dir.x * 1.2,
     y: plr.y + plr.dir.y * 1.2,
   };

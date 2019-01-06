@@ -1,4 +1,4 @@
-module.exports = exports = {
+module.exports = {
   // Game Events
   CHANGE_STATE: 'change_state',
 

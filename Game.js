@@ -1,5 +1,14 @@
-const Game = require('./Server/GameClass.js');
-const Shapes = require('./Server/Shapes.js');
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "[object]" }] */
+/* eslint no-param-reassign:
+  ["error", {
+    "props": true,
+      "ignorePropertyModificationsFor": ["entity", "object"],
+
+    }]
+*/
+
+const GameClass = require('./Server/GameClass.js');
+// const Shapes = require('./Server/Shapes.js');
 const Entity = require('./Server/Entity.js');
 
 /**
@@ -14,13 +23,11 @@ function colliding(game) {
         entity.abilities.power.sub(1);
         entity.abilities.health.sub(2);
         if (
-          entity.abilities.score.score > 0 &&
-          entity.abilities.score.score % 10 == 0
+          entity.abilities.score.score > 0 && entity.abilities.score.score % 10 === 0
         ) {
           entity.abilities.experience.add(1);
           if (
-            entity.abilities.experience.xp > 0 &&
-            entity.abilities.experience.xp % 5 == 0
+            entity.abilities.experience.xp > 0 && entity.abilities.experience.xp % 5 === 0
           ) {
             entity.abilities.rank.raise();
           }
@@ -147,23 +154,31 @@ function initiateDot(game, x, y) {
   game.addEntity(dot, 'dots');
 }
 
+class Game extends GameClass {
+  setup() {
+    this.addEntityType('players', Entity.TYPE_MAIN);
+    this.addEntityType('dots', Entity.TYPE_DEFAULT);
+    // console.log('setting up game');
+    // add some dots
+    // let dotx = 160;
+    // let doty = 180;
+    for (let i = 0; i < 100; i++) {
+      initiateDot(this);
+      // dotx += 60;
+    }
+  }
+
+  joinGame(data) {
+    return initiatePlayer(this, data);
+  }
+
+  update() {
+    return colliding(this);
+  }
+}
+
 const game = new Game();
 
-game.setup = () => {
-  game.addEntityType('players', Entity.TYPE_MAIN);
-  game.addEntityType('dots', Entity.TYPE_DEFAULT);
-  // console.log('setting up game');
-  // add some dots
-  // let dotx = 160;
-  // let doty = 180;
-  for (let i = 0; i < 100; i++) {
-    initiateDot(game);
-    // dotx += 60;
-  }
-};
-
-
-game.joinGame = data => initiatePlayer(game, data);
-game.update = () => colliding(game);
+// console.log(game.joinGame);
 
 module.exports = game;

@@ -6,24 +6,55 @@ const Shapes = require('./Shapes.js');
 const Abilities = require('./Abilities.js');
 const SubSystems = require('./SubSystems.js');
 const MessageSystem = require('./MessageBus.js');
-const gameStates = require('./GameState.js');
-const Player = require('./Player.js');
+// const gameStates = require('./GameState.js');
+// const Player = require('./Player.js');
 
-const Game = function Game() {
-  this.config = config;
-  this.server = new GameServer();
-  this.subSystems = SubSystems(this);
-  // console.log(this.subSystems);
-  this.messageBus = new MessageSystem.MessageBus(this);
+class Game {
+  constructor() {
+    this.config = config;
+    this.server = new GameServer(this);
+    this.subSystems = new SubSystems(this);
+    // console.log(this.subSystems);
+    this.messageBus = new MessageSystem.MessageBus(this);
 
-  this.state = false;
-  this.players = {};
-  this.active = false;
-  // this.control = false;
+    this.state = false;
+    this.players = {};
+    this.active = false;
+    // this.control = false;
+    this.activeConnections = {};
+    this.events = {};
 
-  this.activeConnections = {};
+    // time delta here and  count FPS somehow
+    this.fps = 0;
+    this.lastFPS = 30;
+    this.lastRun = Date.now();
+    this.fpsLastRun = Date.now();
+    this.now = 0;
 
-  this.events = {};
+    this.delta = 1 / 30;
+
+    /**
+     * Shapes object constructor
+     */
+    this.shapes = Shapes;
+
+    this.abilities = Abilities;
+
+    /** Entity object constructor */
+    this.Entity = Entity;
+    /**
+     * Add entity in entity collections
+     *
+     * entity must be Type Entity
+     * type Type of Entity, defaults to "Default"
+     */
+    this.entities = {
+      default: [],
+    };
+    this.entityTypes = {
+      default: Entity.TYPE_DEFAULT,
+    };
+  }
 
   /** *****************************************************************'
    * Function available to be overridden by Devs
@@ -32,36 +63,36 @@ const Game = function Game() {
   /**
    * setup must be overriden by dev
    */
-  this.setup = () => {
-    // console.log(
-    //   'hey, i am default setup, look like you are missing something.',
-    // );
-    throw new Error('No setup method implemented.');
+  setup() {
+    console.log(
+      'hey, i am default setup, look like you are missing something.',
+    );
+    throw new Error(`No setup method implemented.  ${this.fps}`);
   }
 
   /**
    * Update must be overriden by dev
    */
-  this.update = () => {
+  update() {
     console.log(
       'Hey! i am default update, you sould implement your own update method.',
     );
-    throw new Error('No update method implemented.');
+    throw new Error(`No update method implemented. ${this.fps}`);
   }
 
   /**
    * Dev may override joinGame(data) to satisfiy their needs on client requests to let them play
    * data array data needed to join game
    */
-  this.joinGame = (data) => {
-    // console.log('hey, i am default joinGame.');
+  joinGame(data) {
+    console.log(`hey, i am default joinGame. ${this.fps}`, data);
   }
 
   //* ******************************************************************* */
 
-  this.start = () => {
+  start() {
     this.server
-      .serve(this)
+      .serve()
       .then((mes) => {
         console.log(mes);
         this.setup();
@@ -70,25 +101,26 @@ const Game = function Game() {
       .catch((err) => {
         console.log(err);
       });
-  };
-  this.stop = () => {
+  }
+
+  stop() {
     if (this.active) {
       // && this.control
       // clearInterval(this.control);
 
       this.active = false;
     }
-  };
+  }
 
-  // time delta here and  count FPS somehow
-  this.fps = 0;
-  this.lastFPS = 30;
-  this.lastRun = Date.now();
-  this.fpsLastRun = Date.now();
-  this.now = 0;
+  // // time delta here and  count FPS somehow
+  // fps = 0;
+  // this.lastFPS = 30;
+  // this.lastRun = Date.now();
+  // this.fpsLastRun = Date.now();
+  // this.now = 0;
 
-  this.delta = 1 / 30;
-  this.loop = () => {
+  // this.delta = 1 / 30;
+  loop() {
     this.now = Date.now();
 
     if (this.now - this.lastRun >= 1000 / config.server.frameRate) {
@@ -111,19 +143,30 @@ const Game = function Game() {
       this.fps = 0;
       this.fpsLastRun = Date.now();
     }
-  };
+  }
 
-  this.internalUpdate = () => {
+  static applyMessage(SubSystem) {
+    return (Message) => {
+      if (SubSystem.name === Message.type) {
+        SubSystem.handleMessage(Message);
+      }
+    };
+  }
+
+  passMessageToHandled(message, subSystemName) {
+    if (this.subSystems[subSystemName].name === message.type) {
+      this.subSystems[subSystemName].handleMessage(message);
+    }
+  }
+
+  internalUpdate() {
     const players = this.getEntities('players');
     if (players.length > 0) {
       // handle all messages
       if (!this.messageBus.isEmpty()) {
+        let message = false;
         while ((message = this.messageBus.messages.pop())) {
-          Object.keys(this.subSystems).forEach((subSystem) => {
-            if (this.subSystems[subSystem].name == message.type) {
-              this.subSystems[subSystem].handleMessage(message);
-            }
-          });
+          Object.keys(this.subSystems).forEach(this.passMessageToHandled.bind(this, message));
         }
       }
 
@@ -141,26 +184,25 @@ const Game = function Game() {
       //     //         })
       // });
     }
-  };
+  }
 
-  this.isActive = () => {
+  isActive() {
     return !!this.active;
-  };
+  }
 
-  this.formatToRender = (player) => {
-    const ort = player.has('orientation') ?
-      player.abilities.orientation.orientation :
-      new Shapes.Vect();
-    const angle = player.has('orientation') ?
-      player.abilities.orientation.angle :
-      2;
+  formatToRender(player) {
+    const ort = player.has('orientation') ? player.abilities.orientation.orientation : new Shapes.Vect();
+    const angle = player.has('orientation') ? player.abilities.orientation.angle : 35;
+    const vel = player.has('velocity') ? player.abilities.velocity.velocity : new Shapes.Vect();
+    const dir = ort.multi(
+      player.abilities.body.shape.radius
+      || player.abilities.body.shape.width + 2,
+    );
 
-    const vel = player.has('velocity') ?
-      player.abilities.velocity.velocity :
-      new Shapes.Vect();
-    const shape = player.abilities.body.shape;
-    const dir = ort.multi(shape.radius || shape.width + 2);
-    return Object.assign({},
+    // this.entityTypes = this.entityTypes ? this.entityTypes : {};
+    // // console.log(this);
+    return Object.assign(
+      {},
       player.abilities.position.pos,
       player.abilities.body.shape, {
         shape: player.abilities.body.shape.name,
@@ -187,12 +229,13 @@ const Game = function Game() {
         viewport: player.has('camera') ? player.abilities.viewport : 'nono',
       },
     );
-  };
+  }
 
-  this.doTick = () => {
+  doTick() {
     const players = {};
-    Object.keys(this.entities).map((entityType) => {
-      players[entityType] = this.entities[entityType].map(this.formatToRender);
+    Object.keys(this.entities).forEach((entityType) => {
+      players[entityType] = this.entities[entityType]
+        .map(plr => this.formatToRender(plr));
     });
 
     // // console.log(this.entities);
@@ -204,89 +247,92 @@ const Game = function Game() {
       players,
       fps: this.lastFPS,
     });
-  };
+  }
 
   // Set new state
-  this.changeState = function (state, options = []) {
+  changeState(state, options = []) {
     [].push.call(this.events, {
       event: events.CHANGE_STATE,
       enitity: state,
-      option,
+      options,
     });
     // let evet = [].pop.call(this.events);
     console.log(this.events);
-  };
+  }
 
   // Set new state
-  this.setState = function (state) {
+  setState(state) {
     this.state = state;
-  };
+  }
 
   // execute any new events
-  this.handleEvents = () => {
+  handleEvents() {
     return this.state.handleEvents(this);
-  };
+  }
 
   // render all eater and food
-  this.render = () => {
+  render() {
     this.state.render(this);
-  };
+  }
 
-  /**
-   * Shapes object constructor
-   */
-  this.shapes = Shapes;
+  // /**
+  //  * Shapes object constructor
+  //  */
+  // this.shapes = Shapes;
 
-  this.abilities = Abilities;
+  // this.abilities = Abilities;
 
-  /** Entity object constructor */
-  this.Entity = Entity;
-  /**
-   * Add entity in entity collections
-   *
-   * entity must be Type Entity
-   * type Type of Entity, defaults to "Default"
-   */
-  this.entities = {
-    default: [],
-  };
-  this.entityTypes = {
-    default: Entity.TYPE_DEFAULT,
-  };
-  this.addEntity = function (entity, type = Entity.TYPE_DEFAULT) {
-    entity.type = type;
+  // /** Entity object constructor */
+  // this.Entity = Entity;
+  // /**
+  //  * Add entity in entity collections
+  //  *
+  //  * entity must be Type Entity
+  //  * type Type of Entity, defaults to "Default"
+  //  */
+  // this.entities = {
+  //   default: [],
+  // };
+  // this.entityTypes = {
+  //   default: Entity.TYPE_DEFAULT,
+  // };
+  addEntity(entity, type = Entity.TYPE_DEFAULT) {
+    // entity.type = type;
     this.entities[type].push(entity);
-  };
-  this.addEntityType = function (name, type = Entity.TYPE_DEFAULT) {
+  }
+
+  addEntityType(name, type = Entity.TYPE_DEFAULT) {
     this.entities[name] = [];
     delete this.entities.default;
     delete this.entityTypes.default;
     this.entityTypes[name] = type;
-  };
-  this.getEntityById = function (id) {
-    for (entityGroup in this.entities) {
-      for (entity in this.entities[entityGroup]) {
-        if (this.entities[entityGroup][entity].id == id) {
+  }
+
+  getEntityById(id) {
+    for (const entityGroup in this.entities) {
+      for (const entity in this.entities[entityGroup]) {
+        if (this.entities[entityGroup][entity].id === id) {
           return this.entities[entityGroup][entity];
         }
       }
     }
 
     return false;
-  };
-  this.getEntities = function (type) {
+  }
+
+  getEntities(type) {
     // return this.entities.filter((entity) => entity['type'] === type);
     if (this.entities[type] !== undefined) {
       return this.entities[type];
     }
-    return [];
 
-    // throw 'Entities of type "' + type + '" does not exists!';
-  };
-  this.searchEntity = function (id, type) {
+    return [];
+  }
+
+  searchEntity(id, type) {
     if (this.entities[type] !== undefined) {
-      for (entity in this.entities[type]) {
-        if (this.entities[type][entity].id == id) {
+      for (const entity in this.entities[type]) {
+        if (this.entities[type][entity].id === id) {
           return this.entities[type][entity];
         }
       }
@@ -294,24 +340,27 @@ const Game = function Game() {
       return false;
     }
 
-    throw `Entities of type "${type}" does not exists!`;
-  };
-  this.onletMePlay = (data) => {
+    throw new Error(`Entities of type "${type}" does not exists!`);
+  }
+
+  onletMePlay(data) {
     console.log('let meeeeeeeeeeeeeeeeee    eattt!');
-    const pid = data.oldId;
+    // const pid = data.oldId;
     // if info missing dont let em eat anything :|
-    if (data.userName == '') {
+    if (data.userName === '') {
       this.server.goaway(data.socketId);
-      return 0;
+      return false;
     }
 
-    this.activeConnections[data.socketId] = {
-      socketId: data.socketId,
-      userName: data.userName,
-    };
+    // this.activeConnections[data.socketId] = {
+    //   socketId: data.socketId,
+    //   userName: data.userName,
+    // };
 
     // connected to client do setup now
     // this.setup();
+
+    // console.log('thissssssssssssssssssssssssss', this);
 
     const player = this.joinGame(data);
 
@@ -324,30 +373,31 @@ const Game = function Game() {
     // }
 
     this.server.letEmPlay(player);
-  };
+    return true;
+  }
 
-  this.playerClick = (event) => {
+  playerClick(event) {
     this.messageBus.add(
       new MessageSystem.Message(
         MessageSystem.Type.INPUT,
         [event.playerId],
-        Object.assign({}, {
-            action: event.action,
-          },
+        Object.assign(
+          {},
+          { action: event.action },
           event.params,
         ),
       ),
     );
-  };
+  }
 
-  this.playerInput = (event) => {
+  playerInput(event) {
     this.messageBus.add(
       new MessageSystem.Message(
         MessageSystem.Type.INPUT,
         [event.playerId],
-        Object.assign({}, {
-            action: event.action,
-          },
+        Object.assign(
+          {},
+          { action: event.action },
           event.params,
         ),
       ),
@@ -365,7 +415,8 @@ const Game = function Game() {
     //                 Object.assign({}, event.params, { action: this.actions[event.action] })
     //             )
     //         );
-    //         // game.searchEntity(event.playerId, 'players').addAction(this.actions[event.action], event.params);
+    //         // game.searchEntity(event.playerId, 'players')
+    //         //  .addAction(this.actions[event.action], event.params);
     //     }
     // };
 
@@ -373,7 +424,7 @@ const Game = function Game() {
     // var player = this.searchEntity(event.playerId, 'players');
 
     // player.addAction(event.action, event.params);
-  };
-};
+  }
+}
 
-module.exports = exports = Game;
+module.exports = Game;

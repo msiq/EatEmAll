@@ -1,14 +1,17 @@
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "[player]" }] */
+/* eslint no-param-reassign:
+  ["error", {
+    "props": true,
+      "ignorePropertyModificationsFor": ["player"],
+
+    }]
+*/
+
 function AbstractState(player) {
-  this.execute = function () {
-    console.log('You should never see this execute message :( \n, fix it! ');
-  };
-  this.setup = function () {
-    return this.execute();
-    console.log('You should never see this setup message :( \n, fix it! ');
-  };
-  this.update = function () {
-    console.log('You should never see this update message :( \n, fix it! ');
-  };
+  this.execute = () => console.log('You should never see this execute message :( \n, fix it! ');
+  this.setup = () => this.execute();
+  // console.log('You should never see this setup message :( \n, fix it! ');
+  this.update = () => console.log('You should never see this update message :( \n, fix it! ');
 }
 const abstractState = new AbstractState();
 
@@ -26,35 +29,27 @@ function InitState(player) {
 InitState.prototype = abstractState;
 
 function MenuState(player) {
-  this.execute = function () {
-    return new Promise((resolve, reject) => {
-      console.log(
-        'you are in menu do whatever you wanted to do and press x to continue!',
-      );
-    });
-  };
+  this.execute = () => new Promise(
+    (resolve, reject) => console.log('you are in menu do whatever you wanted to do and press x to continue!'),
+  );
 }
 MenuState.prototype = abstractState;
 
 function PlayingState(player) {
-  this.execute = function () {
-    return new Promise((resolve, reject) => {
-      console.log('player are playing now!');
-    });
-  };
+  this.execute = () => new Promise(
+    (resolve, reject) => console.log('player are playing now!'),
+  );
 }
 PlayingState.prototype = abstractState;
 
 function KilledState(player) {
-  this.execute = function () {
-    return new Promise((resolve, reject) => {
-      console.log('you dieded!');
-    });
-  };
+  this.execute = () => new Promise(
+    (resolve, reject) => console.log('you dieded!'),
+  );
 }
 KilledState.prototype = abstractState;
 
-module.exports = exports = PlayerState = {
+module.exports = {
   init: InitState,
   menu: MenuState,
   playing: PlayingState,

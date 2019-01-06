@@ -5,7 +5,7 @@
     "main": "Server.js",
     "scripts": {
         "dev": "node server.js",
-        "test": "test"
+        "test": "node node_modules/.bin/mocha --recursive"
     },
     "repository": {
         "type": "git",
@@ -20,10 +20,12 @@
         "socket.io": "^2.1.1"
     },
     "devDependencies": {
+        "chai": "^4.2.0",
         "eslint": "^5.6.0",
         "eslint-config-airbnb-base": "^13.1.0",
         "eslint-plugin-import": "^2.14.0",
         "eslint-plugin-prettier": "^2.6.2",
+        "mocha": "^5.2.0",
         "nodemon": "^1.18.4",
         "prettier": "^1.14.2"
     }

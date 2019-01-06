@@ -1,31 +1,26 @@
 const GameClass = require('./Server/GameClass.js');
-const newGame = require('./Game.js');
+const Game = require('./Game.js');
 
-if (newGame instanceof GameClass === false) {
-  console.log(
-    `Game Must be an instance of GameClass, instance of ${
-      newGame.constructor.name
-    } given!`,
-  );
+if (Game instanceof GameClass === false) {
+  console.log(`Game Must be an instance of GameClass, instance of ${Game.constructor.name} given!`);
   console.log('Please correct the problem and try again!');
 }
 
-const players = {};
-game = newGame;
+// const players = {};
 
-// game.setState(new GameState.init());
+// Game.setState(new GameState.init());
 // let gameInterval = false;
 // doGameLoop();
 
-game.start();
-// game.stop();
+Game.start();
+// Game.stop();
 
 /** Dont do loop here it should be hidden in Game someehow */
 
 // // do Game Loop
 // function doGameLoop() {
 
-//     let eventsPromise = game.handleEvents();
+//     let eventsPromise = Game.handleEvents();
 //     eventsPromise.then(() => {
 
 //     });
@@ -40,17 +35,17 @@ game.start();
 
 //     // start initializing all the things needed to run Server,
 //     // init state is set on declaration
-//     const initializeGame = game.currentState.setup()
+//     const initializeGame = Game.currentState.setup()
 
 //     // wait for Game to finish initialization
 //     initializeGame.then((res) => {
 
 //         // Set menu game State
-//         game.setState(new GameState.menu());
+//         Game.setState(new GameState.menu());
 
 //         console.log(res);
 //         // set game in Menu state and wait for something
-//         return game.currentState.setup();
+//         return Game.currentState.setup();
 //     }).catch((exp) => {
 //         console.log('something failed while initializing game!');
 //         console.log(exp);

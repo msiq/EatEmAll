@@ -1,10 +1,10 @@
 const UUID = require('node-uuid');
-const Shapes = require('./Shapes.js');
-const config = require('./config.js');
+// const Shapes = require('./Shapes.js');
+// const config = require('./config.js');
 
 const Abilities = require('./Abilities.js');
 
-const Entity = function (name = 'noname') {
+function Entity(name = 'noname') {
   this.TYPE_DEFAULT = 'default';
   this.TYPE_MAIN = 'main';
 
@@ -17,25 +17,30 @@ const Entity = function (name = 'noname') {
 
   this.actions = [];
   // Array.pop will remove this action once its applied
-  this.addAction = function (action, params = {}) {
+  this.addAction = (action, params = {}) => {
     this.actions.push({ name: action, params });
   };
 
   this.abilities = {};
   // this.abilities[Abilities.Orientation.name] = new Abilities.Orientation();
-  this.has = ability => (this.abilities.hasOwnProperty(ability) ? this.abilities[ability] : false);
+  this.has = ability => (
+    Object
+      .prototype
+      .hasOwnProperty
+      .call(this.abilities, ability) ? this.abilities[ability] : false
+  );
 
-  this.attach = function (ability) {
+  this.attach = (ability) => {
     if (ability.constructor.name === 'Ability') {
       this.abilities[ability.name] = ability;
     }
 
-    if (ability.name == 'body') {
+    if (ability.name === 'body') {
       this.attach(new Abilities.Aabb(ability));
     }
   };
 
-  this.distance = function (entity) {
+  this.distance = (entity) => {
     const thisPos = this.abilities.position.pos;
     const enPos = entity.abilities.position.pos;
     const deltaX = thisPos.x - enPos.x;
@@ -106,6 +111,6 @@ const Entity = function (name = 'noname') {
 
   //     return enemy;
   // }
-};
+}
 
-module.exports = exports = Entity;
+module.exports = Entity;

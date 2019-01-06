@@ -1,5 +1,13 @@
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "[config, params]" }] */
+/* eslint no-param-reassign:
+  ["error", {
+    "props": true,
+      "ignorePropertyModificationsFor": ["asdasd"],
+
+    }]
+*/
+
 const Shapes = require('./Shapes.js');
-const Shape = require('./Shapes.js');
 
 function Ability() {
   this.name = 'ability';
@@ -30,14 +38,14 @@ function Aabb(body, angle = false) {
     max: 0,
   };
 
-  if (body.shape.name == 'circle') {
+  if (body.shape.name === 'circle') {
     this.height.min = Math.abs(this.height.min - body.shape.radius);
     this.height.max = Math.abs(this.height.max + body.shape.radius);
     this.width.min = Math.abs(this.width.min - body.shape.radius);
     this.width.max = Math.abs(this.width.max + body.shape.radius);
   }
 
-  if (body.shape.name == 'rectangle') {
+  if (body.shape.name === 'rectangle') {
     this.height.min = Math.abs(this.height.min + body.shape.height / 2);
     this.height.max = Math.abs(this.height.max + body.shape.height / 2);
     this.width.min = Math.abs(this.width.min + body.shape.width / 2);
@@ -66,6 +74,7 @@ function Aabb(body, angle = false) {
       },
     };
   };
+
   this.moveToOrigin = (aabb, origin) => {
     if (origin) {
       return {
@@ -87,7 +96,8 @@ function Aabb(body, angle = false) {
         },
       };
     }
-    origin = {
+
+    const AbsOrigin = {
       x: 0,
       y: 0,
     };
@@ -95,26 +105,27 @@ function Aabb(body, angle = false) {
     const hh = Math.abs(aabb.tr.y - aabb.bl.y) / 2;
     return {
       tl: {
-        x: origin.x - hw,
-        y: origin.y - hh,
+        x: AbsOrigin.x - hw,
+        y: AbsOrigin.y - hh,
       },
       bl: {
-        x: origin.x - hw,
-        y: origin.y + hh,
+        x: AbsOrigin.x - hw,
+        y: AbsOrigin.y + hh,
       },
       br: {
-        x: origin.x + hw,
-        y: origin.y + hh,
+        x: AbsOrigin.x + hw,
+        y: AbsOrigin.y + hh,
       },
       tr: {
-        x: origin.x + hw,
-        y: origin.y - hh,
+        x: AbsOrigin.x + hw,
+        y: AbsOrigin.y - hh,
       },
     };
   };
-  this.rotateAABB = (aabb, angle) => {
-    const cosa = Math.cos(angle);
-    const sina = Math.sin(angle);
+
+  this.rotateAABB = (aabb, rotateAngle) => {
+    const cosa = Math.cos(rotateAngle);
+    const sina = Math.sin(rotateAngle);
     return {
       tl: {
         x: aabb.tl.x * cosa - aabb.tl.y * sina,
@@ -149,7 +160,9 @@ function Orientation(vector = null) {
     || new Shapes.Vect(
       Math.floor(Math.random() * (10 - -10 + 1)) + -10,
       Math.floor(Math.random() * (10 - -10 + 1)) + -10,
-      0, // (Math.floor(Math.random() * (10 - (-10) + 1)) + (-10))  // something doest not work well when z is set here. Why?????????????
+      0,
+      // (Math.floor(Math.random() * (10 - (-10) + 1)) + (-10))
+      // something doest not work well when z is set here. Why?????????????
     ).unit();
   this.angle = Math.atan2(this.orientation.y, this.orientation.x);
   // rotate direction facing to degrees in radians
@@ -167,8 +180,8 @@ function Orientation(vector = null) {
   };
 
   this.calcAngle = (deg) => {
-    deg = this.toRadians(deg);
-    this.angle = this.angle + deg;
+    const rad = this.toRadians(deg);
+    this.angle = this.angle + rad;
     if (this.angle > Math.PI * 2) {
       this.angle = this.angle - Math.PI * 2;
     }
@@ -311,26 +324,43 @@ function Score(step) {
   this.name = 'score';
   this.score = 0;
   this.step = step || 1;
-  this.add = points => (this.score = this.score + points);
+  this.add = (points) => {
+    this.score = this.score + points;
+    return this.score;
+  };
   this.sub = (points) => {
     this.score = this.score - points;
-    return (this.score = this.score < 0 ? 0 : this.score);
+    this.score = this.score < 0 ? 0 : this.score;
+    return this.score;
   };
   this.update = (action, params) => {};
-  this.reset = () => (this.score = 0);
+  this.reset = () => {
+    this.score = 0;
+    return this.score;
+  };
 }
 Score.prototype = new Ability();
 
 function Experience(config) {
   this.name = 'experience';
   this.xp = 0;
-  this.update = score => (this.xp = Math.floor(score / 100));
-  this.add = xp => (this.xp = this.xp + xp || 1);
+  this.update = (score) => {
+    this.xp = Math.floor(score / 100);
+    return this.xp;
+  };
+  this.add = (xp) => {
+    this.xp = this.xp + xp || 1;
+    return this.xp;
+  };
   this.sub = (xp) => {
     this.xp = this.xp - xp || 1;
-    return (this.xp = this.xp < 0 ? 0 : this.xp);
+    this.xp = this.xp < 0 ? 0 : this.xp;
+    return this.xp;
   };
-  this.reset = () => (this.xp = 0);
+  this.reset = () => {
+    this.xp = 0;
+    return this.xp;
+  };
 }
 Experience.prototype = new Ability();
 
@@ -342,11 +372,11 @@ function Rank(config) {
   };
   this.threshold = 1000;
   this.config = config || 1000;
-  if (typeof this.config === Number) {
+  if (typeof this.config === 'number') {
     this.threshold = this.config;
   } else {
     this.ranks = this.config;
-    this.threshold = this.ranks[1];
+    this.threshold = this.ranks['1'];
   }
   this.update = (score) => {
     if (this.rank < Object.keys(this.ranks).length) {
@@ -356,12 +386,19 @@ function Rank(config) {
       }
     }
   };
-  this.raise = () => (this.rank = this.rank + 1);
+  this.raise = () => {
+    this.rank = this.rank + 1;
+    return this.rank;
+  };
   this.drop = () => {
     this.rank = this.rank - this.step;
-    return (this.renk = this.rank < 0 ? 0 : this.rank);
+    this.renk = this.rank < 0 ? 0 : this.rank;
+    return this.rank;
   };
-  this.reset = () => (this.rank = 0);
+  this.reset = () => {
+    this.rank = 0;
+    return this.rank;
+  };
 }
 Rank.prototype = new Ability();
 
@@ -379,14 +416,19 @@ function Power(max) {
   };
   this.add = (points) => {
     this.power = this.power + points;
-    return (this.power = this.power <= this.max ? this.power : this.max);
+    this.power = this.power <= this.max ? this.power : this.max;
+    return this.power;
   };
   this.sub = (points) => {
     this.power = this.power - points;
-    return (this.power = this.power < 0 ? 0 : this.power);
+    this.power = this.power < 0 ? 0 : this.power;
+    return this.power;
   };
   this.update = (action, params) => {};
-  this.reset = () => (this.power = this.max);
+  this.reset = () => {
+    this.power = this.max;
+    return this.power;
+  };
 }
 Power.prototype = new Ability();
 
@@ -404,14 +446,19 @@ function Health(max) {
   };
   this.add = (points) => {
     this.health = this.health + points;
-    return (this.health = this.health <= this.max ? this.health : this.max);
+    this.health = this.health <= this.max ? this.health : this.max;
+    return this.health;
   };
   this.sub = (points) => {
     this.health = this.health - points;
-    return (this.health = this.health < 0 ? 0 : this.health);
+    this.health = this.health < 0 ? 0 : this.health;
+    return this.health;
   };
   this.update = (action, params) => {};
-  this.reset = () => (this.Health = this.max);
+  this.reset = () => {
+    this.health = this.max;
+    return this.health;
+  };
 }
 Health.prototype = new Ability();
 
@@ -430,18 +477,18 @@ function Camera(pos, id) {
 Camera.prototype = new Ability();
 
 // view port is not updateding as it should fix it;
-function Viewport(width, height, camera) {
+function Viewport(width, height, theCamera) {
   this.name = 'viewport';
   this.width = width || 400;
   this.height = height || 400;
   this.cameras = {};
-  camera = camera || new Camera();
+  const camera = theCamera || new Camera();
   // let cameraId = camera.id;
   this.cameras[camera.id] = camera;
   this.visibleThings = [];
-  this.addCamera = (camera) => {
-    this.cameras[camera.id] = camera;
-    return (this.health = this.health < 0 ? 0 : this.health);
+  this.addCamera = (newCamera) => {
+    this.cameras[camera.id] = newCamera;
+    return this.cameras;
   };
   this.removeCamera = (cameraId) => {
     if (!this.cameras[cameraId]) {
@@ -470,7 +517,7 @@ function Viewport(width, height, camera) {
 }
 Viewport.prototype = new Ability();
 
-module.exports = exports = {
+module.exports = {
   Body,
   Position,
   Velocity,

@@ -1,4 +1,4 @@
-module.exports = exports = {
+module.exports = {
   gameport: 4444,
   server: {
     frameRate: 30,

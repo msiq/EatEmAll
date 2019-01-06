@@ -2,22 +2,31 @@ const Shapes = require('./Shapes.js');
 const MessageSystem = require('./MessageBus.js');
 const config = require('./config.js');
 
-const ops = {
-  '+': (a, b) => a + b,
-  '-': (a, b) => a - b,
-};
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "[player|message]" }] */
+/* eslint no-param-reassign:
+  ["error", {
+    "props": true,
+      "ignorePropertyModificationsFor": ["entity", "object"],
+
+    }]
+*/
+
+// const ops = {
+//   '+': (a, b) => a + b,
+//   '-': (a, b) => a - b,
+// };
 
 function SubSystem(game) {
   this.game = game;
   this.name = 'SubSystem';
   this.actions = {};
-  this.preUpdate = function (player) {
+  this.preUpdate = (player) => {
     // console.log(this.name + ' is preeeeeeeeeeeeeee updating!...');
   };
-  this.update = function (player) {
+  this.update = (player) => {
     // console.log(this.name + ' is updating!...');
   };
-  this.postUpdate = function (player) {
+  this.postUpdate = (player) => {
     // this.entities.forEach(function (entity) {
     //     if (entity.has('position')) {
     //         entity.abilities.position.pos = this.limit(entity.abilities.position.pos);
@@ -30,11 +39,11 @@ function SubSystem(game) {
   this.last = {};
   this.debounce = (wait, entityId) => {
     const canCall = Date.now() - this.last[entityId] > wait;
-    this.last[entityId] = canCall
-      ? Date.now()
-      : this.last[entityId]
-        ? this.last[entityId]
-        : 0;
+    if (canCall) {
+      this.last[entityId] = Date.now();
+    } else {
+      this.last[entityId] = this.last[entityId] ? this.last[entityId] : 0;
+    }
 
     return canCall;
   };
@@ -42,7 +51,8 @@ function SubSystem(game) {
   this.handleMessage = (message) => {};
   this.getNextMessage = () => {
     //     if (!this.game.messageBus.isEmpty()) {
-    //         let message = this.game.messageBus.messages[this.game.messageBus.messages.length - 1];
+    //         let message = this.game.messageBus
+    //           .messages[this.game.messageBus.messages.length - 1];
     //         if (typeof this.actions[message.params.action] !== undefined) {
     //             this.handle(message);
     //             // this.game.messageBus.messages.pop();
@@ -64,7 +74,7 @@ function Input(game) {
     mousemove: 'drag',
   };
   this.actionMapper = (params) => {
-    if (params.action == 'keydown') {
+    if (params.action === 'keydown') {
       return this.actions[params.key];
     }
 
@@ -91,7 +101,8 @@ function Input(game) {
   //                 Object.assign({}, event.params, { action: this.actions[event.action] })
   //             )
   //         );
-  //         // game.searchEntity(event.playerId, 'players').addAction(this.actions[event.action], event.params);
+  //         // game.searchEntity(event.playerId, 'players')
+  //         //  .addAction(this.actions[event.action], event.params);
   //     }
   // };
 
@@ -113,14 +124,14 @@ function Motion(game) {
   };
 
   this.handleMessage = (message) => {
-    if (message.type == this.name) {
+    if (message.type === this.name) {
       if (this.actions[message.params.action]) {
         message.entities.forEach((eid) => {
           const entity = this.game.searchEntity(eid, 'players');
 
           if (entity.has('velocity')) {
             let vel = entity.abilities.velocity.velocity;
-            let pos = entity.abilities.position.pos;
+            let { pos } = entity.abilities.position;
 
             if (entity.has('orientation')) {
               const ort = entity.abilities.orientation.orientation;
@@ -150,10 +161,7 @@ function Motion(game) {
                   vel = new Shapes.Vect();
                   break;
                 case 'drag':
-                  newPos = this.actions[message.params.action](
-                    message.params.mouse,
-                  );
-                  vel = newPos.sub(pos);
+                  vel = this.actions[message.params.action](message.params.mouse).sub(pos);
                   break;
                 default:
                   console.log(message.params.action);
@@ -175,7 +183,7 @@ function Motion(game) {
       }
     }
   };
-  this.update = function () {
+  this.update = () => {
     // if (!this.game.messageBus.isEmpty()) {
     //     console.log('motiooooooooooooooooooooooooooooooooooooooooooonnnnnn');
     //     let message = this.game.messageBus.messages[this.game.messageBus.messages.length - 1];
@@ -186,7 +194,10 @@ function Motion(game) {
     //         message.entities.forEach((eid) => {
     //             let entity = this.game.searchEntity(eid, 'players');
     //             if (entity.has('velocity')) {
-    //                 entity.abilities.velocity.velocity = action(entity.abilities.velocity.velocity, 1);
+    //                 entity.abilities.velocity.velocity = action(
+    //                    entity.abilities.velocity.velocity,
+    //                    1
+    //                  );
     //             }
     //         });
 
@@ -194,8 +205,9 @@ function Motion(game) {
     //     }
     // }
 
-    if ((message = this.getNextMessage())) {
-    }
+    // let message = this.getNextMessage();
+    // if (message) {
+    // }
 
     this.entities.forEach((entity) => {
       // Update postion of entities
@@ -204,7 +216,7 @@ function Motion(game) {
 
         // apply new velocity to the direction
         if (entity.has('orientation')) {
-          const ort = entity.abilities.orientation.orientation;
+          // const ort = entity.abilities.orientation.orientation;
           // let newDir = ort.sub(entity.abilities.velocity.velocity.unit()).unit();
           // console.log(
           //     ort,
@@ -212,11 +224,13 @@ function Motion(game) {
           //     '-------------------------------------------------------------------------'
           // );
 
-          /** ************************************************************************************************************************************************
+          /** *************************************************************************************
            * this was adding velcity only on objects direction. :( bad code
            */
           // entity.abilities.velocity.velocity =
-          //     // entity.abilities.velocity.velocity.multi(entity.abilities.velocity.velocity.dot(ort));
+          //     // entity.abilities.velocity.velocity.multi(
+          //     //   entity.abilities.velocity.velocity.dot(ort)
+          //     // );
           //     new Shapes.Vect(
           //         ort.x * entity.abilities.velocity.velocity.dot(ort),
           //         ort.y * entity.abilities.velocity.velocity.dot(ort),
@@ -232,7 +246,7 @@ function Motion(game) {
           // console.log('graaaaaaaaaaaaaaavity' + entity.name);
           const g = entity.abilities.gravity.gravity;
           const vel = entity.abilities.velocity.velocity;
-          const pos = entity.abilities.position.pos;
+          // const { pos } = entity.abilities.position;
           entity.abilities.velocity.velocity = vel.add(g.multi(game.delta));
 
           if (entity.grounded) {
@@ -248,7 +262,7 @@ function Motion(game) {
         }
 
         // move entity towords velocity
-        const pos = entity.abilities.position.pos;
+        const { pos } = entity.abilities.position;
         if (velo.mag() > 0.5) {
           entity.abilities.position.pos = new Shapes.Vect(
             pos.x + velo.x,
@@ -259,24 +273,22 @@ function Motion(game) {
       }
     }, this);
   };
-  this.postUpdate = function () {
-    this.checkLimits();
-  };
-  this.checkLimits = function () {
-    this.entities.forEach(function (entity) {
+  this.postUpdate = () => this.checkLimits();
+  this.checkLimits = () => {
+    this.entities.forEach((entity) => {
       if (entity.has('position')) {
         this.limit(entity);
       }
     }, this);
   };
   this.limit = (entity) => {
-    const pos = entity.abilities.position.pos;
+    const { pos } = entity.abilities.position;
     let vel = entity.abilities.velocity.velocity;
 
-    const height = entity.abilities.aabb.height;
-    const width = entity.abilities.aabb.width;
+    const { height } = entity.abilities.aabb;
+    const { width } = entity.abilities.aabb;
 
-    const dirChanged = false;
+    // const dirChanged = false;
     if (pos.x <= width.min + vel.x) {
       pos.x = width.min + 1;
       vel.x *= -1;
@@ -364,7 +376,10 @@ function Physics(game) {
     //         message.entities.forEach((eid) => {
     //             let entity = this.game.searchEntity(eid, 'players');
     //             if (entity.has('velocity')) {
-    //                 entity.abilities.velocity.velocity = action(entity.abilities.velocity.velocity, 1);
+    //                 entity.abilities.velocity.velocity = action(
+    //                   entity.abilities.velocity.velocity,
+    //                   1
+    //                 );
     //             }
     //         });
 
@@ -405,7 +420,7 @@ function Physics(game) {
       if (entity.has('string') && false) {
         const stringConn = entity.abilities.string;
         // console.log(stringConn);
-        if (entity.id == stringConn.tail) {
+        if (entity.id === stringConn.tail) {
           const head = this.game.getEntityById(stringConn.head);
           const distance = entity.distance(head);
           // > stringConn.distance;
@@ -438,18 +453,25 @@ function Physics(game) {
     });
   };
   this.handleMessage = (message) => {
-    if (message.type == this.name) {
+    if (message.type === this.name) {
       // console.log(this.name);
       // console.log(message);
-      // console.log('----------->>>>>>>>>>>>>>>>>>>>>><<<<<<<<' + message.type + '   ' + this.game.messageBus.messages.length);
+      // console.log(
+      //   '----------->>>>>>>>>>>>>>>>>>>>>><<<<<<<<' +
+      //   message.type +
+      //   '   ' +
+      //   this.game.messageBus.messages.length
+      // );
       if (this.actions[message.params.action]) {
         message.entities.forEach((eid) => {
           const entity = this.game.searchEntity(eid, 'players');
           if (entity.has('gravity')) {
-            // console.log('-------------+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            // console.log('-------------+++++++++++++++++++++++++++++++++++++++++++++++++++++');
             // console.log(entity.abilities.gravity.gravity);
-            // entity.abilities.gravity.gravity = this.actions[message.params.action](message.params.gravity);
-            // console.log('-------------+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            // entity.abilities.gravity.gravity = this.actions[message.params.action](
+            //  message.params.gravity
+            // );
+            // console.log('-------------+++++++++++++++++++++++++++++++++++++++++++++++++++++');
             // console.log(entity.abilities.gravity.gravity);
           }
         });
@@ -477,7 +499,7 @@ function Collision(game) {
       );
     });
   };
-  this.update = function () {
+  this.update = () => {
     this.testCollisions();
     this.entities.filter(entity => entity.has('collidable')).forEach((entity) => {
       entity.abilities.collidable.update(entity);
@@ -485,7 +507,7 @@ function Collision(game) {
 
     // return here after checking collisions..................................................
     return;
-
+    /* eslint no-unreachable: "off" */
     this.entities.filter(entity => entity.has('cor')).forEach((entity) => {
       // Decrease angular velocity
       if (entity.has('angularVelocity')) {
@@ -504,12 +526,12 @@ function Collision(game) {
       }
 
       if (entity.has('collidable')) {
-        const pos = entity.abilities.position.pos;
-        const mass = entity.abilities.mass.mass;
+        const { pos } = entity.abilities.position;
+        const { mass } = entity.abilities.mass;
         const vel = entity.abilities.velocity.velocity;
 
         this.entities.forEach((object) => {
-          if (entity.id != object.id) {
+          if (entity.id !== object.id) {
             if (object.has('collidable')) {
               if (this.collisionTest(entity, object)) {
                 // mentity = entity.name == 'dot' ? object : entity;
@@ -586,18 +608,19 @@ function Collision(game) {
 
                   const un = pos.sub(objPos).unit();
 
-                  const ut = new Shapes.Vect((x = un.y * -1), (y = un.x), 0);
+                  const ut = new Shapes.Vect((un.y * -1), (un.x), 0);
 
-                  const enVeln = un.dot(vel);
-                  const objVeln = un.dot(objVel);
+                  // const enVeln = un.dot(vel);
+                  // const objVeln = un.dot(objVel);
 
-                  const enVelt = ut.dot(vel);
-                  const objVelt = ut.dot(objVel);
+                  // const enVelt = ut.dot(vel);
+                  // const objVelt = ut.dot(objVel);
 
                   // console.log(enVeln, objVeln);
                   // console.log(enVelt, objVelt);
 
-                  // tangential velocities after the collision is same as initial tangential velocities
+                  // tangential velocities after the collision is
+                  // same as initial tangential velocities
 
                   // calculate normal velocity after collision from 1 dimension formula
                   const enVelX = (vel.x * (mass - objMass) + 2 * objMass * objVel.x)
@@ -612,7 +635,8 @@ function Collision(game) {
                   // new vels after collisions
                   const newEnVel = new Shapes.Vect(enVelX, enVelY);
                   const newObjVel = new Shapes.Vect(obVelX, obVelY);
-                  obVelX = obVelY = 2;
+                  obVelY = 2;
+                  obVelX = obVelY;
                   // console.log(obVelX, obVelY);
                   // let enVelan = un.multi(newEnVel);
                   // let obVelan = un.multi(newObjVel);
@@ -643,32 +667,50 @@ function Collision(game) {
                   // );
 
                   // console.log(
-                  //     entity.abilities.velocity.velocity.mag() + entity.abilities.velocity.velocity.mag() + '<<<<<<<<' +
-                  //     entity.abilities.velocity.velocity.x + '---' + entity.abilities.velocity.velocity.y + '---------------' +
-                  //     object.abilities.velocity.velocity.x + '---' + object.abilities.velocity.velocity.y
+                  //     entity.abilities.velocity.velocity.mag() +
+                  //     entity.abilities.velocity.velocity.mag() + '<<<<<<<<' +
+                  //     entity.abilities.velocity.velocity.x +
+                  //     '---' + entity.abilities.velocity.velocity.y + '---------------' +
+                  //     object.abilities.velocity.velocity.x +
+                  //     '---' + object.abilities.velocity.velocity.y
                   // );
 
                   // rotate on collision
                   // if (entity.has('angularVelocity')) {
-                  //     entity.abilities.angularVelocity.angularVelocity = new Shapes.Vect(180, 2, 2);
+                  //     entity.abilities
+                  //       .angularVelocity.angularVelocity = new Shapes.Vect(180, 2, 2);
                   // }
                   // if (object.has('angularVelocity')) {
-                  //     object.abilities.angularVelocity.angularVelocity = new Shapes.Vect(180, 2, 2);
+                  //     object.abilities
+                  //       .angularVelocity.angularVelocity = new Shapes.Vect(180, 2, 2);
                   // }
 
                   // change direction on collision
-                  // if (entity.has('orientation') && entity.abilities.velocity.velocity.mag() !== 0) {
-                  //     entity.abilities.orientation.orientation = entity.abilities.velocity.velocity.unit();
+                  // if (
+                  //      entity.has('orientation') &&
+                  //      entity.abilities.velocity.velocity.mag() !== 0
+                  // ) {
+                  //     entity.abilities
+                  //       .orientation.orientation = entity.abilities.velocity.velocity.unit();
                   // }
 
-                  // if (object.has('orientation') && object.has('velocity') && object.abilities.velocity.velocity.mag() !== 0) {
-                  //     object.abilities.orientation.orientation = object.abilities.velocity.velocity.unit();
+                  // if (
+                  //      object.has('orientation') &&
+                  //       object.has('velocity') &&
+                  //       object.abilities.velocity.velocity.mag() !== 0
+                  // ) {
+                  //     object.abilities
+                  //       .orientation.orientation = object.abilities.velocity.velocity.unit();
                   // }
 
-                  // let enValX = ((vel.x * (mass - objMass)) + (2 * objMass * objVel.x)) / (mass + objMass);
-                  // let enValY = ((vel.y * (mass - objMass)) + (2 * objMass * objVel.y)) / (mass + objMass);
-                  // let obValX = ((objVel.x * (objMass - mass)) + (2 * mass * vel.x)) / (mass + objMass);
-                  // let obValY = ((objVel.y * (objMass - mass)) + (2 * mass * vel.y)) / (mass + objMass);
+                  // let enValX =
+                  //   ((vel.x * (mass - objMass)) + (2 * objMass * objVel.x)) / (mass + objMass);
+                  // let enValY =
+                  //   ((vel.y * (mass - objMass)) + (2 * objMass * objVel.y)) / (mass + objMass);
+                  // let obValX =
+                  //   ((objVel.x * (objMass - mass)) + (2 * mass * vel.x)) / (mass + objMass);
+                  // let obValY =
+                  //   ((objVel.y * (objMass - mass)) + (2 * mass * vel.y)) / (mass + objMass);
 
                   // // console.log(enValX, enValY);
                   // // console.log(obValX, obValY);
@@ -748,26 +790,40 @@ function Collision(game) {
                   // );
 
                   // console.log(
-                  //     entity.abilities.velocity.velocity.mag() + entity.abilities.velocity.velocity.mag() + '<<<<<<<<' +
-                  //     entity.abilities.velocity.velocity.x + '---' + entity.abilities.velocity.velocity.y + '---------------' +
-                  //     object.abilities.velocity.velocity.x + '---' + object.abilities.velocity.velocity.y
+                  //   entity.abilities.velocity.velocity.mag() +
+                  //   entity.abilities.velocity.velocity.mag() + '<<<<<<<<' +
+                  //   entity.abilities.velocity.velocity.x +
+                  //   '---' + entity.abilities.velocity.velocity.y + '---------------' +
+                  //   object.abilities.velocity.velocity.x +
+                  //   '---' + object.abilities.velocity.velocity.y
                   // );
 
                   // // rotate on collision
                   // // if (entity.has('angularVelocity')) {
-                  // //     entity.abilities.angularVelocity.angularVelocity = new Shapes.Vect(180, 2, 2);
+                  // //     entity.abilities.angularVelocity.angularVelocity =
+                  // //       new Shapes.Vect(180, 2, 2);
                   // // }
                   // // if (object.has('angularVelocity')) {
-                  // //     object.abilities.angularVelocity.angularVelocity = new Shapes.Vect(180, 2, 2);
+                  // //     object.abilities.angularVelocity.angularVelocity =
+                  // //       new Shapes.Vect(180, 2, 2);
                   // // }
 
                   // // change direction on collision
-                  // if (entity.has('orientation') && entity.abilities.velocity.velocity.mag() !== 0) {
-                  //     entity.abilities.orientation.orientation = entity.abilities.velocity.velocity.unit();
+                  // if (
+                  //   entity.has('orientation') &&
+                  //   entity.abilities.velocity.velocity.mag() !== 0
+                  // ) {
+                  //     entity.abilities.orientation.orientation =
+                  //       entity.abilities.velocity.velocity.unit();
                   // }
 
-                  // if (object.has('orientation') && object.has('velocity') && object.abilities.velocity.velocity.mag() !== 0) {
-                  //     object.abilities.orientation.orientation = object.abilities.velocity.velocity.unit();
+                  // if (
+                  //   object.has('orientation') &&
+                  //   object.has('velocity') &&
+                  //   object.abilities.velocity.velocity.mag() !== 0
+                  // ) {
+                  //     object.abilities.orientation.orientation =
+                  //       object.abilities.velocity.velocity.unit();
                   // }
                 }
               }
@@ -807,8 +863,8 @@ function Collision(game) {
     });
   };
 
-  this.collisionTest = function (entity, object) {
-    if (entity.has('viewport') && entity.id != object.id) {
+  this.collisionTest = (entity, object) => {
+    if (entity.has('viewport') && entity.id !== object.id) {
       if (!this.inViewPort(entity, object)) {
         // Add all object in viewport visible things array
         const objectIndex = entity.abilities.viewport.visibleThings.indexOf(
@@ -818,12 +874,10 @@ function Collision(game) {
           console.log('it was in ', objectIndex);
           entity.abilities.viewport.visibleThings.splice(objectIndex, 1);
         }
-      } else {
         // Add all object in viewport visible things array
-        if (entity.abilities.viewport.visibleThings.indexOf(object.id) == -1) {
-          console.log('it is innnnnnnnnnnnnnn ', object.id);
-          entity.abilities.viewport.visibleThings.push(object.id);
-        }
+      } else if (entity.abilities.viewport.visibleThings.indexOf(object.id) === -1) {
+        console.log('it is innnnnnnnnnnnnnn ', object.id);
+        entity.abilities.viewport.visibleThings.push(object.id);
       }
     }
 
@@ -832,7 +886,7 @@ function Collision(game) {
     }
 
     let touching = false;
-    const colliding = false;
+    // const colliding = false;
     let depth = 0;
 
     switch (
@@ -850,6 +904,7 @@ function Collision(game) {
       case 'rectanglerectangle':
         depth = this.rectToRect(entity, object);
         break;
+      default:
     }
 
     if (depth > 0) {
@@ -874,22 +929,26 @@ function Collision(game) {
        */
       // entity.abilities.position.pos = entity.abilities.position.pos.sub(eVal);
       touching = true;
-    } else {
-      if (entity.abilities.collidable.collidingWith.indexOf(object) >= 0) {
-        this.game.messageBus.add(
-          new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], {
-            collision: false,
-            object,
-          }),
-        );
-        this.game.messageBus.add(
-          new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], {
-            collision: false,
-            object: entity,
-          }),
-        );
-      }
-      // this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], { 'collision': false, 'object': entity }));
+    } else if (entity.abilities.collidable.collidingWith.indexOf(object) >= 0) {
+      this.game.messageBus.add(
+        new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], {
+          collision: false,
+          object,
+        }),
+      );
+      this.game.messageBus.add(
+        new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], {
+          collision: false,
+          object: entity,
+        }),
+      );
+    // }
+      // this.game.messageBus.add(
+      //   new MessageSystem.Message(
+      //     MessageSystem.Type.COLLISION,
+      //     [object],
+      //     { 'collision': false, 'object': entity }
+      //   ));
     }
     // if (depth > 5) {
     //     entityRad = entityRad + objectRad / 100;
@@ -897,7 +956,7 @@ function Collision(game) {
 
     return touching;
     // if (touching) {
-    //     // console.log('tesing collisions------------------------------------------------>>> ' + depth)
+    //     // console.log('tesing collisions-------------------------->>> ' + depth)
     //     entity.abilities.body.color = "#ff0000";
     // } else {
     //     entity.abilities.body.color = entity.abilities.body.originalColor;
@@ -979,14 +1038,16 @@ function Collision(game) {
   };
   this.rectToRect = (entity, object) => (this.aabbTest(entity, object) ? 1 : 0);
 
-  this.aabbTest = (entity, object) => entity.abilities.position.pos.x - entity.abilities.aabb.width.min
+  this.aabbTest = (
+    (entity, object) => entity.abilities.position.pos.x - entity.abilities.aabb.width.min
       < object.abilities.position.pos.x + object.abilities.aabb.width.max
     && entity.abilities.position.pos.y - entity.abilities.aabb.height.min
       < object.abilities.position.pos.y + object.abilities.aabb.height.max
     && object.abilities.position.pos.x - object.abilities.aabb.width.min
       < entity.abilities.position.pos.x + entity.abilities.aabb.width.max
     && object.abilities.position.pos.y - object.abilities.aabb.height.min
-      < entity.abilities.position.pos.y + entity.abilities.aabb.height.max;
+      < entity.abilities.position.pos.y + entity.abilities.aabb.height.max
+  );
 
   this.inViewPort = (entity, object) => {
     const viewPortAABB = {
@@ -1004,10 +1065,14 @@ function Collision(game) {
     };
     // console.log(viewPortAABB);
     // console.log(
-    // // viewPortAABB.width.min , ' < ', object.abilities.position.pos.x + object.abilities.aabb.width.max , ' && ',
-    // viewPortAABB.height.min ,' < ', object.abilities.position.pos.y + object.abilities.aabb.height.max , '&& ',
-    // // object.abilities.position.pos.x - object.abilities.aabb.width.min ,' < ', viewPortAABB.width.max , ' && ',
-    //     object.abilities.position.pos.y - object.abilities.aabb.height.min ,' < ', viewPortAABB.height.max
+    // // viewPortAABB.width.min , ' < ',
+    // //   object.abilities.position.pos.x + object.abilities.aabb.width.max, ' && ',
+    // viewPortAABB.height.min ,' < ',
+    //   object.abilities.position.pos.y + object.abilities.aabb.height.max, '&& ',
+    // // object.abilities.position.pos.x - object.abilities.aabb.width.min ,' < ',
+    // //   viewPortAABB.width.max, ' && ',
+    //     object.abilities.position.pos.y - object.abilities.aabb.height.min ,' < ',
+    //       viewPortAABB.height.max
     // );
 
     return (
@@ -1022,6 +1087,7 @@ function Collision(game) {
     );
   };
 }
+
 Collision.prototype = new SubSystem();
 
 function Score(game) {
@@ -1062,7 +1128,7 @@ function Display(game) {
 }
 Display.prototype = new SubSystem();
 
-module.exports = exports = function SubSystem(game) {
+module.exports = function SubSystems(game) {
   return {
     input: new Input(game),
     collision: new Collision(game),

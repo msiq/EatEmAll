@@ -34,22 +34,18 @@ class Vect extends Shape {
   }
 
   multi(v) {
-    if (typeof v !== 'object') {
-      v = new Vect(v, v, v);
-    }
+    const vec = (typeof v === 'object') ? v : new Vect(v, v, v);
 
-    return new Vect(this.x * v.x, this.y * v.y, this.z * v.z);
+    return new Vect(this.x * vec.x, this.y * vec.y, this.z * vec.z);
   }
 
   div(v) {
-    if (typeof v !== 'object') {
-      v = new Vect(v, v, v);
-    }
+    const vec = (typeof v === 'object') ? v : new Vect(v, v, v);
 
     return new Vect(
-      v.x === 0 ? this.x : this.x / v.x,
-      v.y === 0 ? this.y : this.y / v.y,
-      v.z === 0 ? this.z : this.z / v.z,
+      vec.x === 0 ? this.x : this.x / vec.x,
+      vec.y === 0 ? this.y : this.y / vec.y,
+      vec.z === 0 ? this.z : this.z / vec.z,
     );
   }
 
