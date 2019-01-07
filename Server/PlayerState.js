@@ -7,47 +7,62 @@
     }]
 */
 
-function AbstractState(player) {
-  this.execute = () => console.log('You should never see this execute message :( \n, fix it! ');
-  this.setup = () => this.execute();
-  // console.log('You should never see this setup message :( \n, fix it! ');
-  this.update = () => console.log('You should never see this update message :( \n, fix it! ');
-}
-const abstractState = new AbstractState();
+class AbstractState {
+  constructor(player) {
+    this.player = player;
+  }
 
-function InitState(player) {
-  this.execute = () => new Promise((resolve, reject) => {
-    setTimeout(() => {
-      console.log(player.color);
-      player.color = 'green';
-      console.log(player.color);
-      console.log('Initializing player state');
-      resolve('Initializing player state resolved');
-    }, 3000);
-  });
-}
-InitState.prototype = abstractState;
+  execute() {
+    console.log('You should never see this execute message :( \n, fix it! ');
+  }
 
-function MenuState(player) {
-  this.execute = () => new Promise(
-    (resolve, reject) => console.log('you are in menu do whatever you wanted to do and press x to continue!'),
-  );
-}
-MenuState.prototype = abstractState;
+  setup() {
+    this.execute();
+    // console.log('You should never see this setup message :( \n, fix it! ');
+  }
 
-function PlayingState(player) {
-  this.execute = () => new Promise(
-    (resolve, reject) => console.log('player are playing now!'),
-  );
+  update() {
+    console.log('You should never see this update message :( \n, fix it! ');
+  }
 }
-PlayingState.prototype = abstractState;
 
-function KilledState(player) {
-  this.execute = () => new Promise(
-    (resolve, reject) => console.log('you dieded!'),
-  );
+class InitState extends AbstractState {
+  execute() {
+    new Promise((resolve, reject) => {
+      setTimeout(() => {
+        console.log(player.color);
+        player.color = 'green';
+        console.log(player.color);
+        console.log('Initializing player state');
+        resolve('Initializing player state resolved');
+      }, 3000);
+    });
+  }
 }
-KilledState.prototype = abstractState;
+
+class MenuState extends AbstractState{
+  execute() {
+    new Promise(
+      (resolve, reject) => console.log('you are in menu do whatever you wanted to do and press x to continue!'),
+    );
+  }
+}
+
+class PlayingState extends AbstractState{
+  execute() {
+    new Promise(
+      (resolve, reject) => console.log('player are playing now!'),
+    );
+  }
+}
+
+class KilledState extends AbstractState{
+  execute() {
+    new Promise(
+      (resolve, reject) => console.log('you dieded!'),
+    );
+  }
+}
 
 module.exports = {
   init: InitState,
