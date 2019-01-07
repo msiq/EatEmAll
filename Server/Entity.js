@@ -4,33 +4,34 @@ const UUID = require('node-uuid');
 
 const Abilities = require('./Abilities.js');
 
-function Entity(name = 'noname') {
-  this.TYPE_DEFAULT = 'default';
-  this.TYPE_MAIN = 'main';
+class Entity {
+  constructor(name = 'noname') {
+    this.TYPE_DEFAULT = 'default';
+    this.TYPE_MAIN = 'main';
+    this.id = UUID();
+    this.name = name;
+    this.socket_id = false;
+    this.type = 'default';
+    this.grounded = false;
 
-  this.id = UUID();
-  this.name = name;
-  this.socket_id = false;
-  this.type = 'default';
-
-  this.grounded = false;
-
-  this.actions = [];
+    this.actions = [];
+    this.abilities = {};
+    // this.abilities[Abilities.Orientation.name] = new Abilities.Orientation();
+  }
   // Array.pop will remove this action once its applied
-  this.addAction = (action, params = {}) => {
-    this.actions.push({ name: action, params });
-  };
 
-  this.abilities = {};
-  // this.abilities[Abilities.Orientation.name] = new Abilities.Orientation();
-  this.has = ability => (
-    Object
+  addAction(action, params = {}) {
+    this.actions.push({ name: action, params });
+  }
+
+  has(ability) {
+    return Object
       .prototype
       .hasOwnProperty
       .call(this.abilities, ability) ? this.abilities[ability] : false
-  );
+  } 
 
-  this.attach = (ability) => {
+  attach(ability) {
     if (ability.constructor.name === 'Ability') {
       this.abilities[ability.name] = ability;
     }
@@ -38,9 +39,9 @@ function Entity(name = 'noname') {
     if (ability.name === 'body') {
       this.attach(new Abilities.Aabb(ability));
     }
-  };
+  }
 
-  this.distance = (entity) => {
+  distance(entity) {
     const thisPos = this.abilities.position.pos;
     const enPos = entity.abilities.position.pos;
     const deltaX = thisPos.x - enPos.x;
@@ -52,9 +53,9 @@ function Entity(name = 'noname') {
       z: 0,
       mag: Math.sqrt(deltaX * deltaX + deltaY * deltaY),
     };
-  };
+  }
 
-  this.update = () => {
+  update() {
     // if (this.debounce(1000)) {
     //     let vel = this.abilities.velocity.velocity;
     //     this.abilities.velocity.velocity = Object.assign({}, vel, {
@@ -63,7 +64,7 @@ function Entity(name = 'noname') {
     //         z: this.applyEase(vel.z, config.player.ease),
     //     });
     // }
-  };
+  }
 
   // this.applyEase = function(val, ease) {
   //     if (val !== 0) {
