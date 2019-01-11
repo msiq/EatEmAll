@@ -1,3 +1,4 @@
+/* eslint-disable class-methods-use-this */
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "[player]" }] */
 /* eslint no-param-reassign:
   ["error", {
@@ -28,11 +29,11 @@ class AbstractState {
 
 class InitState extends AbstractState {
   execute() {
-    new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       setTimeout(() => {
-        console.log(player.color);
-        player.color = 'green';
-        console.log(player.color);
+        console.log(this.player.color);
+        this.player.color = 'green';
+        console.log(this.player.color);
         console.log('Initializing player state');
         resolve('Initializing player state resolved');
       }, 3000);
@@ -40,25 +41,25 @@ class InitState extends AbstractState {
   }
 }
 
-class MenuState extends AbstractState{
+class MenuState extends AbstractState {
   execute() {
-    new Promise(
+    return new Promise(
       (resolve, reject) => console.log('you are in menu do whatever you wanted to do and press x to continue!'),
     );
   }
 }
 
-class PlayingState extends AbstractState{
+class PlayingState extends AbstractState {
   execute() {
-    new Promise(
+    return new Promise(
       (resolve, reject) => console.log('player are playing now!'),
     );
   }
 }
 
-class KilledState extends AbstractState{
+class KilledState extends AbstractState {
   execute() {
-    new Promise(
+    return new Promise(
       (resolve, reject) => console.log('you dieded!'),
     );
   }

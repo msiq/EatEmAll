@@ -1,3 +1,5 @@
+/* eslint-disable no-restricted-syntax */
+/* eslint-disable guard-for-in */
 const autoBind = require('auto-bind');
 const config = require('./config.js');
 const GameServer = require('./GameServer.js');

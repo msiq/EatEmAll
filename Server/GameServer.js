@@ -1,3 +1,4 @@
+/* eslint-disable class-methods-use-this */
 const autoBind = require('auto-bind');
 const app = require('express')();
 const http = require('http').Server(app);
@@ -78,7 +79,6 @@ class GameServer {
       }),
     );
   }
-
 }
 
 // io.on('connection', );

@@ -123,7 +123,7 @@ function update(data) {
   FPSbox.innerHTML = data.fps;
 
   let thisPlayer = {};
-  for (let ind in Object.keys(ps.players)) {
+  for (const ind in Object.keys(ps.players)) {
     if (ps.players[ind].id == player.id) {
       thisPlayer = ps.players[ind];
       break;
@@ -204,7 +204,7 @@ function update(data) {
 
   Object.keys(ps).map((entityType) => {
     if (Object.keys(ps[entityType]).length > 0) {
-      for (let p in ps[entityType]) {
+      for (const p in ps[entityType]) {
         if (
           Object.keys(ps[entityType]).length > 0
           && ps[entityType][p].entityType !== 'main'

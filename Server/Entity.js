@@ -1,3 +1,4 @@
+/* eslint-disable class-methods-use-this */
 const UUID = require('node-uuid');
 // const Shapes = require('./Shapes.js');
 // const config = require('./config.js');
@@ -28,8 +29,8 @@ class Entity {
     return Object
       .prototype
       .hasOwnProperty
-      .call(this.abilities, ability) ? this.abilities[ability] : false
-  } 
+      .call(this.abilities, ability) ? this.abilities[ability] : false;
+  }
 
   attach(ability) {
     if (ability.constructor.name === 'Ability') {
