@@ -1,3 +1,4 @@
+const autoBind = require('auto-bind');
 const app = require('express')();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
@@ -8,34 +9,39 @@ const path = require('path');
 
 // let socket;
 
-function GameServer(game) {
-  this.sockets = [];
-  this.game = game;
+class GameServer {
+  constructor(game) {
+    autoBind(this);
+    this.sockets = [];
+    this.game = game;
+  }
 
-  this.serve = () => new Promise((resolve, reject) => {
-    // define routes and start receiving Player connections
-    app.get('/', (req, res) => res.sendFile(path.resolve('/Client/game.html'), {
-      root: '.',
-    }));
-    // app.get('/', (req, res) => res.sendFile('collision-test.html', { root: '.' }));
-    app.get('/*', (req, res) => res.sendFile(req.params[0], {
-      root: '.',
-    }));
+  serve() {
+    return new Promise((resolve, reject) => {
+      // define routes and start receiving Player connections
+      app.get('/', (req, res) => res.sendFile(path.resolve('/Client/game.html'), {
+        root: '.',
+      }));
+      // app.get('/', (req, res) => res.sendFile('collision-test.html', { root: '.' }));
+      app.get('/*', (req, res) => res.sendFile(req.params[0], {
+        root: '.',
+      }));
 
-    let okk = false;
-    // start listening to on port 4444
-    http.listen(this.game.config.gameport, () => console.log(`listening on : ${this.game.config.gameport}`));
-    okk = io.on('connection', this.onConnection);
+      let okk = false;
+      // start listening to on port 4444
+      http.listen(this.game.config.gameport, () => console.log(`listening on : ${this.game.config.gameport}`));
+      okk = io.on('connection', this.onConnection);
 
-    if (!okk) {
-      reject(new Error('reject says: no'));
-    }
+      if (!okk) {
+        reject(new Error('reject says: no'));
+      }
 
-    this.game.active = true;
-    resolve('resolve says: yes');
-  });
+      this.game.active = true;
+      resolve('resolve says: yes');
+    });
+  }
 
-  this.onConnection = (sock) => {
+  onConnection(sock) {
     this.sockets.push(sock);
     console.log('conneted with something!');
     this.onRequest('letmeplay', socket => this.game.onletMePlay(socket));
@@ -43,22 +49,27 @@ function GameServer(game) {
     this.onRequest('click', socket => this.game.playerClick(socket));
 
     return 'OK';
-  };
-  this.onRequest = (request, onRequest) => {
+  }
+
+  onRequest(request, onRequest) {
     this.sockets.map(soc => soc.on(request, onRequest));
-  };
-  this.onResponse = (socketId, response, onResponse) => {
+  }
+
+  onResponse(socketId, response, onResponse) {
     io.sockets.sockets[socketId].emit(response, onResponse);
-  };
-  this.letEmPlay = (player) => {
+  }
+
+  letEmPlay(player) {
     io.sockets.sockets[player.socket_id].emit('play', {
       player,
     });
-  };
-  this.goAway = (socketId) => {
+  }
+
+  goAway(socketId) {
     io.sockets.sockets[socketId].emit('goaway');
-  };
-  this.doTick = (data) => {
+  }
+
+  doTick(data) {
     io.sockets.emit(
       'tick',
       JSON.stringify({
@@ -66,7 +77,8 @@ function GameServer(game) {
         fps: data.fps,
       }),
     );
-  };
+  }
+
 }
 
 // io.on('connection', );

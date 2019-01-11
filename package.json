@@ -15,6 +15,7 @@
     "license": "ISC",
     "homepage": "https://bitbucket.org/msiq/eatem#readme",
     "dependencies": {
+        "auto-bind": "^2.0.0",
         "express": "^4.14.0",
         "node-uuid": "^1.4.7",
         "socket.io": "^2.1.1"

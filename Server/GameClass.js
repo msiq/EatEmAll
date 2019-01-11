@@ -1,3 +1,4 @@
+const autoBind = require('auto-bind');
 const config = require('./config.js');
 const GameServer = require('./GameServer.js');
 const events = require('./events.js');
@@ -11,6 +12,7 @@ const MessageSystem = require('./MessageBus.js');
 
 class Game {
   constructor() {
+    autoBind(this);
     this.config = config;
     this.server = new GameServer(this);
     this.subSystems = new SubSystems(this);
