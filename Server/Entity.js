@@ -33,7 +33,7 @@ class Entity {
   }
 
   attach(ability) {
-    if (ability.constructor.name === 'Ability') {
+    if (ability instanceof Abilities.Ability) {
       this.abilities[ability.name] = ability;
     }
 
