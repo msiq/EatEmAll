@@ -128,19 +128,23 @@ class Input extends SubSystem {
 }
 
 /** Get */
-function Motion(game) {
-  this.game = game;
-  this.name = 'motion';
-  this.actions = {
-    up: (v, c) => new Shapes.Vect(v.x, v.y - c, v.z),
-    down: (v, c) => new Shapes.Vect(v.x, v.y + c, v.z),
-    left: (v, c) => new Shapes.Vect(v.x - c, v.y, v.z),
-    right: (v, c) => new Shapes.Vect(v.x + c, v.y, v.z),
-    click: mouse => new Shapes.Vect(mouse.x, mouse.y, 0),
-    drag: mouse => new Shapes.Vect(mouse.x, mouse.y, 0),
-  };
+class Motion extends SubSystem {
+  constructor(game) {
+    super();
+    autoBind(this);
+    this.game = game;
+    this.name = 'motion';
+    this.actions = {
+      up: (v, c) => new Shapes.Vect(v.x, v.y - c, v.z),
+      down: (v, c) => new Shapes.Vect(v.x, v.y + c, v.z),
+      left: (v, c) => new Shapes.Vect(v.x - c, v.y, v.z),
+      right: (v, c) => new Shapes.Vect(v.x + c, v.y, v.z),
+      click: mouse => new Shapes.Vect(mouse.x, mouse.y, 0),
+      drag: mouse => new Shapes.Vect(mouse.x, mouse.y, 0),
+    };
+  }
 
-  this.handleMessage = (message) => {
+  handleMessage(message) {
     if (message.type === this.name) {
       if (this.actions[message.params.action]) {
         message.entities.forEach((eid) => {
@@ -155,21 +159,21 @@ function Motion(game) {
               switch (message.params.action) {
                 case 'left':
                   entity.abilities.orientation.rotate(-5);
-                  entity.abilities.aabb = new game.abilities.Aabb(
+                  entity.abilities.aabb = new this.game.abilities.Aabb(
                     entity.abilities.body,
                   );
                   break;
                 case 'right':
                   entity.abilities.orientation.rotate(5);
-                  entity.abilities.aabb = new game.abilities.Aabb(
+                  entity.abilities.aabb = new this.game.abilities.Aabb(
                     entity.abilities.body,
                   );
                   break;
                 case 'up':
-                  vel = vel.add(ort.multi(1 * game.delta));
+                  vel = vel.add(ort.multi(1 * this.game.delta));
                   break;
                 case 'down':
-                  vel = vel.sub(ort.multi(1 * game.delta));
+                  vel = vel.sub(ort.multi(1 * this.game.delta));
                   break;
                 case 'click':
                   pos = this.actions[message.params.action](
@@ -185,7 +189,7 @@ function Motion(game) {
               }
               entity.abilities.position.pos = pos;
             } else {
-              vel = this.actions[message.params.action](vel, 1 * game.delta);
+              vel = this.actions[message.params.action](vel, 1 * this.game.delta);
             }
             entity.abilities.velocity.velocity = vel;
           }
@@ -199,8 +203,9 @@ function Motion(game) {
         // );
       }
     }
-  };
-  this.update = () => {
+  }
+
+  update() {
     // if (!this.game.messageBus.isEmpty()) {
     //     console.log('motiooooooooooooooooooooooooooooooooooooooooooonnnnnn');
     //     let message = this.game.messageBus.messages[this.game.messageBus.messages.length - 1];
@@ -264,16 +269,16 @@ function Motion(game) {
           const g = entity.abilities.gravity.gravity;
           const vel = entity.abilities.velocity.velocity;
           // const { pos } = entity.abilities.position;
-          entity.abilities.velocity.velocity = vel.add(g.multi(game.delta));
+          entity.abilities.velocity.velocity = vel.add(g.multi(this.game.delta));
 
           if (entity.grounded) {
-            console.log(game.delta);
+            console.log(this.game.delta);
             console.log(g);
-            console.log(g.multi(game.delta));
+            console.log(g.multi(this.game.delta));
 
             console.log('------------------------------------------------');
             console.log(vel);
-            console.log(vel.add(g.multi(game.delta)));
+            console.log(vel.add(g.multi(this.game.delta)));
             // console.log(aljshdl)
           }
         }
@@ -289,16 +294,21 @@ function Motion(game) {
         }
       }
     }, this);
-  };
-  this.postUpdate = () => this.checkLimits();
-  this.checkLimits = () => {
+  }
+
+  postUpdate() {
+    this.checkLimits();
+  }
+
+  checkLimits() {
     this.entities.forEach((entity) => {
       if (entity.has('position')) {
         this.limit(entity);
       }
     }, this);
-  };
-  this.limit = (entity) => {
+  }
+
+  limit(entity) {
     const { pos } = entity.abilities.position;
     let vel = entity.abilities.velocity.velocity;
 
@@ -366,9 +376,8 @@ function Motion(game) {
     //         entity.abilities.orientation.orientation = entity.abilities.velocity.velocity.unit();
     //     }
     // }
-  };
+  }
 }
-Motion.prototype = new SubSystem();
 
 function Physics(game) {
   this.game = game;
