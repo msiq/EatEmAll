@@ -1,3 +1,4 @@
+/* eslint-disable class-methods-use-this */
 const Shapes = require('./Shapes.js');
 const MessageSystem = require('./MessageBus.js');
 const config = require('./config.js');
@@ -16,28 +17,37 @@ const config = require('./config.js');
 //   '-': (a, b) => a - b,
 // };
 
-function SubSystem(game) {
-  this.game = game;
-  this.name = 'SubSystem';
-  this.actions = {};
-  this.preUpdate = (player) => {
+class SubSystem {
+  constructor(game) {
+    this.game = game;
+    this.name = 'SubSystem';
+    this.actions = {};
+
+    this.entities = [];
+    this.last = {};
+  }
+
+  preUpdate(player) {
     // console.log(this.name + ' is preeeeeeeeeeeeeee updating!...');
-  };
-  this.update = (player) => {
+  }
+
+  update(player) {
     // console.log(this.name + ' is updating!...');
-  };
-  this.postUpdate = (player) => {
+  }
+
+  postUpdate(player) {
     // this.entities.forEach(function (entity) {
     //     if (entity.has('position')) {
     //         entity.abilities.position.pos = this.limit(entity.abilities.position.pos);
     //     }
     // }, this);
-  };
-  this.entities = [];
-  this.AddEntity = entity => this.entities.push(entity);
+  }
 
-  this.last = {};
-  this.debounce = (wait, entityId) => {
+  AddEntity(entity) {
+    this.entities.push(entity);
+  }
+
+  debounce(wait, entityId) {
     const canCall = Date.now() - this.last[entityId] > wait;
     if (canCall) {
       this.last[entityId] = Date.now();
@@ -46,10 +56,12 @@ function SubSystem(game) {
     }
 
     return canCall;
-  };
+  }
 
-  this.handleMessage = (message) => {};
-  this.getNextMessage = () => {
+  // eslint-disable-next-line class-methods-use-this
+  handleMessage(message) { }
+
+  getNextMessage() {
     //     if (!this.game.messageBus.isEmpty()) {
     //         let message = this.game.messageBus
     //           .messages[this.game.messageBus.messages.length - 1];
@@ -59,7 +71,7 @@ function SubSystem(game) {
     //         }
     //     }
     //     return false;
-  };
+  }
 }
 
 function Input(game) {
