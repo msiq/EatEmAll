@@ -510,11 +510,13 @@ class Physics extends SubSystem {
   }
 }
 
-function Renderer(game) {
-  this.game = game;
-  this.name = 'renderer';
+class Renderer extends SubSystem {
+  constructor(game) {
+    super();
+    this.game = game;
+    this.name = 'renderer';
+  }
 }
-Renderer.prototype = new SubSystem();
 
 function Collision(game) {
   this.game = game;
