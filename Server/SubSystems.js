@@ -886,7 +886,7 @@ class Collision extends SubSystem {
         });
       }
     });
-  };
+  }
 
   testCollisions() {
     this.entities.filter(entity => entity.has('collidable')).forEach((entity) => {
@@ -1128,10 +1128,14 @@ class Collision extends SubSystem {
   }
 }
 
-function Score(game) {
-  this.game = game;
-  this.name = 'score';
-  this.handleMessage = (message) => {
+class Score extends SubSystem {
+  constructor(game) {
+    super();
+    this.game = game;
+    this.name = 'score';
+  }
+
+  handleMessage(message) {
     if (message.type === this.name) {
       message.entities.forEach((entity) => {
         const newScore = entity.abilities.score[message.params.action](
@@ -1145,35 +1149,42 @@ function Score(game) {
         }
       });
     }
-  };
+  }
 
-  this.update = () => {};
+  update() {}
 }
-Score.prototype = new SubSystem();
 
-function Display(game) {
-  this.game = game;
-  this.name = 'display';
-  this.handleMessage = (message) => {};
-  this.update = () => {
+class Display extends SubSystem {
+  constructor(game) {
+    super()
+    this.game = game;
+    this.name = 'display';
+  }
+
+  handleMessage(message) { }
+
+  update() {
     this.entities.forEach((entity) => {
       if (entity.has('camera') && entity.has('viewport')) {
         entity.abilities.camera.update(entity);
         entity.abilities.viewport.update(entity);
       }
     }, this);
-  };
+  }
 }
-Display.prototype = new SubSystem();
 
-module.exports = function SubSystems(game) {
-  return {
-    input: new Input(game),
-    collision: new Collision(game),
-    physics: new Physics(game),
-    motion: new Motion(game),
-    renderer: new Renderer(game),
-    score: new Score(game),
-    display: new Display(game),
-  };
-};
+class SubSystems {
+  constructor(game) {
+    return {
+      input: new Input(game),
+      collision: new Collision(game),
+      physics: new Physics(game),
+      motion: new Motion(game),
+      renderer: new Renderer(game),
+      score: new Score(game),
+      display: new Display(game),
+    };
+  }
+}
+
+module.exports = SubSystems;
