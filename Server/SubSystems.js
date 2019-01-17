@@ -2,6 +2,7 @@
 const Shapes = require('./Shapes.js');
 const MessageSystem = require('./MessageBus.js');
 const config = require('./config.js');
+const autoBind = require('auto-bind');
 
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "[player|message]" }] */
 /* eslint no-param-reassign:
@@ -19,6 +20,7 @@ const config = require('./config.js');
 
 class SubSystem {
   constructor(game) {
+    autoBind(this);
     this.game = game;
     this.name = 'SubSystem';
     this.actions = {};
@@ -74,25 +76,30 @@ class SubSystem {
   }
 }
 
-function Input(game) {
-  this.game = game;
-  this.name = 'input';
-  this.actions = {
-    38: 'up',
-    40: 'down',
-    37: 'left',
-    39: 'right',
-    click: 'click',
-    mousemove: 'drag',
-  };
-  this.actionMapper = (params) => {
+class Input extends SubSystem {
+  constructor(game) {
+    super();
+    this.game = game;
+    this.name = 'input';
+    this.actions = {
+      38: 'up',
+      40: 'down',
+      37: 'left',
+      39: 'right',
+      click: 'click',
+      mousemove: 'drag',
+    };
+  }
+
+  actionMapper(params) {
     if (params.action === 'keydown') {
       return this.actions[params.key];
     }
 
     return this.actions[params.action];
-  };
-  this.handleMessage = (message) => {
+  }
+
+  handleMessage(message) {
     if (message.type === this.name) {
       this.game.messageBus.add(
         new MessageSystem.Message(
@@ -104,7 +111,8 @@ function Input(game) {
         ),
       );
     }
-  };
+  }
+
   // this.handle = function(event) {
   //     if (this.actions[event.action]) {
   //         this.game.messageBus.add(
@@ -117,10 +125,7 @@ function Input(game) {
   //         //  .addAction(this.actions[event.action], event.params);
   //     }
   // };
-
-  this.update = () => {};
 }
-Input.prototype = new SubSystem();
 
 /** Get */
 function Motion(game) {
