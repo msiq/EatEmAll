@@ -518,19 +518,23 @@ class Renderer extends SubSystem {
   }
 }
 
-function Collision(game) {
-  this.game = game;
-  this.name = 'collision';
-  this.handleMessage = (message) => {
-    // trigger on Collision event for all colliding entities
-    message.entities.forEach((entity) => {
-      entity.abilities.collidable.colliding(
-        message.params.object,
-        message.params.collision,
-      );
-    });
-  };
-  this.update = () => {
+class Collision extends SubSystem {
+  constructor(game) {
+    super();
+    this.game = game;
+    this.name = 'collision';
+    this.handleMessage = (message) => {
+      // trigger on Collision event for all colliding entities
+      message.entities.forEach((entity) => {
+        entity.abilities.collidable.colliding(
+          message.params.object,
+          message.params.collision,
+        );
+      });
+    };
+  }
+
+  update() {
     this.testCollisions();
     this.entities.filter(entity => entity.has('collidable')).forEach((entity) => {
       entity.abilities.collidable.update(entity);
@@ -884,7 +888,7 @@ function Collision(game) {
     });
   };
 
-  this.testCollisions = () => {
+  testCollisions() {
     this.entities.filter(entity => entity.has('collidable')).forEach((entity) => {
       this.entities
         .filter(object => entity.id !== object.id)
@@ -892,9 +896,9 @@ function Collision(game) {
           this.collisionTest(entity, object);
         });
     });
-  };
+  }
 
-  this.collisionTest = (entity, object) => {
+  collisionTest(entity, object) {
     if (entity.has('viewport') && entity.id !== object.id) {
       if (!this.inViewPort(entity, object)) {
         // Add all object in viewport visible things array
@@ -992,9 +996,9 @@ function Collision(game) {
     // } else {
     //     entity.abilities.body.color = entity.abilities.body.originalColor;
     // }
-  };
+  }
 
-  this.rotate = (vec, deg) => {
+  rotate(vec, deg) {
     const originalVec = vec.unit();
     const cos = Math.cos(this.toRadians(deg));
     const sin = Math.sin(this.toRadians(deg));
@@ -1005,15 +1009,23 @@ function Collision(game) {
     );
 
     return newDir.multi(originalVec.mag());
-  };
-  this.toRadians = degree => degree * (Math.PI / 180);
-  this.toDegree = radian => (180 / Math.PI) * radian;
-  this.distance = (p1, p2) => {
+  }
+
+  toRadians(degree) {
+    return degree * (Math.PI / 180);
+  }
+
+  toDegree(radian) {
+    return (180 / Math.PI) * radian;
+  }
+
+  distance(p1, p2) {
     const dx = p1.x - p2.x;
     const dy = p1.y - p2.y;
     return Math.sqrt(dx * dx + dy * dy);
-  };
-  this.circleToCicle = (entity, object) => {
+  }
+
+  circleToCicle(entity, object) {
     let entityPos = new Shapes.Vect(
       entity.abilities.position.pos.x,
       entity.abilities.position.pos.y,
@@ -1035,9 +1047,13 @@ function Collision(game) {
     const dy = entityPos.y - objectPos.y;
 
     return entityRad + objectRad - Math.sqrt(dx * dx + dy * dy);
-  };
-  this.rectToCircle = (rect, crcl) => this.aabbToRect(rect, crcl);
-  this.aabbToRect = (rect, crcl) => {
+  }
+
+  rectToCircle(rect, crcl) {
+    return this.aabbToRect(rect, crcl);
+  }
+
+  aabbToRect(rect, crcl) {
     // only works for axis aligned rectagle and circle  ****************************
     const rectPos = new Shapes.Vect(
       rect.abilities.position.pos.x,
@@ -1066,21 +1082,20 @@ function Collision(game) {
     const dd = crclRadius * crclRadius - (dx * dx + dy * dy);
 
     return dd;
-  };
-  this.rectToRect = (entity, object) => (this.aabbTest(entity, object) ? 1 : 0);
+  }
 
-  this.aabbTest = (
-    (entity, object) => entity.abilities.position.pos.x - entity.abilities.aabb.width.min
-      < object.abilities.position.pos.x + object.abilities.aabb.width.max
-    && entity.abilities.position.pos.y - entity.abilities.aabb.height.min
-      < object.abilities.position.pos.y + object.abilities.aabb.height.max
-    && object.abilities.position.pos.x - object.abilities.aabb.width.min
-      < entity.abilities.position.pos.x + entity.abilities.aabb.width.max
-    && object.abilities.position.pos.y - object.abilities.aabb.height.min
-      < entity.abilities.position.pos.y + entity.abilities.aabb.height.max
-  );
+  rectToRect(entity, object) {
+    return this.aabbTest(entity, object) ? 1 : 0;
+  }
 
-  this.inViewPort = (entity, object) => {
+  aabbTest(entity, object) {
+    return entity.abilities.position.pos.x - entity.abilities.aabb.width.min < object.abilities.position.pos.x + object.abilities.aabb.width.max
+      && entity.abilities.position.pos.y - entity.abilities.aabb.height.min < object.abilities.position.pos.y + object.abilities.aabb.height.max
+      && object.abilities.position.pos.x - object.abilities.aabb.width.min < entity.abilities.position.pos.x + entity.abilities.aabb.width.max
+      && object.abilities.position.pos.y - object.abilities.aabb.height.min < entity.abilities.position.pos.y + entity.abilities.aabb.height.max;
+  }
+
+  inViewPort(entity, object) {
     const viewPortAABB = {
       width: {
         min:
@@ -1106,20 +1121,12 @@ function Collision(game) {
     //       viewPortAABB.height.max
     // );
 
-    return (
-      viewPortAABB.width.min
-        < object.abilities.position.pos.x + object.abilities.aabb.width.max
-      && viewPortAABB.height.min
-        < object.abilities.position.pos.y + object.abilities.aabb.height.max
-      && object.abilities.position.pos.x - object.abilities.aabb.width.min
-        < viewPortAABB.width.max
-      && object.abilities.position.pos.y - object.abilities.aabb.height.min
-        < viewPortAABB.height.max
-    );
-  };
+    return viewPortAABB.width.min < object.abilities.position.pos.x + object.abilities.aabb.width.max
+      && viewPortAABB.height.min < object.abilities.position.pos.y + object.abilities.aabb.height.max
+      && object.abilities.position.pos.x - object.abilities.aabb.width.min < viewPortAABB.width.max
+      && object.abilities.position.pos.y - object.abilities.aabb.height.min < viewPortAABB.height.max;
+  }
 }
-
-Collision.prototype = new SubSystem();
 
 function Score(game) {
   this.game = game;
