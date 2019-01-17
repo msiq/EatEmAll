@@ -379,20 +379,23 @@ class Motion extends SubSystem {
   }
 }
 
-function Physics(game) {
-  this.game = game;
-  this.name = 'physics';
-  this.actions = {
-    gravity: (g) => {
-      console.log(
-        'ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg',
-      );
-      console.log(g);
-      return g;
-    },
-  };
+class Physics extends SubSystem {
+  constructor(game) {
+    super();
+    this.game = game;
+    this.name = 'physics';
+    this.actions = {
+      gravity: (g) => {
+        console.log(
+          'ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg',
+        );
+        console.log(g);
+        return g;
+      },
+    };
+  }
 
-  this.update = () => {
+  update() {
     // if (!this.game.messageBus.isEmpty()) {
     //     let message = this.game.messageBus.messages[this.game.messageBus.messages.length - 1];
     //     console.log(message);
@@ -477,8 +480,9 @@ function Physics(game) {
         }
       }
     });
-  };
-  this.handleMessage = (message) => {
+  }
+
+  handleMessage(message) {
     if (message.type === this.name) {
       // console.log(this.name);
       // console.log(message);
@@ -503,9 +507,8 @@ function Physics(game) {
         });
       }
     }
-  };
+  }
 }
-Physics.prototype = new SubSystem();
 
 function Renderer(game) {
   this.game = game;
