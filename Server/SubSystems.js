@@ -1,8 +1,8 @@
 /* eslint-disable class-methods-use-this */
+const autoBind = require('auto-bind');
 const Shapes = require('./Shapes.js');
 const MessageSystem = require('./MessageBus.js');
 const config = require('./config.js');
-const autoBind = require('auto-bind');
 
 /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "[player|message]" }] */
 /* eslint no-param-reassign:
@@ -459,7 +459,7 @@ class Physics extends SubSystem {
 
           if (distance.mag < stringConn.length - 5) {
             console.log(
-              '------------------------------------------------------------------------------------------------------->>>>>>>>',
+              '--------------------------------------------------------->>>>>>>>',
             );
             entity.abilities.velocity.velocity.x
               += (stringConn.elasticity / distance.mag) * 100;
@@ -469,7 +469,7 @@ class Physics extends SubSystem {
           }
           if (distance.mag > stringConn.length + 5) {
             console.log(
-              '------------------------------------------------------------------------------------------------------<<<<<<<<<<',
+              '--------------------------------------------------------<<<<<<<<<<',
             );
             entity.abilities.velocity.velocity.x
               += (stringConn.elasticity / distance.mag) * 100;
@@ -496,12 +496,12 @@ class Physics extends SubSystem {
         message.entities.forEach((eid) => {
           const entity = this.game.searchEntity(eid, 'players');
           if (entity.has('gravity')) {
-            // console.log('-------------+++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            // console.log('-------------++++++++++++++++++++++++++++');
             // console.log(entity.abilities.gravity.gravity);
             // entity.abilities.gravity.gravity = this.actions[message.params.action](
             //  message.params.gravity
             // );
-            // console.log('-------------+++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            // console.log('-------------++++++++++++++++++++++++++++');
             // console.log(entity.abilities.gravity.gravity);
           }
         });
@@ -540,7 +540,7 @@ class Collision extends SubSystem {
       entity.abilities.collidable.update(entity);
     });
 
-    // return here after checking collisions..................................................
+    // return here after checking collisions........................................
     return;
     /* eslint no-unreachable: "off" */
     this.entities.filter(entity => entity.has('cor')).forEach((entity) => {
@@ -1089,10 +1089,14 @@ class Collision extends SubSystem {
   }
 
   aabbTest(entity, object) {
-    return entity.abilities.position.pos.x - entity.abilities.aabb.width.min < object.abilities.position.pos.x + object.abilities.aabb.width.max
-      && entity.abilities.position.pos.y - entity.abilities.aabb.height.min < object.abilities.position.pos.y + object.abilities.aabb.height.max
-      && object.abilities.position.pos.x - object.abilities.aabb.width.min < entity.abilities.position.pos.x + entity.abilities.aabb.width.max
-      && object.abilities.position.pos.y - object.abilities.aabb.height.min < entity.abilities.position.pos.y + entity.abilities.aabb.height.max;
+    return entity.abilities.position.pos.x - entity.abilities.aabb.width.min
+      < object.abilities.position.pos.x + object.abilities.aabb.width.max
+      && entity.abilities.position.pos.y - entity.abilities.aabb.height.min
+      < object.abilities.position.pos.y + object.abilities.aabb.height.max
+      && object.abilities.position.pos.x - object.abilities.aabb.width.min
+      < entity.abilities.position.pos.x + entity.abilities.aabb.width.max
+      && object.abilities.position.pos.y - object.abilities.aabb.height.min
+      < entity.abilities.position.pos.y + entity.abilities.aabb.height.max;
   }
 
   inViewPort(entity, object) {
@@ -1121,10 +1125,14 @@ class Collision extends SubSystem {
     //       viewPortAABB.height.max
     // );
 
-    return viewPortAABB.width.min < object.abilities.position.pos.x + object.abilities.aabb.width.max
-      && viewPortAABB.height.min < object.abilities.position.pos.y + object.abilities.aabb.height.max
-      && object.abilities.position.pos.x - object.abilities.aabb.width.min < viewPortAABB.width.max
-      && object.abilities.position.pos.y - object.abilities.aabb.height.min < viewPortAABB.height.max;
+    return viewPortAABB.width.min
+      < object.abilities.position.pos.x + object.abilities.aabb.width.max
+      && viewPortAABB.height.min
+      < object.abilities.position.pos.y + object.abilities.aabb.height.max
+      && object.abilities.position.pos.x - object.abilities.aabb.width.min
+      < viewPortAABB.width.max
+      && object.abilities.position.pos.y - object.abilities.aabb.height.min
+      < viewPortAABB.height.max;
   }
 }
 
@@ -1156,7 +1164,7 @@ class Score extends SubSystem {
 
 class Display extends SubSystem {
   constructor(game) {
-    super()
+    super();
     this.game = game;
     this.name = 'display';
   }
