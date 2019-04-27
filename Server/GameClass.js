@@ -312,15 +312,8 @@ class Game {
   }
 
   getEntityById(id) {
-    for (const entityGroup in this.entities) {
-      for (const entity in this.entities[entityGroup]) {
-        if (this.entities[entityGroup][entity].id === id) {
-          return this.entities[entityGroup][entity];
-        }
-      }
-    }
-
-    return false;
+    return Object.values(this.entities)
+      .reduce((res, eg) => (res || eg.find(e => e.id === id) || null), false);
   }
 
   getEntities(type) {

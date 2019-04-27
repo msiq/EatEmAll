@@ -4,8 +4,8 @@ const GameClass = require('../../Server/GameClass');
 
 describe('getEntityById', () => {
   const Game = new GameClass();
-  it('Should return false on empty', () => {
-    expect(Game.getEntityById(123)).to.be.equal(false);
+  it('Should return null on not found', () => {
+    expect(Game.getEntityById(123)).to.be.equal(null);
   });
   it('Should return object if found', () => {
     Game.addEntityType('mons');
