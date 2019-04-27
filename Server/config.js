@@ -1,11 +1,11 @@
 module.exports = {
   gameport: 4444,
   server: {
-    frameRate: 30,
+    frameRate: 100,
   },
   canvas: {
-    width: 2000,
-    height: 2000,
+    width: 4000,
+    height: 4000,
   },
   dots: {
     minRad: 15,
@@ -20,7 +20,7 @@ module.exports = {
   },
   env: {
     gravity: 9.8,
-    airResistance: 0.1,
-    surfaceResistance: 0.3,
+    airResistance: 0.15,
+    surfaceResistance: 0.85,
   },
 };

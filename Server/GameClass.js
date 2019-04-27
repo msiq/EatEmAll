@@ -30,12 +30,12 @@ class Game {
 
     // time delta here and  count FPS somehow
     this.fps = 0;
-    this.lastFPS = 30;
+    this.lastFPS = config.server.frameRate;
     this.lastRun = Date.now();
     this.fpsLastRun = Date.now();
     this.now = 0;
 
-    this.delta = 1 / 30;
+    this.delta = 1 / config.server.frameRate;
 
     /**
      * Shapes object constructor
@@ -79,7 +79,7 @@ class Game {
    */
   update() {
     console.log(
-      'Hey! i am default update, you sould implement your own update method.',
+      'Hey! i am default update, you should implement your own update method.',
     );
     throw new Error(`No update method implemented. ${this.fps}`);
   }
@@ -137,7 +137,7 @@ class Game {
     }
 
     if (!this.control) {
-      this.control = setInterval(this.loop.bind(this), 1);
+      this.control = setInterval(this.loop.bind(this), 0.1);
       this.active = true;
     }
 
@@ -205,34 +205,32 @@ class Game {
 
     // this.entityTypes = this.entityTypes ? this.entityTypes : {};
     // // console.log(this);
-    return Object.assign(
-      {},
-      player.abilities.position.pos,
-      player.abilities.body.shape, {
-        shape: player.abilities.body.shape.name,
-        id: player.id,
-        socketId: player.socketId,
-        color: player.abilities.body.color,
-        vel,
-        name: player.name,
-        type: player.type,
-        dir: {
-          x: dir.x,
-          y: dir.y,
-          z: dir.z,
-        },
-        aabb: player.abilities.aabb,
-        angle,
-        score: player.has('score') ? player.abilities.score.score : 'nono',
-        rank: player.has('rank') ? player.abilities.rank.rank : 'nono',
-        xp: player.has('experience') ? player.abilities.experience.xp : 'nono',
-        entityType: this.entityTypes[player.type],
-        power: player.has('power') ? player.abilities.power.power : 'nono',
-        health: player.has('health') ? player.abilities.health.health : 'nono',
-        camera: player.has('camera') ? player.abilities.camera : 'nono',
-        viewport: player.has('camera') ? player.abilities.viewport : 'nono',
+    return {
+      ...player.abilities.position.pos,
+      ...player.abilities.body.shape, 
+      shape: player.abilities.body.shape.name,
+      id: player.id,
+      socketId: player.socketId,
+      color: player.abilities.body.color,
+      vel,
+      name: player.name,
+      type: player.type,
+      dir: {
+        x: dir.x,
+        y: dir.y,
+        z: dir.z,
       },
-    );
+      aabb: player.abilities.aabb,
+      angle,
+      score: player.has('score') ? player.abilities.score.score : 'nono',
+      rank: player.has('rank') ? player.abilities.rank.rank : 'nono',
+      xp: player.has('experience') ? player.abilities.experience.xp : 'nono',
+      entityType: this.entityTypes[player.type],
+      power: player.has('power') ? player.abilities.power.power : 'nono',
+      health: player.has('health') ? player.abilities.health.health : 'nono',
+      camera: player.has('camera') ? player.abilities.camera : 'nono',
+      viewport: player.has('camera') ? player.abilities.viewport : 'nono',
+    };
   }
 
   doTick() {
@@ -250,6 +248,7 @@ class Game {
     this.server.doTick({
       players,
       fps: this.lastFPS,
+      config,
     });
   }
 
@@ -385,11 +384,7 @@ class Game {
       new MessageSystem.Message(
         MessageSystem.Type.INPUT,
         [event.playerId],
-        Object.assign(
-          {},
-          { action: event.action },
-          event.params,
-        ),
+        { action: event.action, ...event.params },
       ),
     );
   }
@@ -399,11 +394,10 @@ class Game {
       new MessageSystem.Message(
         MessageSystem.Type.INPUT,
         [event.playerId],
-        Object.assign(
-          {},
-          { action: event.action },
-          event.params,
-        ),
+        // maybe we dont need this id here because input should be independent of player we should be able to chose what to do on input in system
+        // Or developer will tell us what to do in Input ability args
+        // Or developer will do it in input ability callback
+        { action: event.action, ...event.params },
       ),
     );
 

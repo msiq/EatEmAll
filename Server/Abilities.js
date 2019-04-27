@@ -30,13 +30,14 @@ class Ability {
 }
 
 class Body extends Ability {
-  constructor(shape, color = 'red') {
+  constructor(shape, color = 'red', rigid = false) {
     super();
     autoBind(this);
     this.name = 'body';
     if (!(shape instanceof Shapes.Shape)) {
       throw new Error('Body requires a Shape, that must be of Type Shape!');
     }
+    this.rigid = rigid;
     this.shape = shape;
     this.color = color;
     this.originalColor = color;
@@ -320,6 +321,35 @@ class Input extends Ability {
     super();
     autoBind(this);
     this.name = 'input';
+    this.onKeyPressCallback = false;
+  }
+
+  /** @param {object} inputArgs {keyCode: ### } */
+  keyPressed(inputArgs) {
+    if (this.onKeyPressCallback) {
+      this.onKeyPressCallback(inputArgs);
+    }
+  }
+
+  onKeyPress(callback = false) {
+    this.onKeyPressCallback = callback;
+  }
+
+  mouseClicked(inputArgs) {
+    if (this.onMouseClickCallBack) {
+      this.onMouseClickCallBack(inputArgs);
+    }
+  }
+
+  onMouseClick(callBack) {
+    this.onMouseClickCallBack = callBack;
+  }
+
+
+  update(entity) {
+    // this.entities.forEach((entity) => {
+    //   this.keyPressed()
+    // });
   }
 }
 

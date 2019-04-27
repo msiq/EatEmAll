@@ -73,10 +73,10 @@ class GameServer {
   doTick(data) {
     io.sockets.emit(
       'tick',
-      JSON.stringify({
-        players: data.players,
-        fps: data.fps,
-      }),
+      JSON.stringify(data),
+      //   players: data.players,
+      //   fps: data.fps,
+      // }),
     );
   }
 }

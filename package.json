@@ -4,7 +4,7 @@
     "description": "Simple 2D multiplayer game engine based on nodejs and canvas",
     "main": "Server.js",
     "scripts": {
-        "dev": "node server.js",
+        "dev": "nodemon Server.js",
         "test": "node node_modules/.bin/mocha --recursive"
     },
     "repository": {

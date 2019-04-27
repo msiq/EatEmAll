@@ -78,7 +78,8 @@ class SubSystem {
 
 class Input extends SubSystem {
   constructor(game) {
-    super();
+    super(game);
+    autoBind(this);
     this.game = game;
     this.name = 'input';
     this.actions = {
@@ -100,16 +101,29 @@ class Input extends SubSystem {
   }
 
   handleMessage(message) {
+    // console.log('motionssssss', message);
     if (message.type === this.name) {
-      this.game.messageBus.add(
-        new MessageSystem.Message(
-          MessageSystem.Type.MOTION,
-          message.entities,
-          Object.assign({}, message.params, {
-            action: this.actionMapper(message.params),
-          }),
-        ),
-      );
+      // message.entities,
+      // there is entity id in the message from client/Game input handler
+      // but we should not use it
+      // Input should apply on all antities having input Abillity
+      this.entities.forEach((entity) => {
+        entity.abilities.input.keyPressed(message.params);
+        entity.abilities.input.mouseClicked(message.params);
+      });
+
+      // this.entities.forEach((entity) => {
+      //   this.game.messageBus.add(
+      //     new MessageSystem.Message(
+      //       MessageSystem.Type.MOTION,
+      //       [entity],
+      //       {
+      //         ...message.params,
+      //         action: this.actionMapper(message.params),
+      //       },
+      //     ),
+      //   );
+      // });
     }
   }
 
@@ -130,7 +144,7 @@ class Input extends SubSystem {
 /** Get */
 class Motion extends SubSystem {
   constructor(game) {
-    super();
+    super(game);
     autoBind(this);
     this.game = game;
     this.name = 'motion';
@@ -145,10 +159,11 @@ class Motion extends SubSystem {
   }
 
   handleMessage(message) {
+    // console.log('message', message)
     if (message.type === this.name) {
       if (this.actions[message.params.action]) {
-        message.entities.forEach((eid) => {
-          const entity = this.game.searchEntity(eid, 'players');
+        message.entities.forEach((entity) => {
+          // const entity = this.game.searchEntity(eid, 'players');
 
           if (entity.has('velocity')) {
             let vel = entity.abilities.velocity.velocity;
@@ -182,6 +197,7 @@ class Motion extends SubSystem {
                   vel = new Shapes.Vect();
                   break;
                 case 'drag':
+                  console.log('case drag', message)
                   vel = this.actions[message.params.action](message.params.mouse).sub(pos);
                   break;
                 default:
@@ -259,29 +275,29 @@ class Motion extends SubSystem {
           //         ort.z * 0
           //     );
         }
-        // /** Apply gravity */
-        if (
-          entity.has('gravity')
-          && entity.has('velocity')
-          && !entity.grounded
-        ) {
-          // console.log('graaaaaaaaaaaaaaavity' + entity.name);
-          const g = entity.abilities.gravity.gravity;
-          const vel = entity.abilities.velocity.velocity;
-          // const { pos } = entity.abilities.position;
-          entity.abilities.velocity.velocity = vel.add(g.multi(this.game.delta));
+        // // /** Apply gravity */
+        // if (
+        //   entity.has('gravity')
+        //   && entity.has('velocity')
+        //   && !entity.grounded
+        // ) {
+        //   // console.log('graaaaaaaaaaaaaaavity' + entity.name);
+        //   const g = entity.abilities.gravity.gravity;
+        //   const vel = entity.abilities.velocity.velocity;
+        //   // const { pos } = entity.abilities.position;
+        //   entity.abilities.velocity.velocity = vel.add(g.multi(this.game.delta));
 
-          if (entity.grounded) {
-            console.log(this.game.delta);
-            console.log(g);
-            console.log(g.multi(this.game.delta));
+        //   if (entity.grounded) {
+        //     console.log(this.game.delta);
+        //     console.log(g);
+        //     console.log(g.multi(this.game.delta));
 
-            console.log('------------------------------------------------');
-            console.log(vel);
-            console.log(vel.add(g.multi(this.game.delta)));
-            // console.log(aljshdl)
-          }
-        }
+        //     console.log('------------------------------------------------');
+        //     console.log(vel);
+        //     console.log(vel.add(g.multi(this.game.delta)));
+        //     // console.log(aljshdl)
+        //   }
+        // }
 
         // move entity towords velocity
         const { pos } = entity.abilities.position;
@@ -381,21 +397,18 @@ class Motion extends SubSystem {
 
 class Physics extends SubSystem {
   constructor(game) {
-    super();
+    super(game);
+    autoBind(this);
     this.game = game;
     this.name = 'physics';
     this.actions = {
-      gravity: (g) => {
-        console.log(
-          'ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg',
-        );
-        console.log(g);
-        return g;
-      },
+      gravity: entity => this.handleGravity(entity),
+      collision: (entity, object) => this.handleCollision(entity, object),
     };
   }
 
   update() {
+    return;
     // if (!this.game.messageBus.isEmpty()) {
     //     let message = this.game.messageBus.messages[this.game.messageBus.messages.length - 1];
     //     console.log(message);
@@ -417,27 +430,21 @@ class Physics extends SubSystem {
     // }
 
     this.entities.forEach((entity) => {
-      // /** Apply gravity */
-      // if (entity.has('gravity') && entity.has('velocity')) {
-      //     let g = entity.has('gravity') ? entity.abilities.gravity.gravity : Shapes.Vect;
-      //     let vel = entity.abilities.velocity.velocity;
-      //     entity.abilities.velocity.velocity = new Shapes.Vect(
-      //         vel.x + g.x,
-      //         vel.y + g.y,
-      //         vel.z + g.z
-      //     );
-      // }
+      this.game.messageBus.add(
+        new MessageSystem.Message(MessageSystem.Type.PHYSICS, [entity], { action: 'gravity' }),
+      );
 
+      /**
+       * Apply forces only if they apply on the current position and curcumstances
+       * surface resistanse only applies if entity is grounded and moving horizontally
+       */
       // apply all forces
-      if (this.debounce(1000, entity.id)) {
+      if (this.debounce(100, entity.id)) {
         // apply environmental forces
-        if (
-          entity.has('velocity')
-          && !entity.abilities.velocity.velocity.empty()
-        ) {
+        if (entity.has('velocity') && !entity.abilities.velocity.velocity.empty()) {
           let vel = entity.abilities.velocity.velocity;
-          const air = vel.multi(config.env.airResistance);
-          const surface = vel.multi(config.env.surfaceResistance);
+          const air = vel.multi((config.env.airResistance / 10));
+          const surface = vel.multi(entity.grounded ? (config.env.surfaceResistance / 10) : 0);
           vel = vel.sub(air).sub(surface);
           entity.abilities.velocity.velocity = vel;
         }
@@ -483,36 +490,140 @@ class Physics extends SubSystem {
   }
 
   handleMessage(message) {
+    return;
+    // -------------------------------------------------------------------------------------------------------------------------
+    // handle collision message
+    // it is comming as phiyics message
     if (message.type === this.name) {
-      // console.log(this.name);
-      // console.log(message);
-      // console.log(
-      //   '----------->>>>>>>>>>>>>>>>>>>>>><<<<<<<<' +
-      //   message.type +
-      //   '   ' +
-      //   this.game.messageBus.messages.length
-      // );
+      // console.log('message.params.action)', message);
       if (this.actions[message.params.action]) {
-        message.entities.forEach((eid) => {
-          const entity = this.game.searchEntity(eid, 'players');
-          if (entity.has('gravity')) {
-            // console.log('-------------++++++++++++++++++++++++++++');
-            // console.log(entity.abilities.gravity.gravity);
-            // entity.abilities.gravity.gravity = this.actions[message.params.action](
-            //  message.params.gravity
-            // );
-            // console.log('-------------++++++++++++++++++++++++++++');
-            // console.log(entity.abilities.gravity.gravity);
-          }
+        message.entities.forEach((entity) => {
+          this.actions[message.params.action](entity, message.params);
+        //   // const entity = this.game.searchEntity(eid, 'players');
+        //   // if (entity.has('gravity')) {
+        //   //   // console.log('-------------++++++++++++++++++++++++++++');
+        //   //   // console.log(entity.abilities.gravity.gravity);
+        //   //   // entity.abilities.gravity.gravity = this.actions[message.params.action](
+        //   //   //  message.params.gravity
+        //   //   // );
+        //   //   // console.log('-------------++++++++++++++++++++++++++++');
+        //   //   // console.log(entity.abilities.gravity.gravity);
+        //   // }
         });
       }
     }
+  }
+
+  handleGravity(entity) {
+    if (entity.has('gravity') && entity.has('velocity') && !entity.grounded) {
+      entity.abilities.velocity.velocity = entity.abilities.velocity.velocity.add(
+        entity.abilities.gravity.gravity.multi(this.game.delta),
+      );
+    }
+  }
+
+  handleCollision(entity, { object, collision }) {
+    // console.log(entity.name, object.name, collision);
+    // console.log(entity.abilities.collidable.inCollision);
+
+    // return;
+    if (collision === false) {
+      // console.log(entity.name, object.name, collision);
+      // console.log(entity.abilities.collidable.inCollision);
+      return;
+    }
+    if (entity.id === object.id) {
+      return;
+    }
+    if (!entity.has('collidable') || !collision) {
+      return;
+    }
+    if (!entity.has('velocity') || !object.has('velocity')) {
+      return;
+    }
+
+    const { pos } = entity.abilities.position;
+    const { mass } = entity.abilities.mass;
+    const vel = entity.abilities.velocity.velocity;
+
+    const { pos: objPos } = object.abilities.position.pos;
+    const objMass = object.abilities.mass.mass;
+    const objVel = object.abilities.velocity.velocity;
+
+    // find total velocity
+    const totalVelocity = entity.abilities.velocity.velocity.add(
+      object.abilities.velocity.velocity,
+    );
+
+    // move both out of each other
+    entity.abilities.position.pos = entity.abilities.position.pos.sub(
+      new Shapes.Vect(
+        entity.abilities.velocity.velocity.x * 2,
+        entity.abilities.velocity.velocity.y * 2,
+      ),
+    );
+    object.abilities.position.pos = object.abilities.position.pos.sub(
+      new Shapes.Vect(
+        object.abilities.velocity.velocity.x * 2,
+        object.abilities.velocity.velocity.y * 2,
+      ),
+    );
+
+    // distribute velocity between both based on their mass
+    object.abilities.velocity.velocity = totalVelocity
+      .copy()
+      .multi(entity.abilities.cor.cor);
+
+    entity.abilities.velocity.velocity = totalVelocity
+      .copy()
+      .multi(entity.abilities.cor.cor);
+
+    // tangential velocities after the collision is
+    // same as initial tangential velocities
+
+    // calculate normal velocity after collision from 1 dimension formula
+    const enVelX = (vel.x * (mass - objMass) + 2 * objMass * objVel.x)
+      / (mass + objMass);
+    const enVelY = (vel.y * (mass - objMass) + 2 * objMass * objVel.y)
+      / (mass + objMass);
+    let obVelX = (objVel.x * (objMass - mass) + 2 * mass * vel.x)
+      / (mass + objMass);
+    let obVelY = (objVel.y * (objMass - mass) + 2 * mass * vel.y)
+      / (mass + objMass);
+
+    // new vels after collisions
+    const newEnVel = new Shapes.Vect(enVelX, enVelY);
+    const newObjVel = new Shapes.Vect(obVelX, obVelY);
+    obVelY = 2;
+    obVelX = obVelY;
+
+    const enFVel = newEnVel;
+    const obFVel = newObjVel;
+
+    entity.abilities.velocity.velocity = enFVel;
+    object.abilities.velocity.velocity = obFVel;
+
+    const obInd = entity.abilities.collidable.collidingWith.indexOf(
+      object,
+    );
+    if (obInd) {
+      entity.abilities.collidable.collidingWith.splice(obInd, 1);
+    }
+    const enInd = object.abilities.collidable.collidingWith.indexOf(
+      entity,
+    );
+    if (enInd) {
+      object.abilities.collidable.collidingWith.splice(enInd, 1);
+    }
+
+    // console.log('i am doing nothing', entity.name, object.name, collision);
   }
 }
 
 class Renderer extends SubSystem {
   constructor(game) {
-    super();
+    super(game);
+    autoBind(this);
     this.game = game;
     this.name = 'renderer';
   }
@@ -520,25 +631,58 @@ class Renderer extends SubSystem {
 
 class Collision extends SubSystem {
   constructor(game) {
-    super();
+    super(game);
+    autoBind(this);
     this.game = game;
     this.name = 'collision';
-    this.handleMessage = (message) => {
-      // trigger on Collision event for all colliding entities
-      message.entities.forEach((entity) => {
-        entity.abilities.collidable.colliding(
-          message.params.object,
-          message.params.collision,
-        );
-      });
-    };
+  }
+
+  handleMessage(message) {
+    // trigger on Collision event for all colliding entities
+    message.entities.forEach((entity) => {
+      entity.abilities.collidable.colliding(
+        message.params.object,
+        message.params.collision,
+      );
+    });
   }
 
   update() {
-    this.testCollisions();
-    this.entities.filter(entity => entity.has('collidable')).forEach((entity) => {
-      entity.abilities.collidable.update(entity);
+    // this.testCollisions();
+    const collidables = this.entities
+      .filter(entity => entity.has('body') && entity.has('collidable'));
+
+    collidables.forEach((entity) => {
+      collidables
+        .filter(object => entity.id !== object.id)
+        .forEach((object) => {
+          this.collisionTest(entity, object);
+        });
     });
+
+    //   this.entities.filter(entity => entity.has('collidable')).forEach((entity) => {
+    //     this.entities
+    //       .filter(object => entity.id !== object.id)
+    //       .forEach((object) => {
+    //         this.collisionTest(entity, object);
+    //       });
+    //   });
+
+    collidables.forEach(entity => entity.abilities.collidable.update(entity));
+
+    // this.entities.filter(entity => entity.has('collidable')).forEach((entity) => {
+    //   entity.abilities.collidable.update(entity);
+    // });
+    return;
+
+    // // if its rigid body colliding with other rigid bodies
+    // this.entities.filter(entity => (
+    //   entity.has('body')
+    //   && entity.has('collidable')
+    //   && entity.has('body').rigid === true
+    // )).forEach((entity) => {
+
+    // });
 
     // return here after checking collisions........................................
     return;
@@ -615,7 +759,7 @@ class Collision extends SubSystem {
                   // console.log('-------------');
                   // console.log(totalVelocity);
 
-                  // move noth out of each other
+                  // move both out of each other
                   entity.abilities.position.pos = entity.abilities.position.pos.sub(
                     new Shapes.Vect(
                       entity.abilities.velocity.velocity.x,
@@ -641,9 +785,9 @@ class Collision extends SubSystem {
                     .copy()
                     .multi(entity.abilities.cor.cor);
 
-                  const un = pos.sub(objPos).unit();
+                  // const un = pos.sub(objPos).unit();
 
-                  const ut = new Shapes.Vect((un.y * -1), (un.x), 0);
+                  // const ut = new Shapes.Vect((un.y * -1), (un.x), 0);
 
                   // const enVeln = un.dot(vel);
                   // const objVeln = un.dot(objVel);
@@ -672,6 +816,7 @@ class Collision extends SubSystem {
                   const newObjVel = new Shapes.Vect(obVelX, obVelY);
                   obVelY = 2;
                   obVelX = obVelY;
+
                   // console.log(obVelX, obVelY);
                   // let enVelan = un.multi(newEnVel);
                   // let obVelan = un.multi(newObjVel);
@@ -693,7 +838,7 @@ class Collision extends SubSystem {
                   entity.abilities.velocity.velocity = enFVel;
                   object.abilities.velocity.velocity = obFVel;
 
-                  console.log(object.abilities.velocity.velocity);
+                  // console.log(object.abilities.velocity.velocity);
 
                   // console.log(
                   //     vel.mag() + objVel.mag() + '>>>>>>>>' +
@@ -888,15 +1033,15 @@ class Collision extends SubSystem {
     });
   }
 
-  testCollisions() {
-    this.entities.filter(entity => entity.has('collidable')).forEach((entity) => {
-      this.entities
-        .filter(object => entity.id !== object.id)
-        .forEach((object) => {
-          this.collisionTest(entity, object);
-        });
-    });
-  }
+  // testCollisions() {
+  //   this.entities.filter(entity => entity.has('collidable')).forEach((entity) => {
+  //     this.entities
+  //       .filter(object => entity.id !== object.id)
+  //       .forEach((object) => {
+  //         this.collisionTest(entity, object);
+  //       });
+  //   });
+  // }
 
   collisionTest(entity, object) {
     if (entity.has('viewport') && entity.id !== object.id) {
@@ -906,12 +1051,12 @@ class Collision extends SubSystem {
           object.id,
         );
         if (objectIndex >= 0) {
-          console.log('it was in ', objectIndex);
+          // console.log('it was in ', objectIndex);
           entity.abilities.viewport.visibleThings.splice(objectIndex, 1);
         }
         // Add all object in viewport visible things array
       } else if (entity.abilities.viewport.visibleThings.indexOf(object.id) === -1) {
-        console.log('it is innnnnnnnnnnnnnn ', object.id);
+        // console.log('it is innnnnnnnnnnnnnn ', object.id);
         entity.abilities.viewport.visibleThings.push(object.id);
       }
     }
@@ -945,6 +1090,16 @@ class Collision extends SubSystem {
     if (depth > 0) {
       // send collision message
       if (entity.abilities.collidable.collidingWith.indexOf(object) < 0) {
+        // send message to Physics system to response to collision if needed
+        this.game.messageBus.add(
+          new MessageSystem.Message(MessageSystem.Type.PHYSICS, [entity], {
+            collision: true,
+            object,
+            action: 'collision',
+          }),
+        );
+        console.log(entity.name, object.name, true);
+
         this.game.messageBus.add(
           new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], {
             collision: true,
@@ -965,6 +1120,16 @@ class Collision extends SubSystem {
       // entity.abilities.position.pos = entity.abilities.position.pos.sub(eVal);
       touching = true;
     } else if (entity.abilities.collidable.collidingWith.indexOf(object) >= 0) {
+
+      this.game.messageBus.add(
+        new MessageSystem.Message(MessageSystem.Type.PHYSICS, [entity], {
+          collision: false,
+          object,
+          action: 'collision',
+        }),
+      );
+      console.log(entity.name, object.name, false);
+
       this.game.messageBus.add(
         new MessageSystem.Message(MessageSystem.Type.COLLISION, [entity], {
           collision: false,
@@ -1138,7 +1303,8 @@ class Collision extends SubSystem {
 
 class Score extends SubSystem {
   constructor(game) {
-    super();
+    super(game);
+    autoBind(this);
     this.game = game;
     this.name = 'score';
   }
@@ -1164,7 +1330,8 @@ class Score extends SubSystem {
 
 class Display extends SubSystem {
   constructor(game) {
-    super();
+    super(game);
+    autoBind(this);
     this.game = game;
     this.name = 'display';
   }

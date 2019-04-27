@@ -1,3 +1,4 @@
+/* eslint-disable no-use-before-define */
 const socket = io.connect();
 const loginSplash = document.getElementById('menu');
 
@@ -157,15 +158,15 @@ function update(data) {
     if (thisPlayer.x < thisPlayer.viewport.width / 2) {
       newOrigin.x = 0;
     }
-    if (thisPlayer.x > 2000 - thisPlayer.viewport.width / 2) {
-      newOrigin.x = 2000 - thisPlayer.viewport.width;
+    if (thisPlayer.x > data.config.canvas.width - thisPlayer.viewport.width / 2) {
+      newOrigin.x = data.config.canvas.width - thisPlayer.viewport.width;
     }
 
     if (thisPlayer.y < thisPlayer.viewport.height / 2) {
       newOrigin.y = 0;
     }
-    if (thisPlayer.y > 2000 - thisPlayer.viewport.height / 2) {
-      newOrigin.y = 2000 - thisPlayer.viewport.height;
+    if (thisPlayer.y > data.config.canvas.height - thisPlayer.viewport.height / 2) {
+      newOrigin.y = data.config.canvas.height - thisPlayer.viewport.height;
     }
   }
   cxt.translate(-newOrigin.x, -newOrigin.y);
@@ -173,8 +174,8 @@ function update(data) {
   let hor = newOrigin.x;
   let ver = newOrigin.y;
   // draw grid for whole world
-  for (hor = 0; hor < 2000; hor += 200) {
-    for (ver = 0; ver < 2000; ver += 200) {
+  for (hor = 0; hor < data.config.canvas.width; hor += 200) {
+    for (ver = 0; ver < data.config.canvas.height; ver += 200) {
       if (hor % 200 == 0 && ver % 200 == 0) {
         cxt.beginPath();
         cxt.lineWidth = '.2';
@@ -333,7 +334,7 @@ function renderPlayer(plr) {
   }
 
   // Draw AABB for everything
-  drawAabb(cxt, plr);
+  // drawAabb(cxt, plr);
 
   // Draw camera viewport
   if (plr.id == player.id) {
@@ -357,7 +358,8 @@ function renderPlayer(plr) {
     // console.log(plr);
   }
 }
-var drawCameraViewPort = (cxt, plr) => {
+
+const drawCameraViewPort = (cxt, plr) => {
   // Draw AABB
   cxt.beginPath();
   cxt.lineWidth = '2';
@@ -373,7 +375,7 @@ var drawCameraViewPort = (cxt, plr) => {
   cxt.strokeStyle = 'black';
 };
 
-var drawCircle = (cxt, plr) => {
+const drawCircle = (cxt, plr) => {
   const pdir = {
     x: plr.x + plr.dir.x * 1.2,
     y: plr.y + plr.dir.y * 1.2,
@@ -396,7 +398,7 @@ var drawCircle = (cxt, plr) => {
 
   // drow circle on position
   cxt.beginPath();
-  cxt.fillStyle = 'yellow';
+  cxt.fillStyle = 'red';
   cxt.arc(plr.x, plr.y, 5, 0, Math.PI * 2);
   cxt.fill();
   cxt.closePath();
@@ -517,7 +519,7 @@ function rotateAABB(aabb, angle) {
   };
 }
 
-var drawAabb = (cxt, plr) => {
+const drawAabb = (cxt, plr) => {
   let aabb = makeAABB(plr);
   aabb = moveToOrigin(aabb);
   aabb = rotateAABB(aabb, plr.angle);
@@ -575,7 +577,7 @@ var drawAabb = (cxt, plr) => {
 };
 
 // let rott = 1;
-var drawRect = (cxt, plr) => {
+const drawRect = (cxt, plr) => {
   pdir = {
     x: plr.x + plr.dir.x * 1.2,
     y: plr.y + plr.dir.y * 1.2,
