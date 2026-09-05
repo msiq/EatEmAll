@@ -284,6 +284,34 @@ var Game = function Game() {
 
         throw 'Entities of type "' + type + '" does not exists!';
     };
+        this.removeEntity = function(id, type) {
+        if (type && this.entities[type]) {
+            this.entities[type] = this.entities[type].filter(e => e.id !== id);
+        } else {
+            Object.keys(this.entities).forEach(grp => {
+                this.entities[grp] = this.entities[grp].filter(e => e.id !== id);
+            });
+        }
+        Object.keys(this.subSystems).forEach(name => {
+            if (this.subSystems[name] && typeof this.subSystems[name].RemoveEntity === 'function') {
+                this.subSystems[name].RemoveEntity(id);
+            }
+        });
+    };
+
+    this.onPlayerDisconnect = (socketId) => {
+        let player = null;
+        if (this.entities['players']) {
+            player = this.entities['players'].find(p => p.socket_id === socketId);
+        }
+        if (player) {
+            console.log('[Server] Cleaning up disconnected player:', player.name, player.id);
+            this.removeEntity(player.id, 'players');
+        }
+        if (this.activeConnections) {
+            delete this.activeConnections[socketId];
+        }
+    };
     this.onletMePlay = (data) => {
         console.log('let meeeeeeeeeeeeeeeeee    eattt!');
         let pid = data.oldId;

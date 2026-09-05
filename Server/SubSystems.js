@@ -26,6 +26,10 @@ function SubSystem(game) {
     };
     this.entities = [];
     this.AddEntity = (entity) => this.entities.push(entity);
+    this.RemoveEntity = (entityId) => {
+        let id = typeof entityId === 'string' ? entityId : (entityId && entityId.id ? entityId.id : entityId);
+        this.entities = this.entities.filter(e => e && e.id !== id);
+    };
 
     this.last = {};
     this.debounce = (wait, entityId) => {
@@ -142,6 +146,10 @@ function Motion(game) {
                                 case 'drag':
                                     newPos = this.actions[message.params.action](message.params.mouse);
                                     vel = newPos.sub(pos);
+                                    let speed = (this.game.config.player && this.game.config.player.speed) ? this.game.config.player.speed * 2.5 : 5;
+                                    if (vel.mag() > speed) {
+                                        vel = vel.unit().multi(speed);
+                                    }
                                     break;
                                 default:
                                     console.log(message.params.action);
@@ -781,14 +789,25 @@ function Collision(game) {
         });
     };
 
+    /**
+     * Broadphase & Narrowphase Collision Testing
+     *
+     * NEXT STEP: Hook your Quadtree right here!
+     * 1. const quadtree = new Quadtree({ x: 0, y: 0, width: 2000, height: 2000 }, 6);
+     * 2. collidables.forEach(e => quadtree.insert(e));
+     * 3. Replace the inner loop below with:
+     *    const candidates = quadtree.query(entity.abilities.aabb);
+     *    candidates.forEach(object => this.collisionTest(entity, object));
+     */
     this.testCollisions = () => {
-        this.entities.filter((entity) => entity.has('collidable'))
-            .forEach((entity) => {
-                this.entities.filter((object) => entity.id !== object.id)
-                    .forEach((object) => {
-                        this.collisionTest(entity, object);
-                    });
+        const collidables = this.entities.filter((entity) => entity && entity.has('collidable'));
+        collidables.forEach((entity) => {
+            collidables.forEach((object) => {
+                if (entity.id !== object.id) {
+                    this.collisionTest(entity, object);
+                }
             });
+        });
     };
 
     this.collisionTest = function(entity, object) {
@@ -797,13 +816,13 @@ function Collision(game) {
                 // Add all object in viewport visible things array
                 let objectIndex = entity.abilities.viewport.visibleThings.indexOf(object.id);
                 if (objectIndex >= 0) {
-                    console.log('it was in ', objectIndex);
+                    // was in viewport
                     entity.abilities.viewport.visibleThings.splice(objectIndex, 1);
                 }
             } else {
                 // Add all object in viewport visible things array
                 if (entity.abilities.viewport.visibleThings.indexOf(object.id) == -1) {
-                    console.log('it is innnnnnnnnnnnnnn ', object.id);
+                    // is in viewport
                     entity.abilities.viewport.visibleThings.push(object.id);
                 }
             }
