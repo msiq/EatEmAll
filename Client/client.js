@@ -1,4 +1,4 @@
-const socket = io();
+﻿const socket = io();
 const loginModal = document.getElementById("menu");
 const loginBtn = document.getElementById("login-btn");
 const userNameInput = document.getElementById("user-name");
@@ -17,6 +17,18 @@ let connected = false;
 let player = null;
 let currentOrigin = { x: 0, y: 0 };
 let isMouseDown = false;
+let lastMouseSendTime = 0;
+
+// Client-side interpolation state
+const renderedPlayers = new Map();
+const renderedDots = new Map();
+
+// Frame timing & FPS tracking
+let lastFrameTime = performance.now();
+let frameCount = 0;
+let fpsLastTime = performance.now();
+let clientFps = 60;
+let serverFps = 30;
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -58,7 +70,7 @@ socket.on("goaway", () => {
 socket.on("tick", (raw) => {
     try {
         const data = JSON.parse(raw);
-        update(data);
+        onServerTick(data);
     } catch (e) {}
 });
 
@@ -66,12 +78,14 @@ function setupListeners() {
     window.addEventListener("keydown", doKeyDown);
     canvas.addEventListener("mousedown", (e) => {
         isMouseDown = true;
-        doMouse(e);
+        sendMousePosition(e);
     });
     window.addEventListener("mouseup", () => {
         isMouseDown = false;
     });
-    canvas.addEventListener("mousemove", doMouse);
+    canvas.addEventListener("mousemove", (e) => {
+        sendMousePosition(e);
+    });
 }
 
 function getMouseXY(evt) {
@@ -84,8 +98,12 @@ function getMouseXY(evt) {
     };
 }
 
-function doMouse(evt) {
+function sendMousePosition(evt) {
     if (!connected || !player || !player.id) return;
+    const now = performance.now();
+    if (now - lastMouseSendTime < 25) return; // throttle to ~40Hz
+    lastMouseSendTime = now;
+
     socket.emit("click", {
         playerId: player.id,
         action: "mousemove",
@@ -105,61 +123,188 @@ function doKeyDown(evt) {
     }
 }
 
-function update(data) {
+function onServerTick(data) {
     if (!data.players) return;
-    if (fpsBox && data.fps) fpsBox.textContent = data.fps;
+    if (data.fps) serverFps = data.fps;
 
-    const allPlayers = data.players.players || [];
-    const allDots = data.players.dots || [];
+    const serverPlayers = data.players.players || [];
+    const serverDots = data.players.dots || [];
 
-    // Find my player
+    // Track active players
+    const activePlayerIds = new Set();
+    for (let i = 0; i < serverPlayers.length; i++) {
+        const sp = serverPlayers[i];
+        activePlayerIds.add(sp.id);
+
+        const targetRad = sp.radius || 20;
+        let rp = renderedPlayers.get(sp.id);
+
+        if (!rp) {
+            rp = {
+                id: sp.id,
+                x: sp.x,
+                y: sp.y,
+                targetX: sp.x,
+                targetY: sp.y,
+                radius: targetRad,
+                targetRadius: targetRad,
+                name: sp.name || "Player",
+                color: sp.color,
+                score: sp.score !== "nono" ? sp.score : 0,
+                health: sp.health !== "nono" ? sp.health : 100,
+                dir: sp.dir || { x: 0, y: 0 }
+            };
+            renderedPlayers.set(sp.id, rp);
+        } else {
+            rp.targetX = sp.x;
+            rp.targetY = sp.y;
+            rp.targetRadius = targetRad;
+            rp.name = sp.name || rp.name;
+            rp.color = sp.color || rp.color;
+            rp.score = sp.score !== "nono" ? sp.score : rp.score;
+            rp.health = sp.health !== "nono" ? sp.health : rp.health;
+            rp.dir = sp.dir || rp.dir;
+
+            // Teleport threshold: if distance > 400px (e.g. respawn), snap immediately
+            const dist = Math.hypot(rp.targetX - rp.x, rp.targetY - rp.y);
+            if (dist > 400) {
+                rp.x = rp.targetX;
+                rp.y = rp.targetY;
+                rp.radius = targetRad;
+            }
+        }
+    }
+
+    // Prune disconnected players
+    for (const id of renderedPlayers.keys()) {
+        if (!activePlayerIds.has(id)) {
+            renderedPlayers.delete(id);
+        }
+    }
+
+    // Track active dots
+    const activeDotIds = new Set();
+    for (let i = 0; i < serverDots.length; i++) {
+        const sd = serverDots[i];
+        activeDotIds.add(sd.id);
+
+        let rd = renderedDots.get(sd.id);
+        if (!rd) {
+            renderedDots.set(sd.id, {
+                id: sd.id,
+                x: sd.x,
+                y: sd.y,
+                targetX: sd.x,
+                targetY: sd.y,
+                radius: sd.radius || 7,
+                color: sd.color || "#00bcd4"
+            });
+        } else {
+            // If dot was eaten and respawned far away, snap position
+            const dDist = Math.hypot(sd.x - rd.x, sd.y - rd.y);
+            if (dDist > 50) {
+                rd.x = sd.x;
+                rd.y = sd.y;
+            }
+            rd.targetX = sd.x;
+            rd.targetY = sd.y;
+            rd.color = sd.color || rd.color;
+        }
+    }
+
+    for (const id of renderedDots.keys()) {
+        if (!activeDotIds.has(id)) {
+            renderedDots.delete(id);
+        }
+    }
+
+    // Update HUD & Leaderboard
     let me = null;
     if (player && player.id) {
-        me = allPlayers.find(p => p.id === player.id);
+        me = renderedPlayers.get(player.id);
     }
 
-    // Update camera origin centered on player
     if (me) {
-        let targetX = me.x - canvas.width / 2;
-        let targetY = me.y - canvas.height / 2;
-        if (canvas.width < 2000) {
-            currentOrigin.x = Math.max(0, Math.min(2000 - canvas.width, targetX));
-        } else {
-            currentOrigin.x = (2000 - canvas.width) / 2;
-        }
-        if (canvas.height < 2000) {
-            currentOrigin.y = Math.max(0, Math.min(2000 - canvas.height, targetY));
-        } else {
-            currentOrigin.y = (2000 - canvas.height) / 2;
-        }
-
-        // Update HUD
         if (hudName) hudName.textContent = me.name || "You";
-        if (hudScore) hudScore.textContent = me.score !== "nono" ? me.score : 0;
-        if (hudRadius) hudRadius.textContent = me.radius ? Math.round(me.radius) : 20;
-        if (hudHealth) {
-            let hp = me.health !== "nono" ? me.health : 100;
-            hudHealth.style.width = Math.max(0, Math.min(100, hp)) + "%";
-        }
+        if (hudScore) hudScore.textContent = me.score;
+        if (hudRadius) hudRadius.textContent = Math.round(me.radius);
+        if (hudHealth) hudHealth.style.width = Math.max(0, Math.min(100, me.health)) + "%";
     }
 
-    // Update Leaderboard
-    if (leaderboardList && allPlayers.length > 0) {
-        const sorted = allPlayers.slice().sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 5);
+    if (leaderboardList && renderedPlayers.size > 0) {
+        const sorted = Array.from(renderedPlayers.values())
+            .sort((a, b) => (b.score || 0) - (a.score || 0))
+            .slice(0, 5);
+
         let itemsHtml = "";
         for (let i = 0; i < sorted.length; i++) {
             const p = sorted[i];
             const isMe = me && p.id === me.id;
-            itemsHtml += "<li class=\"" + (isMe ? "self" : "") + "\"><span>" + (i + 1) + ". " + (p.name || "Player") + "</span><span>" + (p.score || 0) + "</span></li>";
+            itemsHtml += '<li class="' + (isMe ? 'self' : '') + '"><span>' + (i + 1) + '. ' + (p.name || 'Player') + '</span><span>' + (p.score || 0) + '</span></li>';
         }
         leaderboardList.innerHTML = itemsHtml;
     }
+}
 
-    // Begin Rendering
+// Decoupled 60-144 FPS Rendering Loop with Linear/Exponential Interpolation
+function render(timestamp) {
+    const dt = Math.min((timestamp - lastFrameTime) / 1000, 0.1);
+    lastFrameTime = timestamp;
+
+    // Track client rendering FPS
+    frameCount++;
+    if (timestamp - fpsLastTime >= 500) {
+        clientFps = Math.round((frameCount * 1000) / (timestamp - fpsLastTime));
+        frameCount = 0;
+        fpsLastTime = timestamp;
+        if (fpsBox) {
+            fpsBox.textContent = clientFps + " (" + serverFps + " tick)";
+        }
+    }
+
+    // Frame-rate independent exponential lerp factor
+    const posLerp = 1.0 - Math.exp(-22 * dt);
+    const radLerp = 1.0 - Math.exp(-12 * dt);
+
+    // Interpolate players
+    for (const p of renderedPlayers.values()) {
+        p.x += (p.targetX - p.x) * posLerp;
+        p.y += (p.targetY - p.y) * posLerp;
+        p.radius += (p.targetRadius - p.radius) * radLerp;
+    }
+
+    // Camera follow with smooth damping
+    let me = null;
+    if (player && player.id) {
+        me = renderedPlayers.get(player.id);
+    }
+
+    if (me) {
+        let targetCamX = me.x - canvas.width / 2;
+        let targetCamY = me.y - canvas.height / 2;
+
+        if (canvas.width < 2000) {
+            targetCamX = Math.max(0, Math.min(2000 - canvas.width, targetCamX));
+        } else {
+            targetCamX = (2000 - canvas.width) / 2;
+        }
+
+        if (canvas.height < 2000) {
+            targetCamY = Math.max(0, Math.min(2000 - canvas.height, targetCamY));
+        } else {
+            targetCamY = (2000 - canvas.height) / 2;
+        }
+
+        const camLerp = 1.0 - Math.exp(-14 * dt);
+        currentOrigin.x += (targetCamX - currentOrigin.x) * camLerp;
+        currentOrigin.y += (targetCamY - currentOrigin.y) * camLerp;
+    }
+
+    // Render Scene
     cxt.clearRect(0, 0, canvas.width, canvas.height);
 
     cxt.save();
-    cxt.translate(-currentOrigin.x, -currentOrigin.y);
+    cxt.translate(-Math.round(currentOrigin.x), -Math.round(currentOrigin.y));
 
     // Draw Grid Lines (0..2000)
     cxt.lineWidth = 1;
@@ -175,33 +320,31 @@ function update(data) {
     }
     cxt.stroke();
 
-    // Draw World Boundary Border
+    // World Boundary Border
     cxt.lineWidth = 6;
     cxt.strokeStyle = "#ef4444";
     cxt.strokeRect(0, 0, 2000, 2000);
 
     // Render Dots
-    allDots.forEach(dot => {
-        const rad = dot.radius || 7;
+    for (const dot of renderedDots.values()) {
         cxt.beginPath();
-        cxt.arc(dot.x, dot.y, rad, 0, Math.PI * 2);
-        cxt.fillStyle = dot.color || "#00bcd4";
+        cxt.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
+        cxt.fillStyle = dot.color;
         cxt.fill();
-    });
+    }
 
     // Render Players
-    allPlayers.forEach(p => {
-        const rad = p.radius || 20;
+    for (const p of renderedPlayers.values()) {
         const isMe = me && p.id === me.id;
 
         // Player Circle
         cxt.beginPath();
-        cxt.arc(p.x, p.y, rad, 0, Math.PI * 2);
+        cxt.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         cxt.fillStyle = p.color || (isMe ? "#38ef7d" : "#4facfe");
         cxt.fill();
 
         cxt.lineWidth = isMe ? 4 : 2.5;
-        cxt.strokeStyle = isMe ? "#ffffff" : "rgba(255, 255, 255, 0.7)";
+        cxt.strokeStyle = isMe ? "#ffffff" : "rgba(255, 255, 255, 0.75)";
         cxt.stroke();
 
         // Direction Indicator Line
@@ -215,15 +358,20 @@ function update(data) {
         }
 
         // Name & Score Label
-        let fontSize = Math.max(12, Math.min(18, rad * 0.45));
+        const fontSize = Math.max(12, Math.min(18, p.radius * 0.45));
         cxt.font = "600 " + fontSize + "px Outfit, sans-serif";
         cxt.textAlign = "center";
         cxt.fillStyle = "#ffffff";
-        cxt.shadowColor = "rgba(0, 0, 0, 0.8)";
+        cxt.shadowColor = "rgba(0, 0, 0, 0.85)";
         cxt.shadowBlur = 4;
         cxt.fillText(p.name || "Player", p.x, p.y + (fontSize * 0.35));
         cxt.shadowBlur = 0;
-    });
+    }
 
     cxt.restore();
+
+    requestAnimationFrame(render);
 }
+
+// Start decoupled render loop
+requestAnimationFrame(render);
