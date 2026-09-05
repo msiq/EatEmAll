@@ -1,6 +1,7 @@
 const Shapes = require('./Shapes.js');
 const MessageSystem = require('./MessageBus.js');
 const config = require('./config.js');
+const { Rectangle, Quadtree } = require('./Quadtree.js');
 
 var ops = {
     '+': (a, b) => a + b,
@@ -457,6 +458,9 @@ Renderer.prototype = new SubSystem;
 function Collision(game) {
     this.game = game;
     this.name = 'collision';
+    const arenaW = (game.config && game.config.canvas && game.config.canvas.width) || 2000;
+    const arenaH = (game.config && game.config.canvas && game.config.canvas.height) || 2000;
+    this.quadtree = new Quadtree(new Rectangle(0, 0, arenaW, arenaH), 8);
     this.handleMessage = (message) => {
         // trigger on Collision event for all colliding entities
         message.entities.forEach(
@@ -801,13 +805,57 @@ function Collision(game) {
      */
     this.testCollisions = () => {
         const collidables = this.entities.filter((entity) => entity && entity.has('collidable'));
-        collidables.forEach((entity) => {
-            collidables.forEach((object) => {
+
+        // 1. Clear Quadtree and insert all active collidable entities
+        this.quadtree.clear();
+        for (let i = 0; i < collidables.length; i++) {
+            this.quadtree.insert(collidables[i]);
+        }
+
+        // 2. Fast Viewport Culling via Quadtree
+        for (let i = 0; i < collidables.length; i++) {
+            const entity = collidables[i];
+            if (entity.has('viewport') && entity.has('camera')) {
+                const vp = entity.abilities.viewport;
+                const camPos = entity.abilities.camera.pos;
+                const vpBox = new Rectangle(
+                    camPos.x - vp.width / 2,
+                    camPos.y - vp.height / 2,
+                    vp.width,
+                    vp.height
+                );
+                vp.visibleThings = this.quadtree.query(vpBox).map(e => e.id);
+            }
+        }
+
+        // 3. Broadphase Collision Query: find nearby candidate neighbors
+        for (let i = 0; i < collidables.length; i++) {
+            const entity = collidables[i];
+            if (!entity.abilities || !entity.abilities.position || !entity.abilities.position.pos) continue;
+
+            const pos = entity.abilities.position.pos;
+            const r = (entity.abilities.body && entity.abilities.body.shape && entity.abilities.body.shape.radius)
+                ? entity.abilities.body.shape.radius
+                : 20;
+
+            // Search bounding box padded around entity
+            const searchBox = new Rectangle(
+                pos.x - r - 25,
+                pos.y - r - 25,
+                (r + 25) * 2,
+                (r + 25) * 2
+            );
+
+            const candidates = this.quadtree.query(searchBox);
+
+            // 4. Narrowphase: Exact collision tests only on returned candidates
+            for (let j = 0; j < candidates.length; j++) {
+                const object = candidates[j];
                 if (entity.id !== object.id) {
                     this.collisionTest(entity, object);
                 }
-            });
-        });
+            }
+        }
     };
 
     this.collisionTest = function(entity, object) {
