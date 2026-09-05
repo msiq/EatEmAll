@@ -118,7 +118,7 @@ function Motion(game) {
             if (this.actions[message.params.action]) {
                 message.entities.forEach((eid) => {
                     let entity = this.game.searchEntity(eid, 'players');
-
+                    if (!entity || typeof entity.has !== 'function') return;
                     if (entity.has('velocity')) {
                         let vel = entity.abilities.velocity.velocity;
                         let pos = entity.abilities.position.pos;
@@ -434,6 +434,7 @@ function Physics(game) {
             if (this.actions[message.params.action]) {
                 message.entities.forEach((eid) => {
                     let entity = this.game.searchEntity(eid, 'players');
+                    if (!entity || typeof entity.has !== 'function') return;
                     if (entity.has('gravity')) {
 
                         // console.log('-------------+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
