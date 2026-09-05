@@ -2,19 +2,23 @@ const Game = require('./Server/GameClass.js');
 const Shapes = require('./Server/Shapes.js');
 const Entity = require('./Server/Entity.js');
 
+const DOT_COLORS = [
+    '#FF5722', '#E91E63', '#9C27B0', '#00BCD4',
+    '#4CAF50', '#FFEB3B', '#FF9800', '#03A9F4',
+    '#00E676', '#FF1744', '#F50057', '#651FFF'
+];
+
 var game = new Game();
+
 game.setup = function() {
     game.addEntityType('players', Entity.TYPE_MAIN);
     game.addEntityType('dots', Entity.TYPE_DEFAULT);
 
-    console.log('setting up game');
+    console.log('[Game] Setting up game arena (2000x2000)...');
 
-    // add some dots
-    let dotx = 160;
-    let doty = 180;
-    for (let i = 0; i < 100; i++) {
+    // Spawn 150 collectible dots
+    for (let i = 0; i < 150; i++) {
         initiateDot(this);
-        dotx += 60;
     }
 };
 
@@ -23,93 +27,115 @@ game.joinGame = function(data) {
 };
 
 game.update = function() {
-    colliding(game);
+    // Collision callbacks are event-driven via collidable abilities
 };
 
+function handlePlayerCollision(entity, object, game) {
+    if (!object || !object.abilities) return;
 
-function colliding(game) {
-    if (game.entities['players']) {
-        game.entities['players'].forEach(
-            function(entity) {
-                entity.abilities.collidable.onCollisionStart((object) => {
-                    entity.abilities.body.color = '#ff0000';
-                    entity.abilities.score.add(1);
-                    entity.abilities.power.sub(1);
-                    entity.abilities.health.sub(2);
-                    if (entity.abilities.score.score > 0 && entity.abilities.score.score % 10 == 0) {
-                        entity.abilities.experience.add(1);
-                        if (entity.abilities.experience.xp > 0 && entity.abilities.experience.xp % 5 == 0) {
-                            entity.abilities.rank.raise();
-                        }
-                    }
-                });
-                entity.abilities.collidable.onCollision((object) => {
-                    // entity.abilities.body.color = "#ffff00";
+    // 1. Colliding with a Dot (EATING)
+    if (object.name === 'dot' || object.type === 'dots') {
+        // Respawn dot at new random position
+        let pad = 40;
+        let newX = Math.floor(Math.random() * (game.config.canvas.width - pad * 2)) + pad;
+        let newY = Math.floor(Math.random() * (game.config.canvas.height - pad * 2)) + pad;
+        object.abilities.position.pos.x = newX;
+        object.abilities.position.pos.y = newY;
+        object.abilities.body.color = DOT_COLORS[Math.floor(Math.random() * DOT_COLORS.length)];
+        object.abilities.aabb = new game.abilities.Aabb(object.abilities.body);
 
-                });
-                entity.abilities.collidable.onCollisionEnd((object) => {
-                    entity.abilities.body.color = entity.abilities.body.originalColor;
-                });
-            },
-            this);
+        // Player gains score, xp, and grows
+        if (entity.has('score')) {
+            entity.abilities.score.add(10);
+        }
+        if (entity.has('experience')) {
+            entity.abilities.experience.add(1);
+            if (entity.abilities.experience.xp % 10 === 0 && entity.has('rank')) {
+                entity.abilities.rank.raise();
+            }
+        }
+        if (entity.has('health')) {
+            entity.abilities.health.health = Math.min(100, entity.abilities.health.health + 2);
+        }
+        if (entity.has('power')) {
+            entity.abilities.power.power = Math.min(100, entity.abilities.power.power + 1);
+        }
+
+        // Grow radius (max 150px)
+        if (entity.has('body')) {
+            let shape = entity.abilities.body.shape;
+            if (shape && shape.radius) {
+                shape.radius = Math.min(150, shape.radius + 0.4);
+                entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
+            }
+        }
+        return;
     }
 
-    if (game.entities['dots']) {
-        game.entities['dots'].forEach(
-            function(entity) {
-                entity.abilities.collidable.onCollisionStart((object) => {
-                    entity.abilities.body.color = '#ffff00';
-                });
-                entity.abilities.collidable.onCollision((object) => {
-                    // entity.abilities.body.color = "#ffff00";
-                });
-                entity.abilities.collidable.onCollisionEnd((object) => {
-                    entity.abilities.body.color = entity.abilities.body.originalColor;
-                });
-            },
-            this);
-    }
-};
+    // 2. Colliding with Another Player (EAT OR BE EATEN)
+    if (object.type === 'players' && object.id !== entity.id) {
+        let myRadius = entity.abilities.body.shape.radius || 20;
+        let otherRadius = object.abilities.body.shape.radius || 20;
 
-function moveRandom(entity) {
-    entity.abilities.velocity.velocity = entity.abilities.velocity.velocity.add(new Shapes.Vect(
-        Math.random() > .5 ? -Math.random() - 1 : Math.random() + 1,
-        Math.random() > .5 ? -Math.random() - 1 : Math.random() + 1,
-        0));
+        // If I am at least 15% larger, I eat the other player!
+        if (myRadius > otherRadius * 1.15) {
+            console.log('[Game]', entity.name, 'consumed', object.name);
+
+            // Reward predator
+            entity.abilities.score.add(Math.round(otherRadius * 20));
+            entity.abilities.body.shape.radius = Math.min(180, Math.sqrt(myRadius * myRadius + otherRadius * otherRadius * 0.5));
+            entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
+
+            // Respawn prey at safe location
+            let pad = 100;
+            object.abilities.position.pos.x = Math.floor(Math.random() * (game.config.canvas.width - pad * 2)) + pad;
+            object.abilities.position.pos.y = Math.floor(Math.random() * (game.config.canvas.height - pad * 2)) + pad;
+            object.abilities.body.shape.radius = 20;
+            object.abilities.aabb = new game.abilities.Aabb(object.abilities.body);
+            if (object.has('score')) object.abilities.score.score = 0;
+            if (object.has('health')) object.abilities.health.health = 100;
+        }
+    }
 }
 
 function initiatePlayer(game, data) {
-    const player = new game.Entity(data.userName);
+    const player = new game.Entity(data.userName || 'Player');
 
-    let playerPos = new game.shapes.Vect(Math.floor(Math.random() * (300 - 1 + 1)) + 1, Math.floor(Math.random() * (300 - 1 + 1)) + 1);
+    let pad = 100;
+    let playerPos = new game.shapes.Vect(
+        Math.floor(Math.random() * (game.config.canvas.width - pad * 2)) + pad,
+        Math.floor(Math.random() * (game.config.canvas.height - pad * 2)) + pad
+    );
     let playerCirc = new game.shapes.Circ(20);
 
-    player.attach(new game.abilities.Body(playerCirc, 'green'));
+    // Random vibrant player color
+    const playerColor = DOT_COLORS[Math.floor(Math.random() * DOT_COLORS.length)];
+
+    player.attach(new game.abilities.Body(playerCirc, playerColor));
     player.attach(new game.abilities.Position(playerPos));
     player.attach(new game.abilities.Velocity());
     player.attach(new game.abilities.Input());
     player.attach(new game.abilities.Mass(100));
-    player.attach(new game.abilities.Cor(.4));
+    player.attach(new game.abilities.Cor(0.4));
     player.attach(new game.abilities.Collidable());
 
     player.attach(new game.abilities.Score());
     player.attach(new game.abilities.Rank({
-        1: 300,
-        2: 500,
-        3: 600,
+        1: 100,
+        2: 250,
+        3: 500,
+        4: 1000,
+        5: 2000,
     }));
     player.attach(new game.abilities.Experience(1000));
-
     player.attach(new game.abilities.Power(100));
     player.attach(new game.abilities.Health(100));
-
-    // player.attach(new game.abilities.Gravity());
-
     player.attach(new game.abilities.Orientation());
 
-    // player.attach(new game.abilities.Torque());
-    // player.attach(new game.abilities.Acceleration());
-    // player.attach(new game.abilities.AngularVelocity());
+    // Register collision callback on player
+    player.abilities.collidable.onCollisionStart((object) => {
+        handlePlayerCollision(player, object, game);
+    });
 
     game.subSystems.collision.AddEntity(player);
     game.subSystems.motion.AddEntity(player);
@@ -118,40 +144,32 @@ function initiatePlayer(game, data) {
 
     let camera = new game.abilities.Camera(player.abilities.position.pos);
     player.attach(camera);
-    player.attach(new game.abilities.Viewport(600, 600, camera));
+    player.attach(new game.abilities.Viewport(800, 600, camera));
     game.subSystems.display.AddEntity(player);
-
-    // console.log('-------------------------lll', game.activeConnections);
 
     player.socket_id = data.socketId;
     game.addEntity(player, 'players');
-    console.log(player.abilities.viewport);
+    console.log('[Game] New player initialized:', player.name, player.id);
     return player;
 }
 
-
 function initiateDot(game, x, y) {
+    let pad = 30;
     let dotPos = new game.shapes.Vect(
-        x || Math.floor(Math.random() * (game.config.canvas.width - 1 + 1)) + 1,
-        y || Math.floor(Math.random() * (game.config.canvas.height - 1 + 1)) + 1
+        x || Math.floor(Math.random() * (game.config.canvas.width - pad * 2)) + pad,
+        y || Math.floor(Math.random() * (game.config.canvas.height - pad * 2)) + pad
     );
-    // (game.config.canvas.width / 2, game.config.canvas.height / 2);
-    let dotCirc = new game.shapes.Circ(20);
+    // Dots are smaller than players (radius 7px)
+    let dotCirc = new game.shapes.Circ(7);
     let dot = new game.Entity('dot');
-    dot.attach(new game.abilities.Body(dotCirc, 'blue'));
+    let color = DOT_COLORS[Math.floor(Math.random() * DOT_COLORS.length)];
+
+    dot.attach(new game.abilities.Body(dotCirc, color));
     dot.attach(new game.abilities.Position(dotPos));
     dot.attach(new game.abilities.Collidable());
     dot.attach(new game.abilities.Velocity());
-    dot.attach(new game.abilities.Mass(50));
-    dot.attach(new game.abilities.Power(100));
-
+    dot.attach(new game.abilities.Mass(10));
     dot.attach(new game.abilities.Orientation());
-    // dot.attach(new game.abilities.Gravity());
-
-    dot.attach(new game.abilities.AngularVelocity());
-
-    dot.attach(new game.abilities.Cor(.5));
-
 
     game.subSystems.collision.AddEntity(dot);
     game.subSystems.physics.AddEntity(dot);
