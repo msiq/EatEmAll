@@ -1,4 +1,4 @@
-const UUID = require('node-uuid');
+const { v4: uuidv4 } = require('uuid');
 const Shapes = require('./Shapes.js');
 const config = require('./config.js');
 
@@ -8,7 +8,7 @@ var Entity = function(name = 'noname') {
     this.TYPE_DEFAULT = 'default';
     this.TYPE_MAIN = 'main';
 
-    this.id = UUID();
+    this.id = uuidv4();
     this.name = name;
     this.socket_id = false;
     this.type = 'default';
@@ -111,5 +111,8 @@ var Entity = function(name = 'noname') {
     // }
 };
 
+
+Entity.TYPE_DEFAULT = 'default';
+Entity.TYPE_MAIN = 'main';
 
 module.exports = exports = Entity;

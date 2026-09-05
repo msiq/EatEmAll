@@ -1,10 +1,10 @@
-const UUID = require('node-uuid');
+const { v4: uuidv4 } = require('uuid');
 const Entity = require('./Entity.js');
 const Shapes = require('./Shapes.js');
 
 Player = function(name, options = {}) {
     // console.log(options.shape.constructor.name, options.shape);
-    const uuid = UUID();
+    const uuid = uuidv4();
     // Set up basic player
     this.name = name;
     this.id = uuid;

@@ -7,7 +7,7 @@ if (newGame instanceof GameClass === false) {
 }
 
 const players = {};
-game = newGame;
+const game = newGame;
 
 // game.setState(new GameState.init());
 // let gameInterval = false;
