@@ -161,6 +161,330 @@
           "reductionPct": 99.79
         }
       ]
+    },
+    {
+      "id": 3,
+      "timestamp": "2026-09-06T00:47:31.427Z",
+      "commit": "c4228bf",
+      "milestone": "Spiky Green Hazard Viruses & Audio Customization",
+      "entities": {
+        "total": 1028,
+        "dots": 1000,
+        "botsAndPlayers": 10,
+        "viruses": 18
+      },
+      "tickMetrics": {
+        "avgTickMs": 1.567,
+        "minTickMs": 1.234,
+        "maxTickMs": 4.032,
+        "stdDevMs": 0.364,
+        "theoreticalMaxFps": 638,
+        "cpuBudgetHeadroomPct": 95.3
+      },
+      "memoryMB": {
+        "heapUsed": 30.91,
+        "heapTotal": 51.73,
+        "rss": 95.38
+      },
+      "scaling": [
+        {
+          "n": 100,
+          "buildTimeMs": 0.214,
+          "queryTimeMs": 0.327,
+          "totalTimeMs": 0.541,
+          "candidatePairs": 14,
+          "bruteForceChecks": 4950,
+          "reductionPct": 99.72
+        },
+        {
+          "n": 250,
+          "buildTimeMs": 0.425,
+          "queryTimeMs": 0.897,
+          "totalTimeMs": 1.322,
+          "candidatePairs": 73,
+          "bruteForceChecks": 31125,
+          "reductionPct": 99.77
+        },
+        {
+          "n": 500,
+          "buildTimeMs": 0.377,
+          "queryTimeMs": 0.99,
+          "totalTimeMs": 1.367,
+          "candidatePairs": 238,
+          "bruteForceChecks": 124750,
+          "reductionPct": 99.81
+        },
+        {
+          "n": 1000,
+          "buildTimeMs": 0.687,
+          "queryTimeMs": 0.867,
+          "totalTimeMs": 1.554,
+          "candidatePairs": 999,
+          "bruteForceChecks": 499500,
+          "reductionPct": 99.8
+        },
+        {
+          "n": 1500,
+          "buildTimeMs": 0.388,
+          "queryTimeMs": 2.32,
+          "totalTimeMs": 2.708,
+          "candidatePairs": 2279,
+          "bruteForceChecks": 1124250,
+          "reductionPct": 99.8
+        },
+        {
+          "n": 2000,
+          "buildTimeMs": 0.38,
+          "queryTimeMs": 2.942,
+          "totalTimeMs": 3.322,
+          "candidatePairs": 4209,
+          "bruteForceChecks": 1999000,
+          "reductionPct": 99.79
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "timestamp": "2026-09-06T00:48:34.564Z",
+      "commit": "1754882",
+      "milestone": "Delta Serialization and Viewport Culling",
+      "entities": {
+        "total": 1028,
+        "dots": 1000,
+        "botsAndPlayers": 10,
+        "viruses": 18
+      },
+      "tickMetrics": {
+        "avgTickMs": 1.397,
+        "minTickMs": 1.164,
+        "maxTickMs": 2.16,
+        "stdDevMs": 0.221,
+        "theoreticalMaxFps": 716,
+        "cpuBudgetHeadroomPct": 95.8
+      },
+      "memoryMB": {
+        "heapUsed": 20.83,
+        "heapTotal": 52.23,
+        "rss": 95.61
+      },
+      "scaling": [
+        {
+          "n": 100,
+          "buildTimeMs": 0.207,
+          "queryTimeMs": 0.333,
+          "totalTimeMs": 0.54,
+          "candidatePairs": 5,
+          "bruteForceChecks": 4950,
+          "reductionPct": 99.9
+        },
+        {
+          "n": 250,
+          "buildTimeMs": 0.395,
+          "queryTimeMs": 0.765,
+          "totalTimeMs": 1.16,
+          "candidatePairs": 75,
+          "bruteForceChecks": 31125,
+          "reductionPct": 99.76
+        },
+        {
+          "n": 500,
+          "buildTimeMs": 0.397,
+          "queryTimeMs": 1.12,
+          "totalTimeMs": 1.517,
+          "candidatePairs": 249,
+          "bruteForceChecks": 124750,
+          "reductionPct": 99.8
+        },
+        {
+          "n": 1000,
+          "buildTimeMs": 0.663,
+          "queryTimeMs": 0.9,
+          "totalTimeMs": 1.563,
+          "candidatePairs": 1080,
+          "bruteForceChecks": 499500,
+          "reductionPct": 99.78
+        },
+        {
+          "n": 1500,
+          "buildTimeMs": 0.355,
+          "queryTimeMs": 2.12,
+          "totalTimeMs": 2.475,
+          "candidatePairs": 2297,
+          "bruteForceChecks": 1124250,
+          "reductionPct": 99.8
+        },
+        {
+          "n": 2000,
+          "buildTimeMs": 0.414,
+          "queryTimeMs": 2.207,
+          "totalTimeMs": 2.622,
+          "candidatePairs": 4233,
+          "bruteForceChecks": 1999000,
+          "reductionPct": 99.79
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "timestamp": "2026-09-06T00:50:54.183Z",
+      "commit": "1754882",
+      "milestone": "Delta Serialization and Viewport Culling",
+      "entities": {
+        "total": 1028,
+        "dots": 1000,
+        "botsAndPlayers": 10,
+        "viruses": 18
+      },
+      "tickMetrics": {
+        "avgTickMs": 1.529,
+        "minTickMs": 1.189,
+        "maxTickMs": 3.96,
+        "stdDevMs": 0.372,
+        "theoreticalMaxFps": 654,
+        "cpuBudgetHeadroomPct": 95.4
+      },
+      "memoryMB": {
+        "heapUsed": 31.86,
+        "heapTotal": 51.98,
+        "rss": 96
+      },
+      "scaling": [
+        {
+          "n": 100,
+          "buildTimeMs": 0.204,
+          "queryTimeMs": 0.313,
+          "totalTimeMs": 0.517,
+          "candidatePairs": 7,
+          "bruteForceChecks": 4950,
+          "reductionPct": 99.86
+        },
+        {
+          "n": 250,
+          "buildTimeMs": 0.389,
+          "queryTimeMs": 0.783,
+          "totalTimeMs": 1.171,
+          "candidatePairs": 54,
+          "bruteForceChecks": 31125,
+          "reductionPct": 99.83
+        },
+        {
+          "n": 500,
+          "buildTimeMs": 0.37,
+          "queryTimeMs": 1.028,
+          "totalTimeMs": 1.397,
+          "candidatePairs": 276,
+          "bruteForceChecks": 124750,
+          "reductionPct": 99.78
+        },
+        {
+          "n": 1000,
+          "buildTimeMs": 0.691,
+          "queryTimeMs": 1.551,
+          "totalTimeMs": 2.242,
+          "candidatePairs": 1041,
+          "bruteForceChecks": 499500,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 1500,
+          "buildTimeMs": 0.445,
+          "queryTimeMs": 2.135,
+          "totalTimeMs": 2.58,
+          "candidatePairs": 2310,
+          "bruteForceChecks": 1124250,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 2000,
+          "buildTimeMs": 0.352,
+          "queryTimeMs": 3.081,
+          "totalTimeMs": 3.433,
+          "candidatePairs": 4282,
+          "bruteForceChecks": 1999000,
+          "reductionPct": 99.79
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "timestamp": "2026-09-06T00:51:07.233Z",
+      "commit": "1754882",
+      "milestone": "Delta Serialization and Viewport Culling",
+      "entities": {
+        "total": 1028,
+        "dots": 1000,
+        "botsAndPlayers": 10,
+        "viruses": 18
+      },
+      "tickMetrics": {
+        "avgTickMs": 1.473,
+        "minTickMs": 1.156,
+        "maxTickMs": 3.485,
+        "stdDevMs": 0.328,
+        "theoreticalMaxFps": 679,
+        "cpuBudgetHeadroomPct": 95.6
+      },
+      "memoryMB": {
+        "heapUsed": 31.24,
+        "heapTotal": 51.73,
+        "rss": 96.39
+      },
+      "scaling": [
+        {
+          "n": 100,
+          "buildTimeMs": 0.34,
+          "queryTimeMs": 0.449,
+          "totalTimeMs": 0.789,
+          "candidatePairs": 7,
+          "bruteForceChecks": 4950,
+          "reductionPct": 99.86
+        },
+        {
+          "n": 250,
+          "buildTimeMs": 0.482,
+          "queryTimeMs": 0.807,
+          "totalTimeMs": 1.289,
+          "candidatePairs": 58,
+          "bruteForceChecks": 31125,
+          "reductionPct": 99.81
+        },
+        {
+          "n": 500,
+          "buildTimeMs": 0.413,
+          "queryTimeMs": 1.002,
+          "totalTimeMs": 1.415,
+          "candidatePairs": 273,
+          "bruteForceChecks": 124750,
+          "reductionPct": 99.78
+        },
+        {
+          "n": 1000,
+          "buildTimeMs": 0.718,
+          "queryTimeMs": 0.809,
+          "totalTimeMs": 1.528,
+          "candidatePairs": 986,
+          "bruteForceChecks": 499500,
+          "reductionPct": 99.8
+        },
+        {
+          "n": 1500,
+          "buildTimeMs": 0.346,
+          "queryTimeMs": 2.149,
+          "totalTimeMs": 2.495,
+          "candidatePairs": 2307,
+          "bruteForceChecks": 1124250,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 2000,
+          "buildTimeMs": 0.353,
+          "queryTimeMs": 2.465,
+          "totalTimeMs": 2.818,
+          "candidatePairs": 4081,
+          "bruteForceChecks": 1999000,
+          "reductionPct": 99.8
+        }
+      ]
     }
   ]
 }

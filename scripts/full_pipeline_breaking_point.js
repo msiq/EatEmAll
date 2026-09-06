@@ -6,7 +6,7 @@ console.log("   OPTIMIZED FULL PIPELINE BREAKING POINT TEST   ");
 console.log("=================================================");
 
 // Test scales up to 25,000 entities!
-const dotScales = [1000, 2500, 5000, 10000, 15000, 20000, 25000];
+const dotScales = [1000, 2500, 5000, 10000, 25000, 50000, 75000, 100000];
 const results = [];
 
 for (const dotCount of dotScales) {
