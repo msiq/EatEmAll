@@ -192,7 +192,7 @@ socket.on("play", (data) => {
                 y: d.y,
                 targetX: d.x,
                 targetY: d.y,
-                radius: d.radius || 7,
+                radius: d.radius || 3.5,
                 color: d.color || "#00bcd4"
             });
         }
@@ -438,7 +438,7 @@ function onServerTick(data) {
                     y: dd.y,
                     targetX: dd.x,
                     targetY: dd.y,
-                    radius: dd.radius || 7,
+                    radius: dd.radius || 3.5,
                     color: dd.color
                 });
             } else {
@@ -464,7 +464,7 @@ function onServerTick(data) {
                     y: sd.y,
                     targetX: sd.x,
                     targetY: sd.y,
-                    radius: sd.radius || 7,
+                    radius: sd.radius || 3.5,
                     color: sd.color || "#00bcd4"
                 });
             } else {

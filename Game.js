@@ -348,11 +348,11 @@ function handlePlayerCollision(entity, object, game) {
             id: object.id,
             x: newX,
             y: newY,
-            radius: (object.abilities.body && object.abilities.body.shape && object.abilities.body.shape.radius) || 7,
+            radius: (object.abilities.body && object.abilities.body.shape && object.abilities.body.shape.radius) || 3.5,
             color: object.abilities.body.color
         });
 
-        if (entity.has('score')) entity.abilities.score.add(10);
+        if (entity.has('score')) entity.abilities.score.add(2);
         if (entity.has('experience')) {
             entity.abilities.experience.add(1);
             if (entity.abilities.experience.xp % 10 === 0 && entity.has('rank')) {
@@ -363,11 +363,13 @@ function handlePlayerCollision(entity, object, game) {
             entity.abilities.health.health = Math.min(100, entity.abilities.health.health + 2);
         }
 
-        // Grow radius (max 160px)
+        // Area/mass-based growth: Area = pi * r^2. Each pellet adds a mass delta (2.5),
+        // giving smooth early progression while introducing natural diminishing returns for larger cells.
         if (entity.has('body')) {
             let shape = entity.abilities.body.shape;
             if (shape && shape.radius) {
-                shape.radius = Math.min(160, shape.radius + 0.3);
+                const pelletMass = 2.5;
+                shape.radius = Math.min(160, Math.sqrt(shape.radius * shape.radius + pelletMass));
                 entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
             }
         }
@@ -479,7 +481,7 @@ function handlePlayerCollision(entity, object, game) {
                     id: dot.id,
                     x: dotX,
                     y: dotY,
-                    radius: (dot.abilities.body && dot.abilities.body.shape && dot.abilities.body.shape.radius) || 7,
+                    radius: (dot.abilities.body && dot.abilities.body.shape && dot.abilities.body.shape.radius) || 3.5,
                     color: dot.abilities.body.color
                 });
             }
@@ -596,7 +598,7 @@ function initiateDot(game, x, y) {
         x || Math.floor(Math.random() * (game.config.canvas.width - pad * 2)) + pad,
         y || Math.floor(Math.random() * (game.config.canvas.height - pad * 2)) + pad
     );
-    let dotCirc = new game.shapes.Circ(7);
+    let dotCirc = new game.shapes.Circ(3.5);
     let dot = new game.Entity('dot');
     let color = DOT_COLORS[Math.floor(Math.random() * DOT_COLORS.length)];
 
