@@ -72,6 +72,32 @@
             color: #38ef7d;
             font-weight: 700;
         }
+        .round-timer-badge {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: #38bdf8;
+            border-color: rgba(56, 189, 248, 0.35);
+            letter-spacing: 0.5px;
+        }
+        #round-winner-banner {
+            position: absolute;
+            top: 75px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(234, 179, 8, 0.95), rgba(249, 115, 22, 0.98));
+            color: #000;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1.15rem;
+            letter-spacing: 0.5px;
+            padding: 8px 24px;
+            border-radius: 30px;
+            box-shadow: 0 0 25px rgba(234, 179, 8, 0.6);
+            z-index: 1000;
+            display: none;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
         .fps-badge.uncapped {
             border-color: #f59e0b;
             color: #fbbf24;
@@ -537,11 +563,13 @@
 </head>
 <body>
     <div id="game-container">
+        <div id="round-winner-banner">🏆 ROUND WINNER: <span id="winner-name">-</span> (<span id="winner-score">0</span> pts)</div>
         <canvas id="canvas"></canvas>
 
         <div id="top-bar" class="hud-panel">
             <div class="logo">EAT 'EM ALL</div>
             <div class="fps-badge">FPS: <span id="current-fps" class="fps-val">60</span></div>
+            <div id="round-timer-badge" class="fps-badge round-timer-badge" title="Match Round Timer">⏱️ <span id="round-time-text">3:00</span></div>
             <div class="fps-mode-toggle" id="fps-mode-group" title="Framerate Control Mode (Shortcut: 'F' or 'U')">
                 <button id="fps-mode-vsync" class="fps-seg-btn active" title="60Hz V-Sync (Standard Smooth Display Sync)">
                     <span>🔒</span>

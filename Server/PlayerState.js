@@ -1,63 +1,88 @@
-function AbstractState(player) {
-    this.execute = function() {
-        console.log('You should never see this execute message :( \n, fix it! ');
-    };
-    this.setup = function() {
-        return this.execute();
-        console.log('You should never see this setup message :( \n, fix it! ');
-    };
-    this.update = function() {
-        console.log('You should never see this update message :( \n, fix it! ');
-    };
-}
-const abstractState = new AbstractState();
+/**
+ * Generic Finite State Machine for Player Entity Lifecycle
+ * 100% Game-Agnostic ECS Component / State Engine
+ */
 
-function InitState(player) {
-    this.execute = () => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                console.log(player.color);
-                player.color = 'green';
-                console.log(player.color);
-                console.log('Initializing player state');
-                resolve('Initializing player state resolved');
-            }, 3000);
-        });
-    };
+class BasePlayerState {
+    constructor(name) {
+        this.name = name;
+    }
+    enter(player, payload = {}) {}
+    update(player, dt) {}
+    exit(player) {}
+    canTransitionTo(nextStateName) {
+        return true;
+    }
 }
-InitState.prototype = abstractState;
 
-function MenuState(player) {
-    this.execute = function() {
-        return new Promise(function(resolve, reject) {
-            console.log('you are in menu do whatever you wanted to do and press x to continue!');
-        });
-    };
+class PlayerStateMachine {
+    constructor(player) {
+        this.player = player;
+        this.states = new Map();
+        this.currentState = null;
+        this.stateStartTime = Date.now();
+    }
+
+    registerState(stateInstance) {
+        if (!stateInstance || !stateInstance.name) {
+            throw new Error("Invalid player state: must have a name");
+        }
+        this.states.set(stateInstance.name, stateInstance);
+        return this;
+    }
+
+    setState(stateName, payload = {}) {
+        const nextState = this.states.get(stateName);
+        if (!nextState) {
+            console.warn(`[PlayerFSM] Unknown state: ${stateName}`);
+            return false;
+        }
+
+        if (this.currentState) {
+            if (!this.currentState.canTransitionTo(stateName)) {
+                console.warn(`[PlayerFSM] Illegal transition from ${this.currentState.name} to ${stateName}`);
+                return false;
+            }
+            this.currentState.exit(this.player);
+        }
+
+        const prevState = this.currentState ? this.currentState.name : null;
+        this.currentState = nextState;
+        this.stateStartTime = Date.now();
+        this.player.state = stateName;
+        this.currentState.enter(this.player, payload);
+
+        if (this.player.game && typeof this.player.game.addTickEvent === 'function') {
+            this.player.game.addTickEvent({
+                type: 'player_state_changed',
+                playerId: this.player.id,
+                state: stateName,
+                prev: prevState
+            });
+        }
+        return true;
+    }
+
+    update(dt) {
+        if (this.currentState && typeof this.currentState.update === 'function') {
+            this.currentState.update(this.player, dt);
+        }
+    }
+
+    getStateName() {
+        return this.currentState ? this.currentState.name : 'uninitialized';
+    }
+
+    getTimeInState() {
+        return Date.now() - this.stateStartTime;
+    }
+
+    isShielded() {
+        return this.getStateName() === 'shielded';
+    }
 }
-MenuState.prototype = abstractState;
 
-function PlayingState(player) {
-    this.execute = function() {
-        return new Promise(function(resolve, reject) {
-            console.log('player are playing now!');
-        });
-    };
-}
-PlayingState.prototype = abstractState;
-
-function KilledState(player) {
-    this.execute = function() {
-        return new Promise(function(resolve, reject) {
-            console.log('you dieded!');
-        });
-    };
-}
-KilledState.prototype = abstractState;
-
-module.exports = exports =
-    PlayerState = {
-        init: InitState,
-        menu: MenuState,
-        playing: PlayingState,
-        killed: KilledState,
-    };
+module.exports = {
+    BasePlayerState,
+    PlayerStateMachine
+};

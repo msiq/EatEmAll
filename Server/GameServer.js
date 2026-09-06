@@ -108,9 +108,10 @@ function GameServer() {
         });
     };
 
-    this.letEmPlay = (player, allDots) => {
-        if (io && player && player.socket_id) {
-            io.to(player.socket_id).emit('play', { player, dots: allDots || [] });
+    this.letEmPlay = (player, socketId, allDots) => {
+        const targetId = socketId || (player && (player.socket_id || player.socketId));
+        if (io && targetId) {
+            io.to(targetId).emit('play', { player, dots: allDots || [] });
         }
     };
 
@@ -133,6 +134,7 @@ function GameServer() {
                 dotsDelta: data.dotsDelta || [],
                 fps: data.fps,
                 events: data.events || [],
+                gameState: data.gameState || null,
             }));
         }
     };

@@ -1,3 +1,18 @@
+
+const roundWinnerBanner = document.getElementById("round-winner-banner");
+const winnerNameSpan = document.getElementById("winner-name");
+const winnerScoreSpan = document.getElementById("winner-score");
+
+function showRoundWinnerBanner(winner, score) {
+    if (roundWinnerBanner && winnerNameSpan && winnerScoreSpan) {
+        winnerNameSpan.textContent = winner || 'Player';
+        winnerScoreSpan.textContent = score || 0;
+        roundWinnerBanner.style.display = "block";
+        setTimeout(() => {
+            roundWinnerBanner.style.display = "none";
+        }, 5000);
+    }
+}
 ﻿const socket = io();
 const loginModal = document.getElementById("menu");
 const loginBtn = document.getElementById("login-btn");
@@ -539,6 +554,25 @@ function onServerTick(data) {
         }
     }
 
+        // Update Match Round Timer from Game State Machine
+    if (data.gameState) {
+        const timerText = document.getElementById("round-time-text");
+        if (timerText && data.gameState.remainingMs !== undefined) {
+            const totalSec = Math.max(0, Math.ceil(data.gameState.remainingMs / 1000));
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            timerText.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+    }
+
+    if (Array.isArray(data.events)) {
+        for (const ev of data.events) {
+            if (ev.type === 'round_summary') {
+                showRoundWinnerBanner(ev.winner, ev.score);
+            }
+        }
+    }
+
     if (leaderboardList && renderedPlayers.size > 0) {
         const sorted = Array.from(renderedPlayers.values())
             .sort((a, b) => (b.score || 0) - (a.score || 0))
@@ -790,6 +824,26 @@ function drawPlayerEntity(ctx, p, isMe) {
     ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
     ctx.fillStyle = p.color || (isMe ? "#38ef7d" : "#4facfe");
     ctx.fill();
+
+    // Render animated cyan spawn shield aura if player is in 'shielded' state
+    if (p.state === 'shielded') {
+        ctx.save();
+        const pulse = Math.sin(Date.now() * 0.009) * 2.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius + 6 + pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(0, 242, 254, 0.9)";
+        ctx.lineWidth = 3;
+        ctx.shadowColor = "#00f2fe";
+        ctx.shadowBlur = 10;
+        ctx.setLineDash([7, 4]);
+        ctx.stroke();
+
+        ctx.font = "bold 10px Outfit, sans-serif";
+        ctx.fillStyle = "#00f2fe";
+        ctx.textAlign = "center";
+        ctx.fillText("🛡️ SHIELDED", p.x, p.y - p.radius - 8);
+        ctx.restore();
+    }
 
     ctx.lineWidth = isMe ? 4 : 2.5;
     ctx.strokeStyle = isMe ? "#ffffff" : "rgba(255, 255, 255, 0.75)";

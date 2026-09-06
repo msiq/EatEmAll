@@ -1,3 +1,5 @@
+const { BaseGameState } = require('./Server/GameState.js');
+const { BasePlayerState, PlayerStateMachine } = require('./Server/PlayerState.js');
 const Game = require('./Server/GameClass.js');
 const Shapes = require('./Server/Shapes.js');
 const Entity = require('./Server/Entity.js');
@@ -13,6 +15,95 @@ const BOT_NAMES = [
     'Vortex', 'Phantom', 'Nebula', 'Titan', 'Apex',
     'Zenith', 'Shadow', 'Blaze', 'Cosmo', 'Cipher'
 ];
+
+
+// ==================== Eat 'Em All State Implementations ====================
+class LobbyGameState extends BaseGameState {
+    constructor() { super('lobby'); }
+    enter(game) { console.log('[GameFSM] Entered Lobby state'); }
+    update(game, dt) {
+        const players = game.entities['players'] || [];
+        const humans = players.filter(p => !p.isBot);
+        if (humans.length > 0) {
+            game.gameFSM.setState('round_active', { durationMs: 180000 });
+        }
+    }
+}
+
+class RoundActiveGameState extends BaseGameState {
+    constructor() {
+        super('round_active');
+        this.durationMs = 180000; // 3-minute round
+    }
+    enter(game, payload = {}) {
+        this.durationMs = payload.durationMs || 180000;
+        console.log(`[GameFSM] Round active! Time limit: ${this.durationMs / 1000}s`);
+    }
+    update(game, dt) {
+        if (game.gameFSM.getTimeInState() >= this.durationMs) {
+            game.gameFSM.setState('round_over');
+        }
+    }
+}
+
+class RoundOverGameState extends BaseGameState {
+    constructor() {
+        super('round_over');
+        this.celebrationDurationMs = 6000;
+        this.winner = null;
+    }
+    enter(game) {
+        const players = (game.entities['players'] || []).slice();
+        players.sort((a, b) => ((b.abilities.score && b.abilities.score.score) || 0) - ((a.abilities.score && a.abilities.score.score) || 0));
+        const top = players[0];
+        this.winner = top ? { name: top.name, score: (top.abilities.score && top.abilities.score.score) || 0 } : { name: 'Nobody', score: 0 };
+        console.log(`[GameFSM] Round Over! Winner: ${this.winner.name} (${this.winner.score} pts)`);
+
+        if (typeof game.addTickEvent === 'function') {
+            game.addTickEvent({
+                type: 'round_summary',
+                winner: this.winner.name,
+                score: this.winner.score
+            });
+        }
+    }
+    update(game, dt) {
+        if (game.gameFSM.getTimeInState() >= this.celebrationDurationMs) {
+            const players = game.entities['players'] || [];
+            players.forEach(p => {
+                if (p.abilities.score) p.abilities.score.score = 0;
+                if (p.abilities.body && p.abilities.body.shape) p.abilities.body.shape.radius = 20;
+                if (p.abilities.aabb) p.abilities.aabb = new game.abilities.Aabb(p.abilities.body);
+                if (p.playerFSM) p.playerFSM.setState('shielded', { durationMs: 3500 });
+            });
+            game.gameFSM.setState('round_active', { durationMs: 180000 });
+        }
+    }
+}
+
+class ShieldedPlayerState extends BasePlayerState {
+    constructor() {
+        super('shielded');
+        this.durationMs = 3500;
+    }
+    enter(player, payload = {}) {
+        this.durationMs = payload.durationMs || 3500;
+    }
+    update(player, dt) {
+        if (player.playerFSM && player.playerFSM.getTimeInState() >= this.durationMs) {
+            player.playerFSM.setState('active');
+        }
+    }
+}
+
+class ActivePlayerState extends BasePlayerState {
+    constructor() { super('active'); }
+}
+
+class DeadPlayerState extends BasePlayerState {
+    constructor() { super('dead'); }
+}
+// =========================================================================
 
 var game = new Game();
 let botUpdateTick = 0;
@@ -40,6 +131,13 @@ game.setup = function() {
     game.addEntityType('dots', Entity.TYPE_DEFAULT);
     game.addEntityType('viruses', Entity.TYPE_DEFAULT);
 
+        // Register Eat 'Em All FSM states
+    if (game.gameFSM) {
+        game.gameFSM.registerState(new LobbyGameState());
+        game.gameFSM.registerState(new RoundActiveGameState());
+        game.gameFSM.registerState(new RoundOverGameState());
+        game.gameFSM.setState('lobby');
+    }
     console.log('[Game] Spawning 1,000 dots, 10 bots & 18 hazard viruses...');
 
     // 1. Spawn 1,000 collectible dots
@@ -324,6 +422,14 @@ function initiatePlayer(game, data) {
     player.attach(new game.abilities.Health(100));
     player.attach(new game.abilities.Orientation());
 
+        // Attach Player FSM with 3.5s spawn invulnerability shield
+    player.playerFSM = new PlayerStateMachine(player);
+    player.playerFSM.registerState(new ShieldedPlayerState());
+    player.playerFSM.registerState(new ActivePlayerState());
+    player.playerFSM.registerState(new DeadPlayerState());
+    player.playerFSM.setState('shielded', { durationMs: 3500 });
+    player.state = 'shielded';
+
     player.abilities.collidable.onCollisionStart((object) => {
         handlePlayerCollision(player, object, game);
     });
@@ -366,6 +472,13 @@ function initiateBot(game, name) {
     bot.attach(new game.abilities.Experience(1000));
     bot.attach(new game.abilities.Health(100));
     bot.attach(new game.abilities.Orientation());
+
+        bot.playerFSM = new PlayerStateMachine(bot);
+    bot.playerFSM.registerState(new ShieldedPlayerState());
+    bot.playerFSM.registerState(new ActivePlayerState());
+    bot.playerFSM.registerState(new DeadPlayerState());
+    bot.playerFSM.setState('active');
+    bot.state = 'active';
 
     bot.abilities.collidable.onCollisionStart((object) => {
         handlePlayerCollision(bot, object, game);

@@ -1,3 +1,4 @@
+const { GameStateMachine } = require('./GameState.js');
 const config = require('./config.js');
 
 const GameServer = require('./GameServer.js');
@@ -32,6 +33,13 @@ var Game = function Game() {
     this.activeConnections = {};
 
     this.events = {};
+
+    this.staticLayers = new Set(['dots']);
+    this.markLayerStatic = function(layerName) {
+        if (!this.staticLayers) this.staticLayers = new Set();
+        this.staticLayers.add(layerName);
+    };
+    this.gameFSM = new GameStateMachine(this);
 
     /** *****************************************************************'
      * Function available to be overridden by Devs
@@ -221,7 +229,17 @@ var Game = function Game() {
     };
 
     this.internalUpdate = function() {
+        if (this.gameFSM && typeof this.gameFSM.update === 'function') {
+            this.gameFSM.update(this.delta);
+        }
         let players = this.getEntities('players');
+        if (Array.isArray(players)) {
+            players.forEach(p => {
+                if (p.playerFSM && typeof p.playerFSM.update === 'function') {
+                    p.playerFSM.update(this.delta);
+                }
+            });
+        }
         if (players.length > 0) {
             // handle all messages
             if (!this.messageBus.isEmpty()) {
@@ -289,6 +307,7 @@ var Game = function Game() {
                 },
                 aabb: player.abilities.aabb,
                 angle: angle,
+                state: player.state || (player.playerFSM ? player.playerFSM.getStateName() : 'active'),
                 score: player.has('score') ? player.abilities.score.score : 'nono',
                 rank: player.has('rank') ? player.abilities.rank.rank : 'nono',
                 xp: player.has('experience') ? player.abilities.experience.xp : 'nono',
@@ -342,7 +361,12 @@ var Game = function Game() {
         const dotsDelta = this.dotsDelta || [];
         this.dotsDelta = [];
 
-        this.server.doTick({ players, dotsDelta, fps: this.lastFPS, events });
+        const gameState = this.gameFSM ? {
+            name: this.gameFSM.getStateName(),
+            timeInState: this.gameFSM.getTimeInState(),
+            remainingMs: this.gameFSM.getRemainingTime(180000)
+        } : null;
+        this.server.doTick({ players, dotsDelta, fps: this.lastFPS, events, gameState });
     };
 
     // Set new state
@@ -488,7 +512,7 @@ var Game = function Game() {
         //     return 0;
         // }
 
-        this.server.letEmPlay(player, this.getAllDotsCompact());
+        this.server.letEmPlay(this.formatToRender(player), player.socket_id, this.getAllDotsCompact());
     };
 
 
