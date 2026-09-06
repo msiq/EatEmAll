@@ -26,14 +26,39 @@ function GameServer() {
             // Enable JSON body parsing for API endpoints
             app.use(express.json());
 
-            // Serve Engine & Client assets safely
-            app.use('/engine/client', express.static(path.join(__dirname, '../client')));
+            // Serve Universal Engine Client & Plugin Assets
+            const engineClientDir = path.resolve(__dirname, '../client');
+            const universalIndexHtml = path.join(engineClientDir, 'index.html');
+            app.use('/engine/client', express.static(engineClientDir));
             app.use('/Client', express.static(path.join(__dirname, '../../../Client')));
+
+            // Dynamic Active Cartridge Visual Manifest
+            const cartridgeDir = (options && options.cartridgeDir) || (options && options.clientDir ? path.dirname(options.clientDir) : null);
+            const visualsPath = (options && options.visualsPath) || (cartridgeDir ? path.join(cartridgeDir, 'visuals.js') : null);
+
+            app.get('/game/visuals.js', (req, res) => {
+                if (visualsPath && fs.existsSync(visualsPath)) {
+                    res.sendFile(visualsPath);
+                } else if (options && options.clientDir && fs.existsSync(path.join(options.clientDir, 'visuals.js'))) {
+                    res.sendFile(path.join(options.clientDir, 'visuals.js'));
+                } else {
+                    res.type('application/javascript').send('window.CartridgeVisuals = window.CartridgeVisuals || {};');
+                }
+            });
+
+            // Universal Client Entry Point
+            app.get('/', (req, res) => {
+                if (fs.existsSync(universalIndexHtml)) {
+                    res.sendFile(universalIndexHtml);
+                } else if (options && options.clientDir && fs.existsSync(path.join(options.clientDir, 'game.html'))) {
+                    res.sendFile(path.join(options.clientDir, 'game.html'));
+                } else {
+                    res.sendFile(path.join(__dirname, '../../../Client/game.html'));
+                }
+            });
+
             if (options && options.clientDir) {
                 app.use('/game/client', express.static(options.clientDir));
-                app.get('/', (req, res) => res.sendFile(path.join(options.clientDir, 'game.html')));
-            } else {
-                app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../../../Client/game.html')));
             }
             // Engine Benchmark Dashboard & Historical Metrics Data (Pure Engine Feature)
             const engineBenchmarkHtml = path.resolve(__dirname, '../client/benchmark.html');

@@ -1,8 +1,8 @@
-const path = require('path');
-const { Game } = require('./engine');
+const path = require("path");
+const { Game } = require("./engine");
 
-const gameName = process.argv[2] || process.env.GAME || 'EatEmAll';
-const cartridgePath = path.join(__dirname, 'games', gameName);
+const gameName = process.argv[2] || process.env.GAME || "EatEmAll";
+const cartridgePath = path.join(__dirname, "games", gameName);
 
 let Cartridge;
 try {
@@ -29,14 +29,18 @@ game.joinGame = function(data) {
 };
 
 const port = process.env.PORT || 4444;
-const clientDir = Cartridge.clientDir || path.join(__dirname, 'games', gameName, 'client');
+const clientDir = Cartridge.clientDir || path.join(__dirname, "games", gameName, "client");
+const visualsPath = Cartridge.visualsPath || path.join(__dirname, "games", gameName, "visuals.js");
 
 game.start({
     port,
-    clientDir
+    clientDir,
+    cartridgeDir: cartridgePath,
+    visualsPath,
+    gameName
 });
 
-console.log('======================================================');
+console.log("======================================================");
 console.log(`[Server] 🎮 Loaded Cartridge: ${Cartridge.config ? Cartridge.config.name : gameName}`);
 console.log(`[Server] 🌐 Server running at: http://localhost:${port}`);
-console.log('======================================================');
+console.log("======================================================");

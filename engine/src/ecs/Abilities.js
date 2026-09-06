@@ -413,6 +413,7 @@ function Health(max) {
         this.health = this.health - points;
         return this.health = this.health < 0 ? 0 : this.health;
     };
+    this.takeDamage = (points) => this.sub(points);
     this.update = (action, params) => {};
     this.reset = () => this.Health = this.max;
 }

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Universal Game Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #07090e;
+            --bg-glass: rgba(13, 17, 26, 0.78);
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --border-accent: rgba(56, 189, 248, 0.4);
+            --accent-cyan: #38bdf8;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --font-main: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: "JetBrains Mono", monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-primary);
+            font-family: var(--font-main);
+            color: var(--text-primary);
+        }
+
+        #viewport-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* --- HUD OVERLAY --- */
+        #hud-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px 20px;
+            z-index: 10;
+        }
+
+        .hud-top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 12px;
+        }
+
+        .hud-group-left, .hud-group-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .hud-pill {
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 9999px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            transition: all 0.2s ease;
+        }
+
+        .hud-pill:hover {
+            border-color: var(--border-accent);
+        }
+
+        .hud-pill .label {
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .hud-pill .val {
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-weight: 700;
+        }
+
+        .hud-pill.highlight .val {
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+
+        /* Health Bar */
+        .hud-health-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 9999px;
+            padding: 6px 14px;
+        }
+
+        .health-bar-track {
+            width: 110px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #hud-health-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #38bdf8);
+            border-radius: 6px;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+        }
+
+        /* Leaderboard Panel */
+        #hud-leaderboard-container {
+            position: absolute;
+            top: 68px;
+            right: 20px;
+            width: 210px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+            pointer-events: auto;
+        }
+
+        #hud-leaderboard-container h4 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #hud-leaderboard-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        #hud-leaderboard-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 6px;
+            border-radius: 6px;
+            transition: background 0.15s ease;
+        }
+
+        #hud-leaderboard-list li.self {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        #hud-leaderboard-list li span:last-child {
+            font-family: var(--font-mono);
+            font-weight: 600;
+        }
+
+        /* Buttons & Actions */
+        .hud-btn {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            border-radius: 9999px;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .hud-btn:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(56, 189, 248, 0.12);
+        }
+
+        /* --- MODALS --- */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(4, 7, 13, 0.82);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        .modal-card {
+            background: #0d121f;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 36px 40px;
+            width: 420px;
+            max-width: 90vw;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65), 0 0 40px rgba(56, 189, 248, 0.12);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .modal-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 15%;
+            right: 15%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+        }
+
+        .modal-title {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: -12px;
+        }
+
+        .modal-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+
+        .modal-input-group label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .modal-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #ffffff;
+            font-size: 15px;
+            font-family: var(--font-main);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .modal-input:focus {
+            border-color: var(--accent-cyan);
+            background: rgba(56, 189, 248, 0.05);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .modal-btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        .modal-hints {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 14px;
+        }
+
+        .modal-hints kbd {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            padding: 2px 5px;
+            font-family: var(--font-mono);
+            color: #e2e8f0;
+        }
+
+        /* Death Card specific */
+        .death-title {
+            color: var(--accent-rose);
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .death-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .death-stat-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .death-stat-box .lbl {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .death-stat-box .v {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: #ffffff;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 2D/3D Game Viewport Container -->
+    <div id="viewport-container"></div>
+
+    <!-- HUD Overlay -->
+    <div id="hud-overlay" style="display: none;">
+        <!-- Top Bar -->
+        <div class="hud-top-bar">
+            <!-- Left Group: Title & Stats -->
+            <div class="hud-group-left">
+                <div class="hud-pill highlight" id="hud-game-title-pill">
+                    <span id="hud-game-title">Arena</span>
+                </div>
+                <div id="hud-stats-container" style="display: flex; gap: 8px;">
+                    <!-- Injected dynamically based on CartridgeVisuals.hud.stats -->
+                </div>
+                <!-- Health Bar (shown if game provides health) -->
+                <div class="hud-health-container" id="hud-health-container" style="display: none;">
+                    <span class="label" style="font-size: 10px; color: var(--text-secondary); font-weight: 700;">HP</span>
+                    <div class="health-bar-track">
+                        <div id="hud-health-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Group: Performance & Leaderboard toggle -->
+            <div class="hud-group-right">
+                <div class="hud-pill">
+                    <span class="label">FPS</span>
+                    <span class="val" id="hud-fps">60</span>
+                </div>
+                <button class="hud-btn" id="audio-toggle-btn" title="Toggle Sound Effects">
+                    <span id="audio-icon">🔊</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Leaderboard (Top Right) -->
+        <div id="hud-leaderboard-container">
+            <h4><span>Leaderboard</span> <span>Top 8</span></h4>
+            <ul id="hud-leaderboard-list">
+                <!-- Injected via EngineClient -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Login / Enter Game Modal -->
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal-card">
+            <div>
+                <h1 class="modal-title" id="modal-game-heading">Game Arena</h1>
+                <p class="modal-subtitle" id="modal-game-subheading">Powered by Universal Game Engine</p>
+            </div>
+
+            <div class="modal-input-group">
+                <label for="login-name">Player Callsign</label>
+                <input type="text" id="login-name" class="modal-input" placeholder="Enter your name..." maxlength="16" autocomplete="off" autofocus>
+            </div>
+
+            <button type="button" id="login-btn" class="modal-btn-primary">Join Arena</button>
+
+            <div class="modal-hints">
+                <span><kbd>WASD</kbd> Move</span>
+                <span><kbd>Mouse</kbd> Aim & Steer</span>
+                <span><kbd>Click / Space</kbd> Action</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over / Elimination Modal -->
+    <div class="modal-overlay" id="death-modal" style="display: none;">
+        <div class="modal-card">
+            <div>
+                <h2 class="death-title">ELIMINATED</h2>
+                <p class="modal-subtitle">Better luck on your next run</p>
+            </div>
+
+            <div class="death-stats">
+                <div class="death-stat-box">
+                    <span class="lbl">Defeated By</span>
+                    <span class="v" id="death-killer" style="color: var(--accent-rose);">Opponent</span>
+                </div>
+                <div class="death-stat-box">
+                    <span class="lbl">Final Score</span>
+                    <span class="v" id="death-score" style="color: var(--accent-amber);">0</span>
+                </div>
+            </div>
+
+            <button type="button" id="respawn-btn" class="modal-btn-primary">Deploy Again</button>
+        </div>
+    </div>
+
+    <!-- Pluggable Engine Client Runtime Scripts -->
+    <script src="/engine/client/renderers/IRenderer.js"></script>
+    <script src="/engine/client/renderers/Canvas2DRenderer.js"></script>
+    <script src="/engine/client/EngineClient.js"></script>
+    <script src="/game/visuals.js"></script>
+
+    <!-- Client Bootstrap Orchestrator -->
+    <script>
+        (function () {
+            "use strict";
+
+            const visuals = window.CartridgeVisuals || {};
+
+            // Update Page Title and Headings
+            if (visuals.title) {
+                document.title = visuals.title;
+                const gameTitleEl = document.getElementById("hud-game-title");
+                const modalHeadingEl = document.getElementById("modal-game-heading");
+                if (gameTitleEl) gameTitleEl.textContent = visuals.title.split("-")[0].trim();
+                if (modalHeadingEl) modalHeadingEl.textContent = visuals.title.split("-")[0].trim();
+            }
+
+            // Build Dynamic HUD Stat Pills
+            const statsContainer = document.getElementById("hud-stats-container");
+            const hudConfig = visuals.hud || {};
+            const stats = hudConfig.stats || [];
+
+            if (statsContainer && stats.length > 0) {
+                statsContainer.innerHTML = stats.map(s => `
+                    <div class="hud-pill ${s.highlight ? "highlight" : ""}">
+                        <span class="label">${s.label}</span>
+                        <span class="val" id="stat-val-${s.id}">0</span>
+                    </div>
+                `).join("");
+            }
+
+            // Health Bar visibility
+            if (hudConfig.showHealth) {
+                const hpContainer = document.getElementById("hud-health-container");
+                if (hpContainer) hpContainer.style.display = "flex";
+            }
+
+            // Initialize Engine Client Application
+            const app = new EngineClient.App({
+                visuals: visuals,
+                container: document.getElementById("viewport-container")
+            });
+
+            // Login wiring
+            const loginBtn = document.getElementById("login-btn");
+            const loginInput = document.getElementById("login-name");
+            const respawnBtn = document.getElementById("respawn-btn");
+
+            // Load saved name
+            const savedName = localStorage.getItem("engine_player_name") || "";
+            if (savedName && loginInput) {
+                loginInput.value = savedName;
+            }
+
+            function handleJoin() {
+                const name = (loginInput.value || "").trim() || "Player";
+                localStorage.setItem("engine_player_name", name);
+                app.join(name);
+            }
+
+            if (loginBtn) loginBtn.addEventListener("click", handleJoin);
+            if (loginInput) {
+                loginInput.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") handleJoin();
+                });
+            }
+
+            if (respawnBtn) {
+                respawnBtn.addEventListener("click", () => {
+                    const name = localStorage.getItem("engine_player_name") || "Player";
+                    app.join(name);
+                });
+            }
+
+            // Audio Toggle
+            const audioBtn = document.getElementById("audio-toggle-btn");
+            const audioIcon = document.getElementById("audio-icon");
+            let isMuted = false;
+            if (audioBtn) {
+                audioBtn.addEventListener("click", () => {
+                    isMuted = !isMuted;
+                    if (app.audio) app.audio.muted = isMuted;
+                    if (audioIcon) audioIcon.textContent = isMuted ? "🔇" : "🔊";
+                });
+            }
+
+            window.__engineApp = app;
+        })();
+    </script>
+</body>
+</html>

@@ -15,8 +15,11 @@ const SafetyTripwire = require('./SafetyTripwire.js');
 const { performance } = require('perf_hooks');
 
 
-var Game = function Game() {
-    this.config = config;
+var Game = function Game(customConfig) {
+    this.config = Object.assign({}, config, customConfig || {});
+    if (customConfig && customConfig.canvas) {
+        this.config.canvas = Object.assign({}, config.canvas, customConfig.canvas);
+    }
     this.server = new GameServer();
     this.subSystems = SubSystems(this);
     // console.log(this.subSystems);
@@ -319,7 +322,8 @@ var Game = function Game() {
                 health: player.has('health') ? player.abilities.health.health : 'nono',
                 camera: player.has('camera') ? player.abilities.camera : 'nono',
                 viewport: player.has('camera') ? player.abilities.viewport : 'nono',
-            }
+            },
+            player.custom || {}
         );
     };
 

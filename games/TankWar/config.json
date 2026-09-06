@@ -1,0 +1,29 @@
+{
+    "name": "TankWar",
+    "gameport": 4444,
+    "canvas": {
+        "width": 1600,
+        "height": 1200
+    },
+    "fps": 30,
+    "botCount": 6,
+    "obstacleCount": 14,
+    "tank": {
+        "speed": 170,
+        "radius": 24,
+        "health": 100,
+        "maxAmmo": 10,
+        "reloadTime": 1.4,
+        "burstCooldown": 0.22
+    },
+    "bullet": {
+        "speed": 680,
+        "radius": 4.5,
+        "damage": 25,
+        "lifetime": 2.2
+    },
+    "obstacle": {
+        "health": 50,
+        "radius": 28
+    }
+}
