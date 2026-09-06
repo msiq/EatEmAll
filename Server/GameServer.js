@@ -22,6 +22,8 @@ function GameServer() {
             // Serve Client assets safely
             app.use('/Client', express.static(path.join(__dirname, '../Client')));
             app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../Client/game.html')));
+            app.get('/benchmark', (req, res) => res.sendFile(path.join(__dirname, '../Client/benchmark.html')));
+            app.get('/benchmark-data', (req, res) => res.sendFile(path.join(__dirname, '../benchmark_history.json')));
 
             // Start listening on configured port
             const port = this.game.config.gameport || 4444;

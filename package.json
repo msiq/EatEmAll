@@ -4,7 +4,8 @@
     "description": "Simple 2D multiplayer game engine based on nodejs and canvas",
     "main": "Server.js",
     "scripts": {
-        "test": "test"
+        "test": "test",
+        "benchmark": "node scripts/benchmark.js"
     },
     "repository": {
         "type": "git",

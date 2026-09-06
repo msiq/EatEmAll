@@ -1,0 +1,166 @@
+{
+  "runs": [
+    {
+      "id": 1,
+      "timestamp": "2026-09-06T00:30:36.861Z",
+      "commit": "8386b6b",
+      "milestone": "Milestone 7: Viruses & Spiky Hazard Circles",
+      "entities": {
+        "total": 1028,
+        "dots": 1000,
+        "botsAndPlayers": 10,
+        "viruses": 18
+      },
+      "tickMetrics": {
+        "avgTickMs": 1.612,
+        "minTickMs": 1.239,
+        "maxTickMs": 4.006,
+        "stdDevMs": 0.435,
+        "theoreticalMaxFps": 620,
+        "cpuBudgetHeadroomPct": 95.2
+      },
+      "memoryMB": {
+        "heapUsed": 29.22,
+        "heapTotal": 51.73,
+        "rss": 97.45
+      },
+      "scaling": [
+        {
+          "n": 100,
+          "buildTimeMs": 0.21,
+          "queryTimeMs": 0.345,
+          "totalTimeMs": 0.554,
+          "candidatePairs": 13,
+          "bruteForceChecks": 4950,
+          "reductionPct": 99.74
+        },
+        {
+          "n": 250,
+          "buildTimeMs": 0.448,
+          "queryTimeMs": 0.906,
+          "totalTimeMs": 1.353,
+          "candidatePairs": 74,
+          "bruteForceChecks": 31125,
+          "reductionPct": 99.76
+        },
+        {
+          "n": 500,
+          "buildTimeMs": 0.38,
+          "queryTimeMs": 1.205,
+          "totalTimeMs": 1.585,
+          "candidatePairs": 258,
+          "bruteForceChecks": 124750,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 1000,
+          "buildTimeMs": 0.705,
+          "queryTimeMs": 0.98,
+          "totalTimeMs": 1.685,
+          "candidatePairs": 1048,
+          "bruteForceChecks": 499500,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 1500,
+          "buildTimeMs": 0.354,
+          "queryTimeMs": 2.101,
+          "totalTimeMs": 2.455,
+          "candidatePairs": 2377,
+          "bruteForceChecks": 1124250,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 2000,
+          "buildTimeMs": 0.396,
+          "queryTimeMs": 2.847,
+          "totalTimeMs": 3.243,
+          "candidatePairs": 3973,
+          "bruteForceChecks": 1999000,
+          "reductionPct": 99.8
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "timestamp": "2026-09-06T00:31:57.349Z",
+      "commit": "8386b6b",
+      "milestone": "Spiky Green Hazard Viruses & Audio Customization",
+      "entities": {
+        "total": 1028,
+        "dots": 1000,
+        "botsAndPlayers": 10,
+        "viruses": 18
+      },
+      "tickMetrics": {
+        "avgTickMs": 1.708,
+        "minTickMs": 1.263,
+        "maxTickMs": 3.886,
+        "stdDevMs": 0.459,
+        "theoreticalMaxFps": 586,
+        "cpuBudgetHeadroomPct": 94.9
+      },
+      "memoryMB": {
+        "heapUsed": 32.17,
+        "heapTotal": 51.23,
+        "rss": 95.18
+      },
+      "scaling": [
+        {
+          "n": 100,
+          "buildTimeMs": 0.215,
+          "queryTimeMs": 0.429,
+          "totalTimeMs": 0.644,
+          "candidatePairs": 13,
+          "bruteForceChecks": 4950,
+          "reductionPct": 99.74
+        },
+        {
+          "n": 250,
+          "buildTimeMs": 0.491,
+          "queryTimeMs": 1.164,
+          "totalTimeMs": 1.655,
+          "candidatePairs": 83,
+          "bruteForceChecks": 31125,
+          "reductionPct": 99.73
+        },
+        {
+          "n": 500,
+          "buildTimeMs": 0.429,
+          "queryTimeMs": 1.293,
+          "totalTimeMs": 1.722,
+          "candidatePairs": 278,
+          "bruteForceChecks": 124750,
+          "reductionPct": 99.78
+        },
+        {
+          "n": 1000,
+          "buildTimeMs": 0.69,
+          "queryTimeMs": 0.913,
+          "totalTimeMs": 1.603,
+          "candidatePairs": 1025,
+          "bruteForceChecks": 499500,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 1500,
+          "buildTimeMs": 0.479,
+          "queryTimeMs": 2.286,
+          "totalTimeMs": 2.766,
+          "candidatePairs": 2366,
+          "bruteForceChecks": 1124250,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 2000,
+          "buildTimeMs": 0.361,
+          "queryTimeMs": 2.8,
+          "totalTimeMs": 3.162,
+          "candidatePairs": 4213,
+          "bruteForceChecks": 1999000,
+          "reductionPct": 99.79
+        }
+      ]
+    }
+  ]
+}

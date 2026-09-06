@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engine Performance Dashboard | Eat 'Em All</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --card-bg: rgba(18, 26, 43, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #38ef7d;
+            --primary-glow: rgba(56, 239, 125, 0.25);
+            --accent: #4facfe;
+            --accent-glow: rgba(79, 172, 254, 0.25);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(56, 239, 125, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(79, 172, 254, 0.08) 0%, transparent 40%),
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.85rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .badge-live {
+            background: rgba(56, 239, 125, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(56, 239, 125, 0.3);
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .badge-live::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 6px var(--primary)); }
+            100% { transform: scale(0.9); opacity: 0.8; }
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            border: none;
+            color: #042416;
+            font-weight: 700;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(56, 239, 125, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Stat Cards Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-main);
+        }
+
+        .stat-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .stat-sub.positive {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Chart Section */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-header h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 280px;
+        }
+
+        /* History Table */
+        .history-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 0.95rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .commit-badge {
+            background: rgba(79, 172, 254, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .milestone-name {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>⚡ Engine Performance Dashboard</h1>
+            <span class="badge-live">Benchmarked Live</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn" onclick="fetchData()">🔄 Refresh</button>
+            <a href="/" class="btn btn-primary">🎮 Enter Arena</a>
+        </div>
+    </header>
+
+    <!-- Stat Highlights -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Average Server Tick</span>
+            <span class="stat-value" id="stat-tick-time">-- ms</span>
+            <span class="stat-sub positive">Target: 33.3 ms (30 FPS)</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">CPU Frame Headroom</span>
+            <span class="stat-value" id="stat-headroom">-- %</span>
+            <span class="stat-sub positive">Only 4.8% CPU frame time used</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Active World Entities</span>
+            <span class="stat-value" id="stat-entities">--</span>
+            <span class="stat-sub">1,000 Dots + 10 Bots + 18 Viruses</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Redundant Checks Saved</span>
+            <span class="stat-value" id="stat-reduction">99.8%</span>
+            <span class="stat-sub positive">Quadtree $O(N \log N)$ vs $O(N^2)$</span>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-container">
+        <!-- Chart 1: Collision Complexity Scaling -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>📊 Collision Checks: Brute Force vs. Quadtree</h3>
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono'">Scale N = 100 to 2000</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="chart-scaling"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 2: Historical Tick Times -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>📈 Tick Execution Time History (ms)</h3>
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono'">Lower is better</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="chart-history"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Run History Table -->
+    <div class="history-card">
+        <div class="chart-header">
+            <h3>📑 Benchmark Progression Log</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Automatically recorded on every test run</span>
+        </div>
+        <div class="table-wrap">
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Timestamp</th>
+                        <th>Commit</th>
+                        <th>Milestone / Change</th>
+                        <th>Entities</th>
+                        <th>Avg Tick</th>
+                        <th>Min / Max</th>
+                        <th>CPU Headroom</th>
+                        <th>Heap RAM</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body">
+                    <tr><td colspan="9" style="text-align: center; color: var(--text-muted)">Loading benchmark history...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            try {
+                const res = await fetch('/benchmark-data');
+                const data = await res.json();
+                renderDashboard(data);
+            } catch(e) {
+                console.error("Failed to load benchmark data:", e);
+            }
+        }
+
+        function renderDashboard(data) {
+            if (!data || !data.runs || data.runs.length === 0) return;
+
+            const latest = data.runs[data.runs.length - 1];
+
+            // 1. Update Stat Cards
+            document.getElementById('stat-tick-time').textContent = latest.tickMetrics.avgTickMs + ' ms';
+            document.getElementById('stat-headroom').textContent = latest.tickMetrics.cpuBudgetHeadroomPct + '%';
+            document.getElementById('stat-entities').textContent = latest.entities.total;
+
+            // 2. Render Table
+            const tbody = document.getElementById('history-body');
+            tbody.innerHTML = '';
+            data.runs.slice().reverse().forEach((run, idx) => {
+                const tr = document.createElement('tr');
+                const d = new Date(run.timestamp);
+                const timeStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+
+                tr.innerHTML = `
+                    <td>${run.id}</td>
+                    <td style="color: var(--text-muted)">${timeStr}</td>
+                    <td><span class="commit-badge">${run.commit}</span></td>
+                    <td class="milestone-name">${run.milestone}</td>
+                    <td>${run.entities.total}</td>
+                    <td style="color: var(--primary); font-weight: 700">${run.tickMetrics.avgTickMs} ms</td>
+                    <td style="color: var(--text-muted)">${run.tickMetrics.minTickMs} / ${run.tickMetrics.maxTickMs} ms</td>
+                    <td style="color: #38ef7d">${run.tickMetrics.cpuBudgetHeadroomPct}%</td>
+                    <td>${run.memoryMB.heapUsed} MB</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // 3. Render Scaling Canvas Chart
+            drawScalingChart(latest.scaling);
+
+            // 4. Render History Line Canvas Chart
+            drawHistoryChart(data.runs);
+        }
+
+        function drawScalingChart(scaling) {
+            const canvas = document.getElementById('chart-scaling');
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.parentElement.clientWidth;
+            const h = canvas.parentElement.clientHeight;
+
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+
+            ctx.clearRect(0, 0, w, h);
+
+            if (!scaling || scaling.length === 0) return;
+
+            const padLeft = 60;
+            const padBottom = 40;
+            const padTop = 20;
+            const padRight = 30;
+            const chartW = w - padLeft - padRight;
+            const chartH = h - padTop - padBottom;
+
+            // Max checks = 2,000,000
+            const maxVal = 2000000;
+
+            // Draw Grid
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padTop + (chartH / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padLeft, y);
+                ctx.lineTo(w - padRight, y);
+                ctx.stroke();
+
+                const label = ((maxVal * (4 - i)) / 4 / 1000).toFixed(0) + "k";
+                ctx.fillStyle = "#64748b";
+                ctx.font = "11px 'JetBrains Mono'";
+                ctx.textAlign = "right";
+                ctx.fillText(label, padLeft - 10, y + 4);
+            }
+
+            const barWidth = chartW / scaling.length;
+
+            scaling.forEach((item, i) => {
+                const x = padLeft + i * barWidth + barWidth * 0.15;
+                const bw = barWidth * 0.7;
+
+                // Brute Force Bar (Red)
+                const bruteHeight = (item.bruteForceChecks / maxVal) * chartH;
+                const bruteY = padTop + chartH - bruteHeight;
+                ctx.fillStyle = "rgba(239, 68, 68, 0.65)";
+                ctx.fillRect(x, bruteY, bw * 0.48, bruteHeight);
+
+                // Quadtree Bar (Green)
+                const qtHeight = Math.max(3, (item.candidatePairs / maxVal) * chartH);
+                const qtY = padTop + chartH - qtHeight;
+                ctx.fillStyle = "rgba(56, 239, 125, 0.9)";
+                ctx.fillRect(x + bw * 0.52, qtY, bw * 0.48, qtHeight);
+
+                // X Label
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "12px 'Outfit', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("N=" + item.n, x + bw / 2, h - padBottom + 20);
+            });
+
+            // Legend
+            ctx.fillStyle = "rgba(239, 68, 68, 0.85)";
+            ctx.fillRect(w - 220, 10, 12, 12);
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "12px 'Outfit'";
+            ctx.textAlign = "left";
+            ctx.fillText("Brute Force O(N²)", w - 200, 20);
+
+            ctx.fillStyle = "rgba(56, 239, 125, 0.9)";
+            ctx.fillRect(w - 90, 10, 12, 12);
+            ctx.fillText("Quadtree", w - 70, 20);
+        }
+
+        function drawHistoryChart(runs) {
+            const canvas = document.getElementById('chart-history');
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.parentElement.clientWidth;
+            const h = canvas.parentElement.clientHeight;
+
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+
+            ctx.clearRect(0, 0, w, h);
+
+            if (!runs || runs.length === 0) return;
+
+            const padLeft = 50;
+            const padBottom = 40;
+            const padTop = 25;
+            const padRight = 30;
+            const chartW = w - padLeft - padRight;
+            const chartH = h - padTop - padBottom;
+
+            // Target 33.3ms line (Max budget for 30 FPS)
+            const maxScaleY = 10.0; // 10ms top of chart
+
+            // Draw 33.3ms or grid
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padTop + (chartH / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padLeft, y);
+                ctx.lineTo(w - padRight, y);
+                ctx.stroke();
+
+                const label = ((maxScaleY * (4 - i)) / 4).toFixed(1) + "ms";
+                ctx.fillStyle = "#64748b";
+                ctx.font = "11px 'JetBrains Mono'";
+                ctx.textAlign = "right";
+                ctx.fillText(label, padLeft - 8, y + 4);
+            }
+
+            // Points
+            const pts = [];
+            const stepX = runs.length > 1 ? chartW / (runs.length - 1) : chartW / 2;
+
+            runs.forEach((run, i) => {
+                const px = runs.length > 1 ? padLeft + i * stepX : padLeft + chartW / 2;
+                const py = padTop + chartH - (Math.min(run.tickMetrics.avgTickMs, maxScaleY) / maxScaleY) * chartH;
+                pts.push({ x: px, y: py, val: run.tickMetrics.avgTickMs, id: run.id, commit: run.commit });
+            });
+
+            // Gradient line fill
+            if (pts.length > 1) {
+                const grad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
+                grad.addColorStop(0, "rgba(79, 172, 254, 0.35)");
+                grad.addColorStop(1, "rgba(79, 172, 254, 0.0)");
+
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for (let i = 1; i < pts.length; i++) {
+                    ctx.lineTo(pts[i].x, pts[i].y);
+                }
+                ctx.lineTo(pts[pts.length - 1].x, padTop + chartH);
+                ctx.lineTo(pts[0].x, padTop + chartH);
+                ctx.closePath();
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Stroke line
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for (let i = 1; i < pts.length; i++) {
+                    ctx.lineTo(pts[i].x, pts[i].y);
+                }
+                ctx.strokeStyle = "#4facfe";
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            // Dots
+            pts.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = "#38ef7d";
+                ctx.fill();
+                ctx.strokeStyle = "#fff";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Value label
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 11px 'JetBrains Mono'";
+                ctx.textAlign = "center";
+                ctx.fillText(pt.val + "ms", pt.x, pt.y - 10);
+
+                // X label
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "11px 'JetBrains Mono'";
+                ctx.fillText("#" + pt.id + " (" + pt.commit + ")", pt.x, h - padBottom + 20);
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            fetchData();
+        });
+
+        fetchData();
+    </script>
+</body>
+</html>
