@@ -9,6 +9,14 @@ const deathRadius = document.getElementById("death-final-radius");
 const respawnBtn = document.getElementById("respawn-btn");
 const soundBtn = document.getElementById("sound-btn");
 const soundIcon = document.getElementById("sound-icon");
+const settingsBtn = document.getElementById("settings-btn");
+const soundSettingsModal = document.getElementById("sound-settings-modal");
+const closeSettingsBtn = document.getElementById("close-settings-btn");
+const volumeSlider = document.getElementById("volume-slider");
+const volumeVal = document.getElementById("volume-val");
+const soundOptBtns = document.querySelectorAll(".sound-opt-btn");
+const toggleBounces = document.getElementById("toggle-bounces");
+const toggleChomps = document.getElementById("toggle-chomps");
 const canvas = document.getElementById("canvas");
 const fpsBox = document.getElementById("current-fps");
 const playerStats = document.getElementById("player-stats");
@@ -52,6 +60,68 @@ if (soundBtn && window.soundManager) {
     soundBtn.addEventListener("click", () => {
         const isMuted = window.soundManager.toggleMute();
         soundIcon.textContent = isMuted ? "🔇" : "🔊";
+    });
+}
+
+// Setup audio preferences modal
+if (settingsBtn && soundSettingsModal) {
+    settingsBtn.addEventListener("click", () => {
+        if (window.soundManager) window.soundManager.init();
+        soundSettingsModal.style.display = soundSettingsModal.style.display === "none" ? "flex" : "none";
+    });
+}
+
+if (closeSettingsBtn && soundSettingsModal) {
+    closeSettingsBtn.addEventListener("click", () => {
+        soundSettingsModal.style.display = "none";
+    });
+}
+
+// Sync volume slider
+if (volumeSlider && window.soundManager) {
+    const currentVol = Math.round(window.soundManager.getVolume() * 100);
+    volumeSlider.value = currentVol;
+    if (volumeVal) volumeVal.textContent = currentVol + "%";
+
+    volumeSlider.addEventListener("input", (e) => {
+        const val = parseInt(e.target.value, 10);
+        if (volumeVal) volumeVal.textContent = val + "%";
+        window.soundManager.setVolume(val / 100);
+    });
+}
+
+// Sync dot sound style options
+if (soundOptBtns && soundOptBtns.length > 0 && window.soundManager) {
+    const currentStyle = window.soundManager.getDotStyle();
+    soundOptBtns.forEach((btn) => {
+        if (btn.dataset.style === currentStyle) {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+
+        btn.addEventListener("click", () => {
+            soundOptBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            const style = btn.dataset.style;
+            window.soundManager.setDotStyle(style);
+            window.soundManager.previewDotStyle(style);
+        });
+    });
+}
+
+// Sync effect toggles
+if (toggleBounces && window.soundManager) {
+    toggleBounces.checked = window.soundManager.isBouncesEnabled();
+    toggleBounces.addEventListener("change", (e) => {
+        window.soundManager.setBouncesEnabled(e.target.checked);
+    });
+}
+
+if (toggleChomps && window.soundManager) {
+    toggleChomps.checked = window.soundManager.isChompsEnabled();
+    toggleChomps.addEventListener("change", (e) => {
+        window.soundManager.setChompsEnabled(e.target.checked);
     });
 }
 
@@ -194,6 +264,12 @@ function sendMousePosition(evt) {
 function doKeyDown(evt) {
     if (window.soundManager) window.soundManager.init();
 
+    // Close settings modal on Escape
+    if (evt.keyCode === 27 && soundSettingsModal && soundSettingsModal.style.display !== "none") {
+        soundSettingsModal.style.display = "none";
+        return;
+    }
+
     // Quick respawn shortcut on Enter or Space when game over modal is active
     if (gameOverModal && gameOverModal.style.display !== "none") {
         if (evt.keyCode === 13 || evt.keyCode === 32) {
@@ -324,7 +400,7 @@ function onServerTick(data) {
         if (lastMyScore !== null && me.score > lastMyScore && window.soundManager) {
             const diff = me.score - lastMyScore;
             if (diff <= 20) {
-                window.soundManager.playPop();
+                window.soundManager.playDotSound(me.radius || 20);
             } else {
                 window.soundManager.playChomp();
             }

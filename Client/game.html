@@ -54,7 +54,7 @@
             padding: 8px 16px;
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
         }
         .logo {
             font-weight: 800;
@@ -77,7 +77,7 @@
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 8px;
             color: #f8fafc;
-            padding: 4px 10px;
+            padding: 5px 10px;
             font-size: 0.95rem;
             cursor: pointer;
             display: flex;
@@ -333,6 +333,153 @@
             color: #64748b;
             margin-top: 10px;
         }
+
+        /* Sound Preferences Modal */
+        #sound-settings-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 440px;
+            max-width: 90vw;
+            background: rgba(15, 23, 42, 0.96);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 239, 125, 0.1);
+            padding: 24px;
+            z-index: 110;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 12px;
+        }
+        .settings-header h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: color 0.15s, background 0.15s;
+        }
+        .close-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .settings-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .setting-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+        .volume-val-badge {
+            color: #38ef7d;
+            font-weight: 700;
+        }
+        .custom-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            accent-color: #38ef7d;
+            cursor: pointer;
+            outline: none;
+        }
+        .sound-options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .sound-opt-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 9px 12px;
+            cursor: pointer;
+            text-align: left;
+            color: #f8fafc;
+            font-family: inherit;
+            transition: all 0.15s ease;
+        }
+        .sound-opt-btn:hover {
+            background: rgba(51, 65, 85, 0.85);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+        .sound-opt-btn.active {
+            background: rgba(17, 153, 142, 0.22);
+            border-color: #38ef7d;
+            box-shadow: 0 0 12px rgba(56, 239, 125, 0.25);
+        }
+        .sound-opt-btn.active strong {
+            color: #38ef7d;
+        }
+        .opt-icon {
+            font-size: 1.3rem;
+        }
+        .opt-info {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .opt-info strong {
+            font-size: 0.85rem;
+            color: #f8fafc;
+            white-space: nowrap;
+        }
+        .opt-info small {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+        .toggles-section {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.88rem;
+            color: #cbd5e1;
+            cursor: pointer;
+        }
+        .toggle-row input[type="checkbox"] {
+            accent-color: #38ef7d;
+            width: 17px;
+            height: 17px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -342,8 +489,11 @@
         <div id="top-bar" class="hud-panel">
             <div class="logo">EAT 'EM ALL</div>
             <div class="fps-badge">FPS: <span id="current-fps" class="fps-val">60</span></div>
-            <button id="sound-btn" class="sound-toggle-btn" title="Toggle Sound">
+            <button id="sound-btn" class="sound-toggle-btn" title="Toggle Mute">
                 <span id="sound-icon">🔊</span>
+            </button>
+            <button id="settings-btn" class="sound-toggle-btn" title="Audio Preferences">
+                <span>⚙️</span>
             </button>
         </div>
 
@@ -398,6 +548,79 @@
 
             <button type="button" id="respawn-btn">Respawn (Play Again)</button>
             <div class="respawn-hint">Press [Enter] or [Space] to respawn</div>
+        </div>
+
+        <!-- Audio Preferences Modal -->
+        <div id="sound-settings-modal" style="display: none;">
+            <div class="settings-header">
+                <h3>🔊 Audio Preferences</h3>
+                <button type="button" id="close-settings-btn" class="close-btn" title="Close">✕</button>
+            </div>
+
+            <!-- Volume Slider -->
+            <div class="settings-section">
+                <div class="setting-label-row">
+                    <span>Master Volume</span>
+                    <span id="volume-val" class="volume-val-badge">60%</span>
+                </div>
+                <input type="range" id="volume-slider" min="0" max="100" value="60" class="custom-slider" />
+            </div>
+
+            <!-- Dot Eating Sound Flavor -->
+            <div class="settings-section">
+                <div class="setting-label-row">
+                    <span>Dot Eating Flavor</span>
+                </div>
+                <div class="sound-options-grid">
+                    <button type="button" class="sound-opt-btn" data-style="melody">
+                        <span class="opt-icon">🎵</span>
+                        <div class="opt-info">
+                            <strong>Melody Scale</strong>
+                            <small>Pentatonic arpeggio</small>
+                        </div>
+                    </button>
+                    <button type="button" class="sound-opt-btn" data-style="bubble">
+                        <span class="opt-icon">🫧</span>
+                        <div class="opt-info">
+                            <strong>Bubble Pop</strong>
+                            <small>Classic water drop</small>
+                        </div>
+                    </button>
+                    <button type="button" class="sound-opt-btn" data-style="woodblock">
+                        <span class="opt-icon">🪵</span>
+                        <div class="opt-info">
+                            <strong>Woodblock</strong>
+                            <small>Quiet ASMR click</small>
+                        </div>
+                    </button>
+                    <button type="button" class="sound-opt-btn" data-style="retro">
+                        <span class="opt-icon">👾</span>
+                        <div class="opt-info">
+                            <strong>Retro 8-Bit</strong>
+                            <small>Chiptune arcade blip</small>
+                        </div>
+                    </button>
+                    <button type="button" class="sound-opt-btn" data-style="off" style="grid-column: span 2;">
+                        <span class="opt-icon">🔕</span>
+                        <div class="opt-info">
+                            <strong>Mute Dots Only</strong>
+                            <small>Keeps action sounds (Chomp, Bounce, Defeat)</small>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Effect Toggles -->
+            <div class="settings-section toggles-section">
+                <label class="toggle-row">
+                    <span>Elastic Bounce Impacts</span>
+                    <input type="checkbox" id="toggle-bounces" checked />
+                </label>
+                <label class="toggle-row">
+                    <span>Player Eating (Chomp)</span>
+                    <input type="checkbox" id="toggle-chomps" checked />
+                </label>
+            </div>
         </div>
     </div>
 
