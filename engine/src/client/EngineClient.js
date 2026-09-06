@@ -200,10 +200,105 @@
         }
     }
 
+
+    class NetworkClient {
+        constructor(url) {
+            this.url = url || this.getDefaultUrl();
+            this.ws = null;
+            this.listeners = new Map();
+            this.reconnectAttempts = 0;
+            this.maxReconnectAttempts = 20;
+            this.reconnectDelay = 1500;
+            this.isConnected = false;
+            this.connect();
+        }
+
+        getDefaultUrl() {
+            if (typeof window !== 'undefined' && window.location) {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                return `${protocol}//${window.location.host}/ws`;
+            }
+            return 'ws://localhost:4444/ws';
+        }
+
+        connect() {
+            try {
+                this.ws = new WebSocket(this.url);
+
+                this.ws.onopen = () => {
+                    this.isConnected = true;
+                    this.reconnectAttempts = 0;
+                    this.emitLocal('connect');
+                };
+
+                this.ws.onclose = () => {
+                    this.isConnected = false;
+                    this.emitLocal('disconnect');
+                    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                        this.reconnectAttempts++;
+                        setTimeout(() => this.connect(), this.reconnectDelay);
+                    }
+                };
+
+                this.ws.onerror = (err) => {
+                    this.emitLocal('error', err);
+                };
+
+                this.ws.onmessage = (event) => {
+                    try {
+                        const parsed = JSON.parse(event.data);
+                        if (parsed && parsed.event) {
+                            this.emitLocal(parsed.event, parsed.data);
+                        }
+                    } catch (e) {
+                        console.error('[NetworkClient] Failed to parse message:', e);
+                    }
+                };
+            } catch (err) {
+                console.error('[NetworkClient] Connection error:', err);
+                setTimeout(() => this.connect(), this.reconnectDelay);
+            }
+        }
+
+        on(event, handler) {
+            if (!this.listeners.has(event)) {
+                this.listeners.set(event, []);
+            }
+            this.listeners.get(event).push(handler);
+        }
+
+        off(event, handler) {
+            if (!this.listeners.has(event)) return;
+            const list = this.listeners.get(event);
+            const index = list.indexOf(handler);
+            if (index !== -1) list.splice(index, 1);
+        }
+
+        emit(event, data) {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({ event, data }));
+            }
+        }
+
+        emitLocal(event, data) {
+            const handlers = this.listeners.get(event);
+            if (handlers) {
+                for (let i = 0; i < handlers.length; i++) {
+                    try {
+                        handlers[i](data);
+                    } catch (e) {
+                        console.error(`[NetworkClient] Error in handler for event "${event}":`, e);
+                    }
+                }
+            }
+        }
+    }
+
     global.EngineClient = {
         Camera,
         Interpolator,
         InputManager,
-        ParticleEngine
+        ParticleEngine,
+        NetworkClient
     };
 })(typeof window !== 'undefined' ? window : global);

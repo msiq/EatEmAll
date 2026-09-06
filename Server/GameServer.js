@@ -1,19 +1,22 @@
-﻿const express = require('express');
-const app = express();
-const http = require('http').Server(app);
-const { Server } = require('socket.io');
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
 const path = require('path');
 
 function GameServer() {
+    this.app = express();
+    this.httpServer = http.createServer(this.app);
     this.sockets = [];
+    this.socketMap = new Map();
     this.game = {};
-    let io = null;
+    this.wss = null;
+    let nextSocketId = 1;
 
-    this.serve = (game) => {
+    this.serve = (game, options) => {
         this.game = game;
-        io = new Server(http, {
-            cors: { origin: "*" }
-        });
+        this.wss = new WebSocket.Server({ server: this.httpServer, path: '/ws' });
+        const wss = this.wss;
+        const app = this.app;
 
         return new Promise((resolve, reject) => {
             // Silence favicon 404 noise
@@ -22,9 +25,15 @@ function GameServer() {
             // Enable JSON body parsing for API endpoints
             app.use(express.json());
 
-            // Serve Client assets safely
-            app.use('/Client', express.static(path.join(__dirname, '../Client')));
-            app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../Client/game.html')));
+            // Serve Engine & Client assets safely
+            app.use('/engine/client', express.static(path.join(__dirname, '../client')));
+            app.use('/Client', express.static(path.join(__dirname, '../../../Client')));
+            if (options && options.clientDir) {
+                app.use('/game/client', express.static(options.clientDir));
+                app.get('/', (req, res) => res.sendFile(path.join(options.clientDir, 'game.html')));
+            } else {
+                app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../../../Client/game.html')));
+            }
             app.get('/benchmark', (req, res) => res.sendFile(path.join(__dirname, '../Client/benchmark.html')));
             app.get('/benchmark-data', (req, res) => res.sendFile(path.join(__dirname, '../benchmark_history.json')));
 
@@ -62,44 +71,58 @@ function GameServer() {
             });
 
             // Start listening on configured port
-            const port = this.game.config.gameport || 4444;
-            http.listen(port, () => {
-                console.log('Game server listening on port: ' + port);
+            const port = (this.game && this.game.config && this.game.config.gameport) || 4444;
+            this.httpServer.listen(port, () => {
+                // Only log when not in silent mode
+                if (!options || !options.silent) {
+                    console.log('Game server listening on port: ' + port);
+                }
             });
 
-            io.on('connection', (sock) => {
+            wss.on('connection', (sock, req) => {
+                const sockId = 'ws_' + (nextSocketId++) + '_' + Math.random().toString(36).substring(2, 7);
+                sock.id = sockId;
                 this.sockets.push(sock);
-                console.log('New client connected: ' + sock.id);
+                this.socketMap.set(sockId, sock);
 
-                sock.on('letmeplay', (data) => {
-                    if (this.game && typeof this.game.onletMePlay === 'function') {
-                        data = data || {};
-                        data.socketId = sock.id;
-                        this.game.onletMePlay(data);
+                sock.on('message', (raw) => {
+                    try {
+                        const parsed = JSON.parse(raw);
+                        const event = parsed.event;
+                        const data = parsed.data || {};
+
+                        if (event === 'letmeplay') {
+                            if (this.game && typeof this.game.onletMePlay === 'function') {
+                                data.socketId = sock.id;
+                                this.game.onletMePlay(data);
+                            }
+                        } else if (event === 'input') {
+                            if (this.game && typeof this.game.playerInput === 'function') {
+                                this.game.playerInput(data);
+                            }
+                        } else if (event === 'click') {
+                            if (this.game && typeof this.game.playerClick === 'function') {
+                                this.game.playerClick(data);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[GameServer] Failed to process message:', e);
                     }
                 });
 
-                sock.on('input', (data) => {
-                    if (this.game && typeof this.game.playerInput === 'function') {
-                        this.game.playerInput(data);
-                    }
-                });
-
-                sock.on('click', (data) => {
-                    if (this.game && typeof this.game.playerClick === 'function') {
-                        this.game.playerClick(data);
-                    }
-                });
-
-                sock.on('disconnect', () => {
-                    console.log('Client disconnected: ' + sock.id);
-                    let index = this.sockets.indexOf(sock);
+                sock.on('close', () => {
+                    this.socketMap.delete(sock.id);
+                    const index = this.sockets.indexOf(sock);
                     if (index >= 0) {
                         this.sockets.splice(index, 1);
                     }
                     if (this.game && typeof this.game.onPlayerDisconnect === 'function') {
                         this.game.onPlayerDisconnect(sock.id);
                     }
+                });
+
+                sock.on('error', (err) => {
+                    console.error('[GameServer] Client socket error:', sock.id, err.message);
                 });
             });
 
@@ -110,33 +133,74 @@ function GameServer() {
 
     this.letEmPlay = (player, socketId, allDots) => {
         const targetId = socketId || (player && (player.socket_id || player.socketId));
-        if (io && targetId) {
-            io.to(targetId).emit('play', { player, dots: allDots || [] });
+        const sock = this.socketMap.get(targetId);
+        if (sock && sock.readyState === WebSocket.OPEN) {
+            sock.send(JSON.stringify({
+                event: 'play',
+                data: { player, dots: allDots || [] }
+            }));
         }
     };
 
     this.gameOver = (socketId, stats) => {
-        if (io && socketId) {
-            io.to(socketId).emit('gameover', stats);
+        const sock = this.socketMap.get(socketId);
+        if (sock && sock.readyState === WebSocket.OPEN) {
+            sock.send(JSON.stringify({
+                event: 'gameover',
+                data: stats
+            }));
         }
     };
 
     this.goAway = (socketId) => {
-        if (io && socketId) {
-            io.to(socketId).emit('goaway');
+        const sock = this.socketMap.get(socketId);
+        if (sock && sock.readyState === WebSocket.OPEN) {
+            sock.send(JSON.stringify({
+                event: 'goaway'
+            }));
         }
     };
 
     this.doTick = (data) => {
-        if (io) {
-            io.emit('tick', JSON.stringify({
-                players: data.players,
-                dotsDelta: data.dotsDelta || [],
-                fps: data.fps,
-                events: data.events || [],
-                gameState: data.gameState || null,
-            }));
+        if (this.wss && this.wss.clients && this.wss.clients.size > 0) {
+            const payload = JSON.stringify({
+                event: 'tick',
+                data: {
+                    players: data.players,
+                    dotsDelta: data.dotsDelta || [],
+                    fps: data.fps,
+                    events: data.events || [],
+                    gameState: data.gameState || null
+                }
+            });
+
+            for (const client of this.wss.clients) {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(payload);
+                }
+            }
         }
+    };
+
+    this.close = () => {
+        return new Promise((resolve) => {
+            if (this.wss) {
+                for (const client of this.wss.clients) {
+                    try { client.terminate(); } catch (e) {}
+                }
+                this.wss.close(() => {
+                    if (this.httpServer) {
+                        this.httpServer.close(resolve);
+                    } else {
+                        resolve();
+                    }
+                });
+            } else if (this.httpServer) {
+                this.httpServer.close(resolve);
+            } else {
+                resolve();
+            }
+        });
     };
 }
 

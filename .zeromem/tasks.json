@@ -120,6 +120,18 @@
       "childrenIds": [],
       "actionCommand": "npm test",
       "specId": "engine-architecture"
+    },
+    {
+      "id": "EEA-111",
+      "title": "Migrate transport layer from Socket.IO to native Raw WebSockets (ws)",
+      "description": "Replaced Socket.IO with native ws library on server and window.WebSocket on client. Implemented single-pass broadcast serialization, achieving 228k msg/sec throughput (6.5x speedup) and sub-millisecond input latency (0.23ms).",
+      "status": "done",
+      "priority": 1,
+      "order": 11,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "npm run benchmark:network",
+      "specId": "engine-architecture"
     }
   ]
 }

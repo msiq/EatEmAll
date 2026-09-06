@@ -13,7 +13,7 @@ function showRoundWinnerBanner(winner, score) {
         }, 5000);
     }
 }
-﻿const socket = io();
+﻿const socket = new EngineClient.NetworkClient();
 const loginModal = document.getElementById("menu");
 const loginBtn = document.getElementById("login-btn");
 const userNameInput = document.getElementById("user-name");
@@ -254,7 +254,7 @@ socket.on("goaway", () => {
 
 socket.on("tick", (raw) => {
     try {
-        const data = JSON.parse(raw);
+        const data = typeof raw === "string" ? JSON.parse(raw) : raw;
         onServerTick(data);
     } catch (e) {}
 });
