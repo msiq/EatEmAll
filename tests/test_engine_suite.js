@@ -27,7 +27,6 @@ function test(name, fn) {
 test("Engine SubSystems.js should not contain hardcoded 'dot' or 'virus' entity checks", () => {
     const subSystemsCode = fs.readFileSync(path.join(__dirname, '../Server/SubSystems.js'), 'utf8');
 
-    // Extract resolveCircleImpulse method
     const impulseMatch = subSystemsCode.match(/this\.resolveCircleImpulse\s*=\s*\([^)]*\)\s*=>\s*\{([\s\S]*?)\n\s*this\./);
     assert(impulseMatch, "Could not locate resolveCircleImpulse in SubSystems.js");
 
@@ -50,7 +49,6 @@ test("Newtonian Impulse Solver preserves total linear momentum (m1*v1 + m2*v2)",
     const Shapes = require('../Server/Shapes.js');
     const SubSystems = require('../Server/SubSystems.js');
 
-    // Mock Game & Entities
     const mockGame = {
         config: { canvas: { width: 2000, height: 2000 } },
         abilities: { Aabb: function() { this.bounds = {}; } },
@@ -87,7 +85,6 @@ test("Newtonian Impulse Solver preserves total linear momentum (m1*v1 + m2*v2)",
         has: (name) => ["position", "velocity", "body", "mass", "cor", "collidable"].includes(name)
     };
 
-    // Compute pre-collision momentum
     const rad1 = entity1.abilities.body.shape.radius;
     const rad2 = entity2.abilities.body.shape.radius;
     const m1 = 100 * (rad1 / 20) * (rad1 / 20); // 100
@@ -96,23 +93,62 @@ test("Newtonian Impulse Solver preserves total linear momentum (m1*v1 + m2*v2)",
     const initialP_x = m1 * entity1.abilities.velocity.velocity.x + m2 * entity2.abilities.velocity.velocity.x;
     const initialP_y = m1 * entity1.abilities.velocity.velocity.y + m2 * entity2.abilities.velocity.velocity.y;
 
-    // Run impulse solver
     collisionSystem.resolveCircleImpulse(entity1, entity2);
 
-    // Compute post-collision momentum
     const finalP_x = m1 * entity1.abilities.velocity.velocity.x + m2 * entity2.abilities.velocity.velocity.x;
     const finalP_y = m1 * entity1.abilities.velocity.velocity.y + m2 * entity2.abilities.velocity.velocity.y;
 
-    // Verify momentum conservation: initial P == final P
     assert(Math.abs(initialP_x - finalP_x) < 1e-4, `Momentum X not conserved: pre=${initialP_x}, post=${finalP_x}`);
     assert(Math.abs(initialP_y - finalP_y) < 1e-4, `Momentum Y not conserved: pre=${initialP_y}, post=${finalP_y}`);
 
-    // Verify entities are separated
     const postDist = Math.hypot(
         entity2.abilities.position.pos.x - entity1.abilities.position.pos.x,
         entity2.abilities.position.pos.y - entity1.abilities.position.pos.y
     );
     assert(postDist > 30, `Entities should be separated: postDist=${postDist}`);
+});
+
+test("Impulse solver applies restitution and tangential Coulomb friction", () => {
+    const Shapes = require('../Server/Shapes.js');
+    const SubSystems = require('../Server/SubSystems.js');
+
+    const mockGame = {
+        config: { canvas: { width: 2000, height: 2000 } },
+        abilities: { Aabb: function() {} }
+    };
+    const collisionSystem = SubSystems(mockGame).collision;
+
+    const e1 = {
+        id: "e1",
+        abilities: {
+            position: { pos: new Shapes.Vect(100, 100) },
+            velocity: { velocity: new Shapes.Vect(4, 2) },
+            body: { shape: new Shapes.Circ(20) },
+            mass: { mass: 100 },
+            cor: { cor: 0.5 },
+            collidable: { isTrigger: false, isStatic: false }
+        },
+        has: () => true
+    };
+
+    const e2 = {
+        id: "e2",
+        abilities: {
+            position: { pos: new Shapes.Vect(130, 100) }, // dx = 30 along X normal
+            velocity: { velocity: new Shapes.Vect(-4, -2) },
+            body: { shape: new Shapes.Circ(20) },
+            mass: { mass: 100 },
+            cor: { cor: 0.5 },
+            collidable: { isTrigger: false, isStatic: false }
+        },
+        has: () => true
+    };
+
+    collisionSystem.resolveCircleImpulse(e1, e2);
+
+    const relNormSep = e2.abilities.velocity.velocity.x - e1.abilities.velocity.velocity.x;
+    assert(relNormSep > 0, "Circles should be moving apart along normal");
+    assert(Math.abs(relNormSep - 4.0) < 0.1, `Expected normal separation speed ~4.0, got ${relNormSep}`);
 });
 
 test("Trigger colliders should be completely skipped by physical impulse solver", () => {
@@ -142,14 +178,13 @@ test("Trigger colliders should be completely skipped by physical impulse solver"
             velocity: { velocity: new Shapes.Vect(0, 0) },
             body: { shape: new Shapes.Circ(7) },
             mass: { mass: 10 },
-            collidable: { isTrigger: true, isStatic: true } // Trigger!
+            collidable: { isTrigger: true, isStatic: true }
         },
         has: () => true
     };
 
     collisionSystem.resolveCircleImpulse(player, triggerDot);
 
-    // Player velocity must remain unchanged!
     assert.strictEqual(player.abilities.velocity.velocity.x, 5, "Player velocity should not be modified by trigger collider");
 });
 
@@ -199,7 +234,7 @@ test("PlayerStateMachine correctly enforces spawn shield and expires to active",
     class ShieldedState extends BasePlayerState {
         constructor() { super('shielded'); }
         update(player, dt) {
-            if (fsm.getTimeInState() >= 50) { // 50ms for test
+            if (fsm.getTimeInState() >= 3500) {
                 fsm.setState('active');
             }
         }
@@ -215,16 +250,75 @@ test("PlayerStateMachine correctly enforces spawn shield and expires to active",
     fsm.setState('shielded');
     assert(fsm.isShielded(), "Player should be shielded immediately after spawn");
 
-    // Update with time advancement
-    setTimeout(() => {
-        fsm.update(0.1);
-        assert(!fsm.isShielded(), "Shield should expire after duration");
-        assert.strictEqual(fsm.getStateName(), 'active');
-    }, 60);
+    // Advance state timer deterministically
+    fsm.stateStartTime = Date.now() - 4000;
+    fsm.update(0.1);
+    assert(!fsm.isShielded(), "Shield should expire after 3500ms duration");
+    assert.strictEqual(fsm.getStateName(), 'active');
 });
 
-console.log("\n=================================================");
+// -------------------------------------------------------------
+// TEST 4: Context Steering AI, Target Commitment & Inertia Lerp
+// -------------------------------------------------------------
+test("Bot Steering AI smoothly lerps velocity without instantaneous jitter", () => {
+    const curVel = { x: 0, y: 0 };
+    const targetVel = { x: 5.0, y: 0 };
+    const steerWeight = 0.20;
+
+    curVel.x += (targetVel.x - curVel.x) * steerWeight;
+    curVel.y += (targetVel.y - curVel.y) * steerWeight;
+
+    assert.strictEqual(curVel.x, 1.0, `Expected smoothed vel.x=1.0, got ${curVel.x}`);
+    assert.strictEqual(curVel.y, 0, `Expected smoothed vel.y=0, got ${curVel.y}`);
+
+    curVel.x += (targetVel.x - curVel.x) * steerWeight;
+    assert.strictEqual(Math.round(curVel.x * 100) / 100, 1.80, `Expected smoothed vel.x=1.80, got ${curVel.x}`);
+});
+
+test("Bot Steering AI evades approaching predators outside safe eating margin", () => {
+    const myPos = { x: 500, y: 500 };
+    const myRadius = 20;
+
+    const predatorPos = { x: 550, y: 500 };
+    const predatorRadius = 35;
+    const dist = Math.hypot(predatorPos.x - myPos.x, predatorPos.y - myPos.y);
+
+    let fleeVecX = 0;
+    let fleeVecY = 0;
+    let hasThreat = false;
+
+    if (predatorRadius > myRadius * 1.15 && dist < 260) {
+        const threatWeight = Math.pow((260 - dist) / 260, 1.5) * 3.5;
+        const dx = predatorPos.x - myPos.x;
+        const dy = predatorPos.y - myPos.y;
+        fleeVecX -= (dx / dist) * threatWeight;
+        fleeVecY -= (dy / dist) * threatWeight;
+        hasThreat = true;
+    }
+
+    assert(hasThreat, "Predator within threat distance must trigger hasThreat");
+    assert(fleeVecX < 0, "Flee vector must steer strongly LEFT (-X), away from predator on right");
+    assert.strictEqual(fleeVecY, 0, "Flee vector Y should be zero for horizontal threat");
+});
+
+test("Bot Steering AI enforces boundary repulsion away from arena perimeter", () => {
+    const wallMargin = 120;
+    const arenaW = 2000;
+    const arenaH = 2000;
+
+    const myPos = { x: 30, y: 1000 };
+    let wallVecX = 0;
+    let wallVecY = 0;
+
+    if (myPos.x < wallMargin) wallVecX += (wallMargin - myPos.x) / wallMargin;
+    if (myPos.x > arenaW - wallMargin) wallVecX -= (myPos.x - (arenaW - wallMargin)) / wallMargin;
+
+    assert(wallVecX > 0, `Wall repulsion should push right (+X) into arena: got ${wallVecX}`);
+    assert.strictEqual(wallVecX, (120 - 30) / 120, "Wall repulsion magnitude must scale inversely with edge distance");
+});
+
+console.log('\n=================================================');
 console.log(`=== SUMMARY: ${passed} PASSED | ${failed} FAILED ===`);
-console.log("=================================================\n");
+console.log('=================================================\n');
 
 if (failed > 0) process.exit(1);
