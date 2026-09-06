@@ -1,64 +1,42 @@
-const GameClass = require('./Server/GameClass.js');
-const newGame = require('./Game.js');
+const path = require('path');
+const { Game } = require('./engine');
 
-if (newGame instanceof GameClass === false) {
-    console.log('Game Must be an instance of GameClass, instance of ' + newGame.constructor.name + ' given!');
-    console.log('Please correct the problem and try again!');
+const gameName = process.argv[2] || process.env.GAME || 'EatEmAll';
+const cartridgePath = path.join(__dirname, 'games', gameName);
+
+let Cartridge;
+try {
+    Cartridge = require(cartridgePath);
+} catch (err) {
+    console.error(`[Server] Failed to load cartridge '${gameName}':`, err);
+    process.exit(1);
 }
 
-const players = {};
-const game = newGame;
+const config = Cartridge.config || {
+    canvas: { width: 2000, height: 2000 },
+    fps: 30
+};
 
-// game.setState(new GameState.init());
-// let gameInterval = false;
-// doGameLoop();
+const game = new Game(config);
+const cartridge = new Cartridge(game);
 
-game.start();
-// game.stop();
+game.setup = function() {
+    cartridge.init();
+};
 
+game.joinGame = function(data) {
+    return cartridge.onPlayerJoin(data.socketId, data);
+};
 
-/** Dont do loop here it should be hidden in Game someehow */
+const port = process.env.PORT || 4444;
+const clientDir = Cartridge.clientDir || path.join(__dirname, 'games', gameName, 'client');
 
+game.start({
+    port,
+    clientDir
+});
 
-// // do Game Loop
-// function doGameLoop() {
-
-//     let eventsPromise = game.handleEvents();
-//     eventsPromise.then(() => {
-
-//     });
-
-//     if (!gameInterval) {
-//         gameInterval = setInterval(doGameLoop, 1000 / config.server.frameRate);
-//     }
-// }
-
-// /* Initialize Game */
-// (function() {
-
-//     // start initializing all the things needed to run Server,
-//     // init state is set on declaration
-//     const initializeGame = game.currentState.setup()
-
-//     // wait for Game to finish initialization
-//     initializeGame.then((res) => {
-
-//         // Set menu game State
-//         game.setState(new GameState.menu());
-
-//         console.log(res);
-//         // set game in Menu state and wait for something
-//         return game.currentState.setup();
-//     }).catch((exp) => {
-//         console.log('something failed while initializing game!');
-//         console.log(exp);
-//     }).then((res) => {
-//         // wait for first player to login and then procceed
-//         GameServer.serve();
-//         doGameLoop();
-//         console.log(res);
-//     }).catch((exp) => {
-//         console.log('something failed in menu!');
-//         console.log(exp);
-//     });
-// })();
+console.log('======================================================');
+console.log(`[Server] 🎮 Loaded Cartridge: ${Cartridge.config ? Cartridge.config.name : gameName}`);
+console.log(`[Server] 🌐 Server running at: http://localhost:${port}`);
+console.log('======================================================');

@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engine Performance Dashboard | Eat 'Em All</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --card-bg: rgba(18, 26, 43, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #38ef7d;
+            --primary-glow: rgba(56, 239, 125, 0.25);
+            --accent: #4facfe;
+            --accent-glow: rgba(79, 172, 254, 0.25);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(56, 239, 125, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(79, 172, 254, 0.08) 0%, transparent 40%),
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.85rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .badge-live {
+            background: rgba(56, 239, 125, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(56, 239, 125, 0.3);
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .badge-live::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 6px var(--primary)); }
+            100% { transform: scale(0.9); opacity: 0.8; }
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            border: none;
+            color: #042416;
+            font-weight: 700;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(56, 239, 125, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Control Panel & Telemetry Styles */
+        .control-panel-card {
+            background: rgba(18, 26, 43, 0.85);
+            border: 1px solid rgba(56, 239, 125, 0.2);
+            backdrop-filter: blur(20px);
+            border-radius: 18px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        }
+
+        .control-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .mode-badge {
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .mode-standard {
+            background: rgba(56, 239, 125, 0.15);
+            color: #38ef7d;
+            border: 1px solid rgba(56, 239, 125, 0.3);
+        }
+
+        .mode-unrestricted {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ff5252;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            animation: pulse-border 1.5s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .mode-switcher-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .btn-mode {
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-mode.active {
+            background: rgba(56, 239, 125, 0.2);
+            color: #38ef7d;
+            font-weight: 700;
+            box-shadow: 0 2px 10px rgba(56, 239, 125, 0.2);
+        }
+
+        .btn-mode.btn-turbo.active {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .telemetry-card {
+            background: rgba(10, 14, 23, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .telemetry-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .telemetry-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-main);
+        }
+
+        .telemetry-sub {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* Stat Cards Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-main);
+        }
+
+        .stat-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .stat-sub.positive {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Chart Section */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-header h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 280px;
+        }
+
+        /* History Table */
+        .history-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 0.95rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .commit-badge {
+            background: rgba(79, 172, 254, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .milestone-name {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>⚡ Engine Performance Dashboard</h1>
+            <span class="badge-live">Benchmarked Live</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn" onclick="fetchData()">🔄 Refresh</button>
+            <a href="/" class="btn btn-primary">🎮 Enter Arena</a>
+        </div>
+    </header>
+
+    <!-- Hardware Safety & Unrestricted Engine Mode Control -->
+    <div class="control-panel-card">
+        <div class="control-panel-header">
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <h2 style="font-size: 1.35rem; font-weight: 800; background: linear-gradient(135deg, #38ef7d 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        🛡️ Engine Execution Mode & Hardware Safety Protection
+                    </h2>
+                    <span id="active-mode-badge" class="mode-badge mode-standard">STANDARD MODE (30 Hz)</span>
+                </div>
+                <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    Switch between Eco-Friendly 30 Hz loop and Zero-Artificial-Restriction Uncapped Turbo simulation with active hardware protections against system freezes, memory crashes, and thermal CPU core throttling.
+                </p>
+            </div>
+            <div class="mode-switcher-group">
+                <button id="btn-mode-standard" class="btn btn-mode active" onclick="setEngineMode('standard')">
+                    🌱 Standard (30 Hz)
+                </button>
+                <button id="btn-mode-unrestricted" class="btn btn-mode btn-turbo" onclick="setEngineMode('unrestricted')">
+                    ⚡ Unrestricted Turbo
+                </button>
+            </div>
+        </div>
+
+        <div class="telemetry-grid">
+            <div class="telemetry-card">
+                <span class="telemetry-label">Live Simulation Rate</span>
+                <div class="telemetry-value" id="telem-tps">-- TPS</div>
+                <div class="telemetry-sub positive" id="telem-tps-sub">Target: 30 FPS Fixed</div>
+            </div>
+            <div class="telemetry-card">
+                <span class="telemetry-label">Event Loop Lag</span>
+                <div class="telemetry-value" id="telem-lag">-- ms</div>
+                <div class="telemetry-sub" id="telem-lag-sub">Safe Limit: &lt; 25.0 ms</div>
+            </div>
+            <div class="telemetry-card">
+                <span class="telemetry-label">V8 Heap Memory</span>
+                <div class="telemetry-value" id="telem-heap">-- MB</div>
+                <div class="telemetry-sub" id="telem-heap-sub">Ceiling: 1,400 MB</div>
+            </div>
+            <div class="telemetry-card">
+                <span class="telemetry-label">Tripwire Sentinel</span>
+                <div class="telemetry-value" id="telem-status" style="color: #38ef7d;">NORMAL</div>
+                <div class="telemetry-sub" id="telem-trip-count">0 Interventions</div>
+            </div>
+            <div class="telemetry-card">
+                <span class="telemetry-label">Network Backpressure</span>
+                <div class="telemetry-value" style="color: #4facfe;">60 Hz</div>
+                <div class="telemetry-sub">Client Broadcast Gate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat Highlights -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Average Server Tick</span>
+            <span class="stat-value" id="stat-tick-time">-- ms</span>
+            <span class="stat-sub positive">Target: 33.3 ms (30 FPS)</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">CPU Frame Headroom</span>
+            <span class="stat-value" id="stat-headroom">-- %</span>
+            <span class="stat-sub positive">Only 4.8% CPU frame time used</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Active World Entities</span>
+            <span class="stat-value" id="stat-entities">--</span>
+            <span class="stat-sub">1,000 Dots + 10 Bots + 18 Viruses</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Redundant Checks Saved</span>
+            <span class="stat-value" id="stat-reduction">99.8%</span>
+            <span class="stat-sub positive">Quadtree $O(N \log N)$ vs $O(N^2)$</span>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-container">
+        <!-- Chart 1: Collision Complexity Scaling -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>📊 Collision Checks: Brute Force vs. Quadtree</h3>
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono'">Scale N = 100 to 2000</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="chart-scaling"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 2: Historical Tick Times -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>📈 Tick Execution Time History (ms)</h3>
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono'">Lower is better</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="chart-history"></canvas>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Full-Width Breaking Point Chart -->
+    <div class="chart-card" style="margin-top: 0.5rem;">
+        <div class="chart-header">
+            <h3>💥 Dynamic Engine Breaking Point Discovery</h3>
+            <span id="bp-status-badge" style="font-size: 0.85rem; color: #38ef7d; font-weight: 700; font-family: 'JetBrains Mono';">Active Limit: 14,700 Bots (34.3 ms) | 200,000+ World Entities</span>
+        </div>
+        <div style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
+            Our automated breaking point suite dynamically scales the engine until it hits the exact point of breakdown (> 33.33 ms / 30 FPS budget limit).
+            <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; margin-bottom: 0.25rem; flex-wrap: wrap;">
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 6px 12px; border-radius: 8px;">
+                    <span style="color: #ef4444; font-weight: bold; font-family: 'JetBrains Mono';">Legacy Before-Fix Break:</span> <strong>6,000 Entities</strong> (35.25 ms, JSON serialization)
+                </div>
+                <div style="background: rgba(56, 239, 125, 0.1); border: 1px solid rgba(56, 239, 125, 0.3); padding: 6px 12px; border-radius: 8px;">
+                    <span style="color: #38ef7d; font-weight: bold; font-family: 'JetBrains Mono';">Moving Agent Breaking Point:</span> <strong id="bp-bot-val">14,700 Bots</strong> (34.25 ms, CPU Bound)
+                </div>
+                <div style="background: rgba(79, 172, 254, 0.1); border: 1px solid rgba(79, 172, 254, 0.3); padding: 6px 12px; border-radius: 8px;">
+                    <span style="color: #4facfe; font-weight: bold; font-family: 'JetBrains Mono';">Static World Capacity:</span> <strong id="bp-dot-val">200,000+ Entities</strong> (0.51 ms, 1.3 GB RAM)
+                </div>
+            </div>
+        </div>
+        <div class="chart-container" style="height: 270px;">
+            <canvas id="chart-breaking-point"></canvas>
+        </div>
+    </div>
+
+        <!-- Run History Table -->
+    <div class="history-card">
+        <div class="chart-header">
+            <h3>📑 Benchmark Progression Log</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Automatically recorded on every test run</span>
+        </div>
+        <div class="table-wrap">
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Timestamp</th>
+                        <th>Commit</th>
+                        <th>Milestone / Change</th>
+                        <th>Entities</th>
+                        <th>Avg Tick</th>
+                        <th>Min / Max</th>
+                        <th>CPU Headroom</th>
+                        <th>Heap RAM</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body">
+                    <tr><td colspan="9" style="text-align: center; color: var(--text-muted)">Loading benchmark history...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            try {
+                const res = await fetch('/benchmark-data');
+                const data = await res.json();
+                renderDashboard(data);
+            } catch(e) {
+                console.error("Failed to load benchmark data:", e);
+            }
+        }
+
+        function renderDashboard(data) {
+            if (!data || !data.runs || data.runs.length === 0) return;
+
+            const latest = data.runs[data.runs.length - 1];
+
+            // 1. Update Stat Cards
+            document.getElementById('stat-tick-time').textContent = latest.tickMetrics.avgTickMs + ' ms';
+            document.getElementById('stat-headroom').textContent = latest.tickMetrics.cpuBudgetHeadroomPct + '%';
+            document.getElementById('stat-entities').textContent = latest.entities.total;
+
+            // Update Breaking Point Badges if present
+            if (data.activeBreakingPoints) {
+                const bp = data.activeBreakingPoints;
+                if (bp.movingBots) {
+                    const botEl = document.getElementById('bp-bot-val');
+                    if (botEl) botEl.textContent = bp.movingBots.breakingPoint.toLocaleString() + ' Bots (' + bp.movingBots.tickMs + ' ms)';
+                }
+                if (bp.worldEntities) {
+                    const dotEl = document.getElementById('bp-dot-val');
+                    if (dotEl) dotEl.textContent = bp.worldEntities.safeLimit.toLocaleString() + '+ Entities';
+                }
+                const badge = document.getElementById('bp-status-badge');
+                if (badge && bp.movingBots) {
+                    badge.textContent = 'Active Limit: ' + bp.movingBots.breakingPoint.toLocaleString() + ' Bots (' + bp.movingBots.tickMs + ' ms) | 200,000+ World Entities';
+                }
+            }
+
+            // 2. Render Table
+            const tbody = document.getElementById('history-body');
+            if (tbody) {
+                tbody.innerHTML = '';
+                data.runs.slice().reverse().forEach((run, idx) => {
+                    const tr = document.createElement('tr');
+                    const d = new Date(run.timestamp);
+                    const timeStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+
+                    tr.innerHTML = `
+                        <td>${run.id}</td>
+                        <td style="color: var(--text-muted)">${timeStr}</td>
+                        <td><span class="commit-badge">${run.commit}</span></td>
+                        <td class="milestone-name">${run.milestone}</td>
+                        <td>${run.entities.total}</td>
+                        <td style="color: var(--primary); font-weight: 700">${run.tickMetrics.avgTickMs} ms</td>
+                        <td style="color: var(--text-muted)">${run.tickMetrics.minTickMs} / ${run.tickMetrics.maxTickMs} ms</td>
+                        <td style="color: #38ef7d">${run.tickMetrics.cpuBudgetHeadroomPct}%</td>
+                        <td>${run.memoryMB.heapUsed} MB</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // 3. Draw Charts
+            drawScalingChart(latest.scaling);
+            drawHistoryChart(data.runs);
+
+            // 5. Render Breaking Point Chart
+            drawBreakingPointChart();
+        }
+
+        function drawScalingChart(scaling) {
+            const canvas = document.getElementById('chart-scaling');
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.parentElement.clientWidth;
+            const h = canvas.parentElement.clientHeight;
+
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+
+            ctx.clearRect(0, 0, w, h);
+
+            if (!scaling || scaling.length === 0) return;
+
+            const padLeft = 60;
+            const padBottom = 40;
+            const padTop = 20;
+            const padRight = 30;
+            const chartW = w - padLeft - padRight;
+            const chartH = h - padTop - padBottom;
+
+            // Max checks = 2,000,000
+            const maxVal = 2000000;
+
+            // Draw Grid
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padTop + (chartH / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padLeft, y);
+                ctx.lineTo(w - padRight, y);
+                ctx.stroke();
+
+                const label = ((maxVal * (4 - i)) / 4 / 1000).toFixed(0) + "k";
+                ctx.fillStyle = "#64748b";
+                ctx.font = "11px 'JetBrains Mono'";
+                ctx.textAlign = "right";
+                ctx.fillText(label, padLeft - 10, y + 4);
+            }
+
+            const barWidth = chartW / scaling.length;
+
+            scaling.forEach((item, i) => {
+                const x = padLeft + i * barWidth + barWidth * 0.15;
+                const bw = barWidth * 0.7;
+
+                // Brute Force Bar (Red)
+                const bruteHeight = (item.bruteForceChecks / maxVal) * chartH;
+                const bruteY = padTop + chartH - bruteHeight;
+                ctx.fillStyle = "rgba(239, 68, 68, 0.65)";
+                ctx.fillRect(x, bruteY, bw * 0.48, bruteHeight);
+
+                // Quadtree Bar (Green)
+                const qtHeight = Math.max(3, (item.candidatePairs / maxVal) * chartH);
+                const qtY = padTop + chartH - qtHeight;
+                ctx.fillStyle = "rgba(56, 239, 125, 0.9)";
+                ctx.fillRect(x + bw * 0.52, qtY, bw * 0.48, qtHeight);
+
+                // X Label
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "12px 'Outfit', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("N=" + item.n, x + bw / 2, h - padBottom + 20);
+            });
+
+            // Legend
+            ctx.fillStyle = "rgba(239, 68, 68, 0.85)";
+            ctx.fillRect(w - 220, 10, 12, 12);
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "12px 'Outfit'";
+            ctx.textAlign = "left";
+            ctx.fillText("Brute Force O(N²)", w - 200, 20);
+
+            ctx.fillStyle = "rgba(56, 239, 125, 0.9)";
+            ctx.fillRect(w - 90, 10, 12, 12);
+            ctx.fillText("Quadtree", w - 70, 20);
+        }
+
+        function drawHistoryChart(runs) {
+            const canvas = document.getElementById('chart-history');
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.parentElement.clientWidth;
+            const h = canvas.parentElement.clientHeight;
+
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+
+            ctx.clearRect(0, 0, w, h);
+
+            if (!runs || runs.length === 0) return;
+
+            const padLeft = 50;
+            const padBottom = 40;
+            const padTop = 25;
+            const padRight = 30;
+            const chartW = w - padLeft - padRight;
+            const chartH = h - padTop - padBottom;
+
+            // Target 33.3ms line (Max budget for 30 FPS)
+            const maxScaleY = 10.0; // 10ms top of chart
+
+            // Draw 33.3ms or grid
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padTop + (chartH / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padLeft, y);
+                ctx.lineTo(w - padRight, y);
+                ctx.stroke();
+
+                const label = ((maxScaleY * (4 - i)) / 4).toFixed(1) + "ms";
+                ctx.fillStyle = "#64748b";
+                ctx.font = "11px 'JetBrains Mono'";
+                ctx.textAlign = "right";
+                ctx.fillText(label, padLeft - 8, y + 4);
+            }
+
+            // Points
+            const pts = [];
+            const stepX = runs.length > 1 ? chartW / (runs.length - 1) : chartW / 2;
+
+            runs.forEach((run, i) => {
+                const px = runs.length > 1 ? padLeft + i * stepX : padLeft + chartW / 2;
+                const py = padTop + chartH - (Math.min(run.tickMetrics.avgTickMs, maxScaleY) / maxScaleY) * chartH;
+                pts.push({ x: px, y: py, val: run.tickMetrics.avgTickMs, id: run.id, commit: run.commit });
+            });
+
+            // Gradient line fill
+            if (pts.length > 1) {
+                const grad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
+                grad.addColorStop(0, "rgba(79, 172, 254, 0.35)");
+                grad.addColorStop(1, "rgba(79, 172, 254, 0.0)");
+
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for (let i = 1; i < pts.length; i++) {
+                    ctx.lineTo(pts[i].x, pts[i].y);
+                }
+                ctx.lineTo(pts[pts.length - 1].x, padTop + chartH);
+                ctx.lineTo(pts[0].x, padTop + chartH);
+                ctx.closePath();
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Stroke line
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for (let i = 1; i < pts.length; i++) {
+                    ctx.lineTo(pts[i].x, pts[i].y);
+                }
+                ctx.strokeStyle = "#4facfe";
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            // Dots
+            pts.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = "#38ef7d";
+                ctx.fill();
+                ctx.strokeStyle = "#fff";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Value label
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 11px 'JetBrains Mono'";
+                ctx.textAlign = "center";
+                ctx.fillText(pt.val + "ms", pt.x, pt.y - 10);
+
+                // X label
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "11px 'JetBrains Mono'";
+                ctx.fillText("#" + pt.id + " (" + pt.commit + ")", pt.x, h - padBottom + 20);
+            });
+        }
+
+        
+        function drawBreakingPointChart() {
+            const canvas = document.getElementById('chart-breaking-point');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.parentElement.clientWidth;
+            const h = canvas.parentElement.clientHeight;
+
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+
+            ctx.clearRect(0, 0, w, h);
+
+            const padLeft = 60;
+            const padBottom = 48;
+            const padTop = 38;
+            const padRight = 30;
+            const chartW = w - padLeft - padRight;
+            const chartH = h - padTop - padBottom;
+
+            const maxVal = 75; // 75 ms scale
+
+            // Draw Legend
+            ctx.font = "12px 'Outfit'";
+            ctx.fillStyle = "rgba(239, 68, 68, 0.85)";
+            ctx.fillRect(padLeft, 10, 14, 14);
+            ctx.fillStyle = "#f8fafc";
+            ctx.textAlign = "left";
+            ctx.fillText("Before Fix (Full Snapshot)", padLeft + 20, 22);
+
+            ctx.fillStyle = "rgba(56, 239, 125, 0.85)";
+            ctx.fillRect(padLeft + 190, 10, 14, 14);
+            ctx.fillStyle = "#f8fafc";
+            ctx.fillText("After Fix (Delta Serialization)", padLeft + 210, 22);
+
+            // Draw Y-Axis Grid Lines
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = padTop + (chartH / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(padLeft, y);
+                ctx.lineTo(w - padRight, y);
+                ctx.stroke();
+
+                const label = ((maxVal * (5 - i)) / 5).toFixed(0) + " ms";
+                ctx.fillStyle = "#64748b";
+                ctx.font = "11px 'JetBrains Mono'";
+                ctx.textAlign = "right";
+                ctx.fillText(label, padLeft - 10, y + 4);
+            }
+
+            // Draw 33.33 ms Target Line (RED DASHED)
+            const targetY = padTop + chartH - (33.33 / maxVal) * chartH;
+            ctx.save();
+            ctx.setLineDash([6, 4]);
+            ctx.strokeStyle = "#ef4444";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padLeft, targetY);
+            ctx.lineTo(w - padRight, targetY);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = "#ef4444";
+            ctx.font = "bold 11px 'JetBrains Mono'";
+            ctx.textAlign = "right";
+            ctx.fillText("33.33 ms (30 FPS Budget Limit)", w - padRight, targetY - 6);
+
+            // Grouped Data Points: [Before, After]
+            const groups = [
+                { label: "1,000 Dots", before: 5.55, after: 0.30, sub: "18x faster" },
+                { label: "2,500 Dots", before: 10.06, after: 0.39, sub: "26x faster" },
+                { label: "6,000 Dots (OLD BREAK)", before: 35.25, after: 0.30, sub: "117x faster" },
+                { label: "10,000 Dots (OLD CHOKE)", before: 61.49, after: 0.29, sub: "212x faster" },
+                { label: "50,000 Dots", before: null, after: 0.72, sub: "30.0 FPS" },
+                { label: "100,000 Dots", before: null, after: 0.41, sub: "30.0 FPS" },
+                { label: "200,000 Dots (CAP)", before: null, after: 0.51, sub: "1.3 GB RAM" }
+            ];
+
+            const groupW = chartW / groups.length;
+            const barW = groupW * 0.36;
+
+            groups.forEach((g, idx) => {
+                const groupX = padLeft + idx * groupW;
+
+                // 1. Before Bar
+                const xBefore = groupX + groupW * 0.1;
+                if (g.before !== null) {
+                    const bh = (Math.min(g.before, maxVal) / maxVal) * chartH;
+                    const yBefore = padTop + chartH - bh;
+                    ctx.fillStyle = g.before > 33.33 ? "rgba(239, 68, 68, 0.85)" : "rgba(245, 158, 11, 0.8)";
+                    ctx.fillRect(xBefore, yBefore, barW, bh);
+
+                    ctx.fillStyle = g.before > 33.33 ? "#ef4444" : "#f59e0b";
+                    ctx.font = "bold 10px 'JetBrains Mono'";
+                    ctx.textAlign = "center";
+                    ctx.fillText(g.before.toFixed(1) + "ms", xBefore + barW / 2, yBefore - 5);
+                } else {
+                    ctx.fillStyle = "#ef4444";
+                    ctx.font = "bold 10px 'JetBrains Mono'";
+                    ctx.textAlign = "center";
+                    ctx.fillText("CRASH", xBefore + barW / 2, padTop + chartH - 8);
+                }
+
+                // 2. After Bar
+                const xAfter = xBefore + barW + 4;
+                const ah = Math.max(5, (g.after / maxVal) * chartH);
+                const yAfter = padTop + chartH - ah;
+                ctx.fillStyle = g.failAfter ? "rgba(239, 68, 68, 0.85)" : "rgba(56, 239, 125, 0.9)";
+                ctx.fillRect(xAfter, yAfter, barW, ah);
+
+                ctx.fillStyle = g.failAfter ? "#ef4444" : "#38ef7d";
+                ctx.font = "bold 10px 'JetBrains Mono'";
+                ctx.textAlign = "center";
+                ctx.fillText(g.after.toFixed(2) + "ms", xAfter + barW / 2, yAfter - 5);
+
+                // Group X label
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "11px 'Outfit'";
+                ctx.textAlign = "center";
+                ctx.fillText(g.label, groupX + groupW * 0.5, h - padBottom + 18);
+
+                // Subtitle badge
+                ctx.fillStyle = g.failAfter ? "#ef4444" : "#38ef7d";
+                ctx.font = "bold 10px 'JetBrains Mono'";
+                ctx.fillText(g.sub, groupX + groupW * 0.5, h - padBottom + 32);
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            fetchData();
+        });
+
+        let currentEngineMode = 'standard';
+
+        async function setEngineMode(mode) {
+            try {
+                const btnStd = document.getElementById('btn-mode-standard');
+                const btnUnres = document.getElementById('btn-mode-unrestricted');
+                if (btnStd) btnStd.disabled = true;
+                if (btnUnres) btnUnres.disabled = true;
+
+                const res = await fetch('/set-mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    updateModeUI(data.mode);
+                    fetchTelemetry();
+                }
+            } catch(e) {
+                console.error('Failed to set engine mode:', e);
+            } finally {
+                const btnStd = document.getElementById('btn-mode-standard');
+                const btnUnres = document.getElementById('btn-mode-unrestricted');
+                if (btnStd) btnStd.disabled = false;
+                if (btnUnres) btnUnres.disabled = false;
+            }
+        }
+
+        function updateModeUI(mode) {
+            currentEngineMode = mode;
+            const badge = document.getElementById('active-mode-badge');
+            const btnStd = document.getElementById('btn-mode-standard');
+            const btnUnres = document.getElementById('btn-mode-unrestricted');
+
+            if (mode === 'unrestricted') {
+                if (badge) {
+                    badge.className = 'mode-badge mode-unrestricted';
+                    badge.textContent = '🚀 UNRESTRICTED TURBO (PROTECTED)';
+                }
+                if (btnStd) btnStd.classList.remove('active');
+                if (btnUnres) btnUnres.classList.add('active');
+            } else {
+                if (badge) {
+                    badge.className = 'mode-badge mode-standard';
+                    badge.textContent = '🌱 STANDARD MODE (30 Hz ECO)';
+                }
+                if (btnStd) btnStd.classList.add('active');
+                if (btnUnres) btnUnres.classList.remove('active');
+            }
+        }
+
+        async function fetchTelemetry() {
+            try {
+                const res = await fetch('/engine-telemetry');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                updateModeUI(data.mode);
+
+                const tpsEl = document.getElementById('telem-tps');
+                const tpsSub = document.getElementById('telem-tps-sub');
+                if (tpsEl) {
+                    tpsEl.textContent = (data.tps || data.fps || 0).toLocaleString() + ' TPS';
+                    if (data.mode === 'unrestricted') {
+                        tpsEl.style.color = '#ef4444';
+                        if (tpsSub) tpsSub.textContent = 'Uncapped Hardware Speed';
+                    } else {
+                        tpsEl.style.color = '#38ef7d';
+                        if (tpsSub) tpsSub.textContent = 'Target: 30 FPS Fixed';
+                    }
+                }
+
+                const lagEl = document.getElementById('telem-lag');
+                const lagSub = document.getElementById('telem-lag-sub');
+                if (lagEl && data.tripwire) {
+                    lagEl.textContent = data.tripwire.eventLoopLagMs.toFixed(1) + ' ms';
+                    if (data.tripwire.eventLoopLagMs > 20) {
+                        lagEl.style.color = '#ef4444';
+                        if (lagSub) lagSub.textContent = 'High Lag - Breather Triggered';
+                    } else {
+                        lagEl.style.color = '#38ef7d';
+                        if (lagSub) lagSub.textContent = 'Safe Limit: < 25.0 ms';
+                    }
+                }
+
+                const heapEl = document.getElementById('telem-heap');
+                if (heapEl && data.tripwire) {
+                    heapEl.textContent = data.tripwire.heapMB + ' MB';
+                }
+
+                const statusEl = document.getElementById('telem-status');
+                const tripCountEl = document.getElementById('telem-trip-count');
+                if (statusEl && data.tripwire) {
+                    statusEl.textContent = data.tripwire.status;
+                    if (data.tripwire.status === 'NORMAL') {
+                        statusEl.style.color = '#38ef7d';
+                    } else if (data.tripwire.status === 'THERMAL_BREATHE') {
+                        statusEl.style.color = '#4facfe';
+                    } else {
+                        statusEl.style.color = '#f59e0b';
+                    }
+                    if (tripCountEl) {
+                        tripCountEl.textContent = data.tripwire.tripCount + ' Interventions';
+                    }
+                }
+            } catch (e) {
+                // Ignore transient network errors
+            }
+        }
+
+        setInterval(fetchTelemetry, 1000);
+        fetchTelemetry();
+
+        fetchData();
+    </script>
+</body>
+</html>

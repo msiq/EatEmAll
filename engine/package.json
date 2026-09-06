@@ -1,0 +1,8 @@
+{
+  "name": "eatem-engine",
+  "version": "0.2.0",
+  "description": "Full-stack 2D multiplayer ECS game engine with Newtonian physics, Quadtree, and FSM",
+  "main": "index.js",
+  "author": "shahid",
+  "license": "ISC"
+}

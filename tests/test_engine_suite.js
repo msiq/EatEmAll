@@ -25,7 +25,7 @@ function test(name, fn) {
 // TEST 1: Decoupling Verification (No Game Leaks in Engine Core)
 // -------------------------------------------------------------
 test("Engine SubSystems.js should not contain hardcoded 'dot' or 'virus' entity checks", () => {
-    const subSystemsCode = fs.readFileSync(path.join(__dirname, '../Server/SubSystems.js'), 'utf8');
+    const subSystemsCode = fs.readFileSync(path.join(__dirname, '../engine/src/physics/SubSystems.js'), 'utf8');
 
     const impulseMatch = subSystemsCode.match(/this\.resolveCircleImpulse\s*=\s*\([^)]*\)\s*=>\s*\{([\s\S]*?)\n\s*this\./);
     assert(impulseMatch, "Could not locate resolveCircleImpulse in SubSystems.js");
@@ -37,7 +37,7 @@ test("Engine SubSystems.js should not contain hardcoded 'dot' or 'virus' entity 
 });
 
 test("Engine GameClass.js should use generic staticLayers rather than hardcoded dots", () => {
-    const gameClassCode = fs.readFileSync(path.join(__dirname, '../Server/GameClass.js'), 'utf8');
+    const gameClassCode = fs.readFileSync(path.join(__dirname, '../engine/src/server/GameClass.js'), 'utf8');
     assert(gameClassCode.includes('this.staticLayers'), "GameClass.js missing staticLayers set");
     assert(!gameClassCode.includes("if (entityType === 'dots') return;"), "Hardcoded dots check still in doTick");
 });
@@ -46,8 +46,8 @@ test("Engine GameClass.js should use generic staticLayers rather than hardcoded 
 // TEST 2: Newtonian Collision Impulse & Momentum Conservation
 // -------------------------------------------------------------
 test("Newtonian Impulse Solver preserves total linear momentum (m1*v1 + m2*v2)", () => {
-    const Shapes = require('../Server/Shapes.js');
-    const SubSystems = require('../Server/SubSystems.js');
+    const Shapes = require('../engine').Shapes;
+    const SubSystems = require('../engine/src/physics/SubSystems.js');
 
     const mockGame = {
         config: { canvas: { width: 2000, height: 2000 } },
@@ -109,8 +109,8 @@ test("Newtonian Impulse Solver preserves total linear momentum (m1*v1 + m2*v2)",
 });
 
 test("Impulse solver applies restitution and tangential Coulomb friction", () => {
-    const Shapes = require('../Server/Shapes.js');
-    const SubSystems = require('../Server/SubSystems.js');
+    const Shapes = require('../engine').Shapes;
+    const SubSystems = require('../engine/src/physics/SubSystems.js');
 
     const mockGame = {
         config: { canvas: { width: 2000, height: 2000 } },
@@ -152,8 +152,8 @@ test("Impulse solver applies restitution and tangential Coulomb friction", () =>
 });
 
 test("Trigger colliders should be completely skipped by physical impulse solver", () => {
-    const Shapes = require('../Server/Shapes.js');
-    const SubSystems = require('../Server/SubSystems.js');
+    const Shapes = require('../engine').Shapes;
+    const SubSystems = require('../engine/src/physics/SubSystems.js');
 
     const mockGame = {
         config: { canvas: { width: 2000, height: 2000 } },
@@ -192,7 +192,7 @@ test("Trigger colliders should be completely skipped by physical impulse solver"
 // TEST 3: State Machines (GameStateMachine & PlayerStateMachine)
 // -------------------------------------------------------------
 test("GameStateMachine correctly manages transitions and state lifecycle", () => {
-    const { BaseGameState, GameStateMachine } = require('../Server/GameState.js');
+    const { BaseGameState, GameStateMachine } = require('../engine');
 
     const mockGame = {};
     const fsm = new GameStateMachine(mockGame);
@@ -226,7 +226,7 @@ test("GameStateMachine correctly manages transitions and state lifecycle", () =>
 });
 
 test("PlayerStateMachine correctly enforces spawn shield and expires to active", () => {
-    const { BasePlayerState, PlayerStateMachine } = require('../Server/PlayerState.js');
+    const { BasePlayerState, PlayerStateMachine } = require('../engine');
 
     const mockPlayer = { id: "p1" };
     const fsm = new PlayerStateMachine(mockPlayer);

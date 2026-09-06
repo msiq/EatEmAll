@@ -1,0 +1,14 @@
+{
+  "name": "Eat 'Em All",
+  "canvas": {
+    "width": 2000,
+    "height": 2000
+  },
+  "fps": 30,
+  "initialDots": 1000,
+  "initialBots": 10,
+  "initialViruses": 18,
+  "roundDurationSec": 180,
+  "roundOverDurationSec": 8,
+  "spawnShieldDurationMs": 3500
+}

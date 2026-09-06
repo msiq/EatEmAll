@@ -4,7 +4,7 @@
     "description": "Simple 2D multiplayer game engine based on nodejs and canvas",
     "main": "Server.js",
     "scripts": {
-        "test": "node tests/test_engine_suite.js",
+        "test": "node tests/test_engine_suite.js && node tests/test_cartridge_suite.js",
         "benchmark": "node scripts/benchmark.js",
         "benchmark:breaking": "node scripts/find_breaking_point.js"
     },

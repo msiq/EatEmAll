@@ -108,6 +108,18 @@
       "childrenIds": [],
       "actionCommand": "npm test",
       "specId": "bot-steering-ai"
+    },
+    {
+      "id": "EEA-110",
+      "title": "Migrate to Modular Cartridge Directory and Engine Package",
+      "description": "Decomposed monolith into engine/ package (@eatem/engine with server and client runtime) and games/EatEmAll/ cartridge directory with modular entities, systems, and states.",
+      "status": "done",
+      "priority": 1,
+      "order": 10,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "npm test",
+      "specId": "engine-architecture"
     }
   ]
 }

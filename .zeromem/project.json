@@ -4,13 +4,13 @@
   "status": "Active",
   "tags": [
     "game-engine",
+    "modular-cartridges",
     "2d-physics",
     "multiplayer",
     "ecs",
     "nodejs",
     "canvas-2d",
-    "websockets",
-    "socket-io"
+    "websockets"
   ],
   "urls": {
     "repository": "git+https://msiq@bitbucket.org/msiq/eatem.git",
@@ -23,7 +23,7 @@
   },
   "scripts": {
     "dev": "node Server.js",
-    "test": "node tests/test_engine_suite.js",
+    "test": "node tests/test_engine_suite.js && node tests/test_cartridge_suite.js",
     "benchmark": "node scripts/benchmark.js",
     "benchmark:breaking": "node scripts/find_breaking_point.js"
   },
