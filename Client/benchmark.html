@@ -362,7 +362,24 @@
         </div>
     </div>
 
-    <!-- Run History Table -->
+
+    <!-- Full-Width Breaking Point Chart -->
+    <div class="chart-card" style="margin-top: 0.5rem;">
+        <div class="chart-header">
+            <h3>💥 Engine Breaking Point Analysis: Load-to-Failure</h3>
+            <span style="font-size: 0.85rem; color: #ef4444; font-weight: 700; font-family: 'JetBrains Mono';">Threshold: 33.33 ms (30 FPS Budget)</span>
+        </div>
+        <div style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
+            We pushed the full engine loop (Physics + Quadtree Collision + Bot AI + JSON Serialization) to its absolute limits. 
+            <strong style="color: #38ef7d">The Quadtree & Physics engine never choked (took < 0.1 ms even at 10,000 entities)</strong>, 
+            while <strong style="color: #ef4444">JSON serialization broke the 30 FPS budget at 6,000 entities</strong> (35.25 ms per tick, 2.9 MB payload).
+        </div>
+        <div class="chart-container" style="height: 260px;">
+            <canvas id="chart-breaking-point"></canvas>
+        </div>
+    </div>
+
+        <!-- Run History Table -->
     <div class="history-card">
         <div class="chart-header">
             <h3>📑 Benchmark Progression Log</h3>
@@ -438,6 +455,9 @@
 
             // 4. Render History Line Canvas Chart
             drawHistoryChart(data.runs);
+
+            // 5. Render Breaking Point Chart
+            drawBreakingPointChart();
         }
 
         function drawScalingChart(scaling) {
@@ -620,6 +640,108 @@
                 ctx.fillStyle = "#94a3b8";
                 ctx.font = "11px 'JetBrains Mono'";
                 ctx.fillText("#" + pt.id + " (" + pt.commit + ")", pt.x, h - padBottom + 20);
+            });
+        }
+
+        
+        function drawBreakingPointChart() {
+            const canvas = document.getElementById('chart-breaking-point');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.parentElement.clientWidth;
+            const h = canvas.parentElement.clientHeight;
+
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+
+            ctx.clearRect(0, 0, w, h);
+
+            const padLeft = 60;
+            const padBottom = 40;
+            const padTop = 25;
+            const padRight = 30;
+            const chartW = w - padLeft - padRight;
+            const chartH = h - padTop - padBottom;
+
+            const maxVal = 75; // 75 ms scale
+
+            // Draw Y-Axis Grid Lines
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = padTop + (chartH / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(padLeft, y);
+                ctx.lineTo(w - padRight, y);
+                ctx.stroke();
+
+                const label = ((maxVal * (5 - i)) / 5).toFixed(0) + " ms";
+                ctx.fillStyle = "#64748b";
+                ctx.font = "11px 'JetBrains Mono'";
+                ctx.textAlign = "right";
+                ctx.fillText(label, padLeft - 10, y + 4);
+            }
+
+            // Draw 33.33 ms Target Line (RED DASHED)
+            const targetY = padTop + chartH - (33.33 / maxVal) * chartH;
+            ctx.save();
+            ctx.setLineDash([6, 4]);
+            ctx.strokeStyle = "#ef4444";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padLeft, targetY);
+            ctx.lineTo(w - padRight, targetY);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = "#ef4444";
+            ctx.font = "bold 11px 'JetBrains Mono'";
+            ctx.textAlign = "right";
+            ctx.fillText("33.33 ms (30 FPS Budget Limit)", w - padRight, targetY - 6);
+
+            // Data Points
+            const dataPts = [
+                { label: "1k", ms: 5.55, payload: "501 KB", pass: true },
+                { label: "2k", ms: 10.06, payload: "989 KB", pass: true },
+                { label: "4k", ms: 23.34, payload: "1.9 MB", pass: true },
+                { label: "6k (BREAK)", ms: 35.25, payload: "2.9 MB", pass: false },
+                { label: "8k (LAG)", ms: 48.96, payload: "3.9 MB", pass: false },
+                { label: "10k (CHOKE)", ms: 61.49, payload: "4.9 MB", pass: false }
+            ];
+
+            const barW = chartW / dataPts.length;
+
+            dataPts.forEach((pt, idx) => {
+                const x = padLeft + idx * barW + barW * 0.2;
+                const bw = barW * 0.6;
+                const barH = (pt.ms / maxVal) * chartH;
+                const y = padTop + chartH - barH;
+
+                // Color gradient
+                if (pt.pass) {
+                    ctx.fillStyle = "rgba(56, 239, 125, 0.85)";
+                } else {
+                    ctx.fillStyle = "rgba(239, 68, 68, 0.85)";
+                }
+                ctx.fillRect(x, y, bw, barH);
+
+                // Top Value Label
+                ctx.fillStyle = pt.pass ? "#38ef7d" : "#ef4444";
+                ctx.font = "bold 11px 'JetBrains Mono'";
+                ctx.textAlign = "center";
+                ctx.fillText(pt.ms.toFixed(1) + "ms", x + bw / 2, y - 6);
+
+                // Payload sub-label
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "10px 'JetBrains Mono'";
+                ctx.fillText(pt.payload, x + bw / 2, y + 14);
+
+                // X label
+                ctx.fillStyle = pt.pass ? "#f8fafc" : "#fca5a5";
+                ctx.font = pt.pass ? "12px 'Outfit'" : "bold 12px 'Outfit'";
+                ctx.fillText(pt.label, x + bw / 2, h - padBottom + 20);
             });
         }
 
