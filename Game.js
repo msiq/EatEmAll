@@ -134,14 +134,33 @@ function handlePlayerCollision(entity, object, game) {
             entity.abilities.body.shape.radius = Math.min(180, Math.sqrt(myRadius * myRadius + otherRadius * otherRadius * 0.5));
             entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
 
-            // Respawn prey at safe location
-            let pad = 100;
-            object.abilities.position.pos.x = Math.floor(Math.random() * (game.config.canvas.width - pad * 2)) + pad;
-            object.abilities.position.pos.y = Math.floor(Math.random() * (game.config.canvas.height - pad * 2)) + pad;
-            object.abilities.body.shape.radius = 20;
-            object.abilities.aabb = new game.abilities.Aabb(object.abilities.body);
-            if (object.has('score')) object.abilities.score.score = 0;
-            if (object.has('health')) object.abilities.health.health = 100;
+            if (object.isBot) {
+                // Respawn bot at safe location
+                let pad = 100;
+                let newX = Math.floor(Math.random() * (game.config.canvas.width - pad * 2)) + pad;
+                let newY = Math.floor(Math.random() * (game.config.canvas.height - pad * 2)) + pad;
+                object.abilities.position.pos = new game.shapes.Vect(newX, newY);
+                object.abilities.body.shape.radius = 20;
+                object.abilities.aabb = new game.abilities.Aabb(object.abilities.body);
+                if (object.has('score')) object.abilities.score.score = 0;
+                if (object.has('health')) object.abilities.health.health = 100;
+                if (object.has('velocity')) object.abilities.velocity.velocity = new game.shapes.Vect(0, 0, 0);
+            } else {
+                // Human player was eaten!
+                const stats = {
+                    eatenBy: entity.name || 'A Predator',
+                    score: object.has('score') ? object.abilities.score.score : 0,
+                    radius: Math.round(otherRadius)
+                };
+
+                // Notify client socket
+                if (object.socket_id && game.server && typeof game.server.gameOver === 'function') {
+                    game.server.gameOver(object.socket_id, stats);
+                }
+
+                // Remove dead player from active game subsystems
+                game.onPlayerDisconnect(object.socket_id);
+            }
         }
     }
 }

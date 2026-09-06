@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 const { Server } = require('socket.io');
@@ -73,6 +73,12 @@ function GameServer() {
     this.letEmPlay = (player) => {
         if (io && player && player.socket_id) {
             io.to(player.socket_id).emit('play', { player });
+        }
+    };
+
+    this.gameOver = (socketId, stats) => {
+        if (io && socketId) {
+            io.to(socketId).emit('gameover', stats);
         }
     };
 

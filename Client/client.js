@@ -2,6 +2,11 @@
 const loginModal = document.getElementById("menu");
 const loginBtn = document.getElementById("login-btn");
 const userNameInput = document.getElementById("user-name");
+const gameOverModal = document.getElementById("game-over-modal");
+const killerName = document.getElementById("killer-name");
+const deathScore = document.getElementById("death-final-score");
+const deathRadius = document.getElementById("death-final-radius");
+const respawnBtn = document.getElementById("respawn-btn");
 const canvas = document.getElementById("canvas");
 const fpsBox = document.getElementById("current-fps");
 const playerStats = document.getElementById("player-stats");
@@ -18,6 +23,7 @@ let player = null;
 let currentOrigin = { x: 0, y: 0 };
 let isMouseDown = false;
 let lastMouseSendTime = 0;
+let listenersInitialized = false;
 
 // Client-side interpolation state
 const renderedPlayers = new Map();
@@ -43,8 +49,21 @@ userNameInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") joinGame();
 });
 
+if (respawnBtn) {
+    respawnBtn.addEventListener("click", respawnPlayer);
+}
+
 function joinGame() {
     const name = userNameInput.value.trim() || "Player";
+    socket.emit("letmeplay", {
+        userName: name,
+        oldId: localStorage.getItem("eeaid") || ""
+    });
+}
+
+function respawnPlayer() {
+    if (gameOverModal) gameOverModal.style.display = "none";
+    const name = userNameInput.value.trim() || (player && player.name) || "Player";
     socket.emit("letmeplay", {
         userName: name,
         oldId: localStorage.getItem("eeaid") || ""
@@ -57,9 +76,44 @@ socket.on("play", (data) => {
     if (player && player.id) {
         localStorage.setItem("eeaid", player.id);
     }
-    loginModal.style.display = "none";
-    playerStats.style.display = "flex";
+    if (loginModal) loginModal.style.display = "none";
+    if (gameOverModal) gameOverModal.style.display = "none";
+    if (playerStats) playerStats.style.display = "flex";
+
+    // Snap camera origin immediately to spawn location
+    let spawnX = null;
+    let spawnY = null;
+    if (player && player.abilities && player.abilities.position && player.abilities.position.pos) {
+        spawnX = player.abilities.position.pos.x;
+        spawnY = player.abilities.position.pos.y;
+    } else if (player && player.x !== undefined && player.y !== undefined) {
+        spawnX = player.x;
+        spawnY = player.y;
+    }
+
+    if (spawnX !== null && spawnY !== null) {
+        let targetX = spawnX - canvas.width / 2;
+        let targetY = spawnY - canvas.height / 2;
+        currentOrigin.x = Math.max(0, Math.min(2000 - canvas.width, targetX));
+        currentOrigin.y = Math.max(0, Math.min(2000 - canvas.height, targetY));
+    }
+
     setupListeners();
+});
+
+// Human player eaten event
+socket.on("gameover", (data) => {
+    connected = false;
+    player = null;
+
+    if (playerStats) playerStats.style.display = "none";
+    if (killerName) killerName.textContent = data.eatenBy || "A Predator";
+    if (deathScore) deathScore.textContent = data.score !== undefined ? data.score : 0;
+    if (deathRadius) deathRadius.textContent = data.radius !== undefined ? data.radius : 20;
+
+    if (gameOverModal) {
+        gameOverModal.style.display = "flex";
+    }
 });
 
 socket.on("goaway", () => {
@@ -75,6 +129,9 @@ socket.on("tick", (raw) => {
 });
 
 function setupListeners() {
+    if (listenersInitialized) return;
+    listenersInitialized = true;
+
     window.addEventListener("keydown", doKeyDown);
     canvas.addEventListener("mousedown", (e) => {
         isMouseDown = true;
@@ -112,6 +169,15 @@ function sendMousePosition(evt) {
 }
 
 function doKeyDown(evt) {
+    // Quick respawn shortcut on Enter or Space when game over modal is active
+    if (gameOverModal && gameOverModal.style.display !== "none") {
+        if (evt.keyCode === 13 || evt.keyCode === 32) {
+            evt.preventDefault();
+            respawnPlayer();
+            return;
+        }
+    }
+
     if (!connected || !player || !player.id) return;
     if ([37, 38, 39, 40].includes(evt.keyCode)) {
         evt.preventDefault();
@@ -200,7 +266,6 @@ function onServerTick(data) {
                 color: sd.color || "#00bcd4"
             });
         } else {
-            // If dot was eaten and respawned far away, snap position
             const dDist = Math.hypot(sd.x - rd.x, sd.y - rd.y);
             if (dDist > 50) {
                 rd.x = sd.x;
@@ -262,7 +327,6 @@ function render(timestamp) {
         }
     }
 
-    // Frame-rate independent exponential lerp factor
     const posLerp = 1.0 - Math.exp(-22 * dt);
     const radLerp = 1.0 - Math.exp(-12 * dt);
 
