@@ -44,10 +44,12 @@ game.joinGame = function(data) {
     return initiatePlayer(this, data);
 };
 
-// AI Bots decision loop (steers using Quadtree)
+// AI Bots decision loop (steers using Quadtree at constant ~10 Hz fixed interval)
+let lastBotAiTime = 0;
 game.update = function() {
-    botUpdateTick++;
-    if (botUpdateTick % 3 !== 0) return; // run bot AI every 3 ticks (~10 Hz)
+    const now = Date.now();
+    if (now - lastBotAiTime < 100) return; // run bot AI every ~100ms (10 Hz fixed across all engine modes)
+    lastBotAiTime = now;
 
     if (!game.entities['players'] || !game.subSystems.collision.quadtree) return;
 

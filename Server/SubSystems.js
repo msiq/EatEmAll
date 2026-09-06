@@ -125,13 +125,14 @@ function Motion(game) {
 
                         if (entity.has('orientation')) {
                             let ort = entity.abilities.orientation.orientation;
+                            let ts = (this.game && this.game.timeScale !== undefined) ? this.game.timeScale : 1.0;
                             switch (message.params.action) {
                                 case 'left':
-                                    entity.abilities.orientation.rotate(-5);
+                                    entity.abilities.orientation.rotate(-5 * ts);
                                     entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
                                     break;
                                 case 'right':
-                                    entity.abilities.orientation.rotate(5);
+                                    entity.abilities.orientation.rotate(5 * ts);
                                     entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
                                     break;
                                 case 'up':
@@ -247,11 +248,12 @@ function Motion(game) {
 
                 // move entity towords velocity
                 let pos = entity.abilities.position.pos;
-                if (velo.mag() > 0.5) {
+                let ts = (this.game && this.game.timeScale !== undefined) ? this.game.timeScale : 1.0;
+                if (velo.mag() > 0.1) {
                     entity.abilities.position.pos = new Shapes.Vect(
-                        pos.x + velo.x,
-                        pos.y + velo.y,
-                        pos.z + velo.z
+                        pos.x + velo.x * ts,
+                        pos.y + velo.y * ts,
+                        pos.z + velo.z * ts
                     );
                 }
             }
@@ -270,28 +272,29 @@ function Motion(game) {
     this.limit = (entity) => {
         let pos = entity.abilities.position.pos;
         let vel = entity.abilities.velocity.velocity;
+        let ts = (this.game && this.game.timeScale !== undefined) ? this.game.timeScale : 1.0;
 
         let height = entity.abilities.aabb.height;
         let width = entity.abilities.aabb.width;
 
         let dirChanged = false;
-        if (pos.x <= width.min + vel.x) {
+        if (pos.x <= width.min + vel.x * ts) {
             pos.x = width.min + 1;
             vel.x = vel.x * -1;
             // dirChanged = true;
         }
-        if (pos.x >= config.canvas.width - (width.max + vel.x)) {
+        if (pos.x >= config.canvas.width - (width.max + vel.x * ts)) {
             pos.x = config.canvas.width - width.max + 1;
             vel.x = vel.x * -1;
             // dirChanged = true;
         }
 
-        if (pos.y <= height.min + vel.y) {
+        if (pos.y <= height.min + vel.y * ts) {
             pos.y = height.min + 1;
             vel.y = vel.y * -1;
             // dirChanged = true;
         }
-        if (pos.y >= config.canvas.height - (height.max + vel.y)) {
+        if (pos.y >= config.canvas.height - (height.max + vel.y * ts)) {
             pos.y = config.canvas.height - height.max;
             vel.y = vel.y * -0.5;
 

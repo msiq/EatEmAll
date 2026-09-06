@@ -103,6 +103,8 @@ var Game = function Game() {
     this.fpsLastRun = Date.now();
     this.now = 0;
     this.delta = 1 / 30;
+    this.timeScale = 1.0;
+    this.lastTickTime = performance.now();
 
     this.loopTimeout = null;
     this.immediateHandle = null;
@@ -112,6 +114,7 @@ var Game = function Game() {
         this.lastRun = Date.now();
         this.fpsLastRun = Date.now();
         this.fps = 0;
+        this.lastTickTime = performance.now();
 
         console.log(`[Game] Starting game loop in '${this.mode}' mode.`);
         if (this.mode === 'unrestricted') {
@@ -143,6 +146,11 @@ var Game = function Game() {
 
         const now = Date.now();
         this.now = now;
+
+        const nowPerf = performance.now();
+        const dtSec = Math.min(0.1, Math.max(0.0001, (nowPerf - this.lastTickTime) / 1000));
+        this.lastTickTime = nowPerf;
+        this.timeScale = dtSec * 30;
 
         const targetFps = (this.config.server && this.config.server.frameRate) || 30;
         this.delta = (1500 / (this.lastFPS || targetFps)) / 100;
@@ -178,6 +186,11 @@ var Game = function Game() {
 
         const now = Date.now();
         this.now = now;
+
+        const nowPerf = performance.now();
+        const dtSec = Math.min(0.1, Math.max(0.0001, (nowPerf - this.lastTickTime) / 1000));
+        this.lastTickTime = nowPerf;
+        this.timeScale = dtSec * 30;
 
         // Network Backpressure Throttling (Cap client snapshots to max 60 Hz so clients don't choke)
         if (this.safetyTripwire.shouldBroadcast(now)) {
