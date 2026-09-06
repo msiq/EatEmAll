@@ -192,8 +192,10 @@ function Gravity(vector = null) {
 }
 Gravity.prototype = new Ability;
 
-function Collidable() {
+function Collidable(isTrigger = false, isStatic = false) {
     this.name = 'collidable';
+    this.isTrigger = !!isTrigger; // Trigger collider: detects overlaps/events but generates zero physical impulse
+    this.isStatic = !!isStatic;   // Static collider: immobile (infinite mass) in collision response
     this.collidingWith = [];
     this.collidingStart = [];
     this.collidingEnd = [];

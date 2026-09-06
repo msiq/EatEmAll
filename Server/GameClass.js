@@ -255,7 +255,7 @@ var Game = function Game() {
     };
 
     this.formatToRender = (player) => {
-        if (player.type === 'dots' || player.name === 'dot') {
+        if (this.staticLayers.has(player.type) || (player.abilities && player.abilities.collidable && player.abilities.collidable.isStatic)) {
             return {
                 id: player.id,
                 x: player.abilities.position.pos.x,
@@ -307,22 +307,32 @@ var Game = function Game() {
         this.tickEvents.push(event);
     };
 
+    this.getStaticEntitiesSnapshot = function() {
+        const result = [];
+        this.staticLayers.forEach(layer => {
+            if (this.entities[layer]) {
+                this.entities[layer].forEach(e => {
+                    result.push({
+                        id: e.id,
+                        x: (e.abilities.position && e.abilities.position.pos) ? e.abilities.position.pos.x : 0,
+                        y: (e.abilities.position && e.abilities.position.pos) ? e.abilities.position.pos.y : 0,
+                        radius: (e.abilities.body && e.abilities.body.shape && e.abilities.body.shape.radius) || 7,
+                        color: (e.abilities.body && e.abilities.body.color) || '#fff'
+                    });
+                });
+            }
+        });
+        return result;
+    };
     this.getAllDotsCompact = function() {
-        if (!this.entities['dots']) return [];
-        return this.entities['dots'].map(d => ({
-            id: d.id,
-            x: d.abilities.position.pos.x,
-            y: d.abilities.position.pos.y,
-            radius: (d.abilities.body && d.abilities.body.shape && d.abilities.body.shape.radius) || 7,
-            color: d.abilities.body.color
-        }));
+        return this.getStaticEntitiesSnapshot();
     };
 
     this.doTick = function() {
         let players = {};
         Object.keys(this.entities).forEach((entityType) => {
             // High-Performance Optimization: Skip static dots in 30Hz tick snapshots!
-            if (entityType === 'dots') return;
+            if (this.staticLayers.has(entityType)) return;
             players[entityType] = this.entities[entityType].map(this.formatToRender);
         });
 

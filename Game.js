@@ -18,6 +18,24 @@ var game = new Game();
 let botUpdateTick = 0;
 
 game.setup = function() {
+    // Register static layer for fast network synchronization
+    if (typeof game.markLayerStatic === 'function') {
+        game.markLayerStatic('dots');
+    }
+
+    // Register game-specific impulse filter: skip physical bounce if predator is big enough to swallow prey
+    if (game.subSystems && game.subSystems.collision) {
+        game.subSystems.collision.filterImpulse = (entityA, entityB) => {
+            const radA = (entityA.abilities.body && entityA.abilities.body.shape && entityA.abilities.body.shape.radius) || 20;
+            const radB = (entityB.abilities.body && entityB.abilities.body.shape && entityB.abilities.body.shape.radius) || 20;
+            const posA = entityA.abilities.position.pos;
+            const posB = entityB.abilities.position.pos;
+            const dist = Math.hypot(posB.x - posA.x, posB.y - posA.y);
+            if (radA > radB * 1.15 && dist < radA * 0.8) return false;
+            if (radB > radA * 1.15 && dist < radB * 0.8) return false;
+            return true;
+        };
+    }
     game.addEntityType('players', Entity.TYPE_MAIN);
     game.addEntityType('dots', Entity.TYPE_DEFAULT);
     game.addEntityType('viruses', Entity.TYPE_DEFAULT);
@@ -298,7 +316,7 @@ function initiatePlayer(game, data) {
     player.attach(new game.abilities.Input());
     player.attach(new game.abilities.Mass(100));
     player.attach(new game.abilities.Cor(0.4));
-    player.attach(new game.abilities.Collidable());
+    player.attach(new game.abilities.Collidable(false, false));
     player.attach(new game.abilities.Score());
     player.attach(new game.abilities.Rank({ 1: 100, 2: 250, 3: 500 }));
     player.attach(new game.abilities.Experience(1000));
@@ -342,7 +360,7 @@ function initiateBot(game, name) {
     bot.attach(new game.abilities.Velocity());
     bot.attach(new game.abilities.Mass(100));
     bot.attach(new game.abilities.Cor(0.4));
-    bot.attach(new game.abilities.Collidable());
+    bot.attach(new game.abilities.Collidable(false, false));
     bot.attach(new game.abilities.Score());
     bot.attach(new game.abilities.Rank({ 1: 100, 2: 250, 3: 500 }));
     bot.attach(new game.abilities.Experience(1000));
@@ -374,7 +392,7 @@ function initiateDot(game, x, y) {
 
     dot.attach(new game.abilities.Body(dotCirc, color));
     dot.attach(new game.abilities.Position(dotPos));
-    dot.attach(new game.abilities.Collidable());
+    dot.attach(new game.abilities.Collidable(true, true)); // Trigger & static
     dot.attach(new game.abilities.Velocity());
     dot.attach(new game.abilities.Mass(10));
     dot.attach(new game.abilities.Orientation());
@@ -400,7 +418,7 @@ function initiateVirus(game, x, y) {
 
     virus.attach(new game.abilities.Body(virusCirc, '#22c55e'));
     virus.attach(new game.abilities.Position(virusPos));
-    virus.attach(new game.abilities.Collidable());
+    virus.attach(new game.abilities.Collidable(true, true)); // Trigger & static
     virus.attach(new game.abilities.Mass(500));
     virus.attach(new game.abilities.Velocity());
     virus.attach(new game.abilities.Orientation());

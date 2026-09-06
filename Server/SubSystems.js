@@ -972,21 +972,23 @@ function Collision(game) {
     };
 
     /**
-     * Realistic 2D Circle Elastic Impulse Physics Resolution
+     * Generic 2D Circle Elastic Impulse Physics Resolution
      * Implements Newtonian conservation of momentum with mass distribution,
-     * penetration depth separation, and coefficient of restitution (bounciness).
+     * penetration depth separation, coefficient of restitution (bounciness),
+     * and tangential Coulomb friction. 100% game-agnostic.
      */
     this.resolveCircleImpulse = (entityA, entityB) => {
         if (!entityA.abilities || !entityB.abilities) return;
         if (!entityA.has("position") || !entityB.has("position")) return;
         if (!entityA.has("velocity") || !entityB.has("velocity")) return;
         if (!entityA.has("body") || !entityB.has("body")) return;
+        if (!entityA.has("collidable") || !entityB.has("collidable")) return;
 
-        // Only apply elastic impulse if neither is a collectible dot or virus hazard
-        if (entityA.name === "dot" || entityA.type === "dots" ||
-            entityB.name === "dot" || entityB.type === "dots" ||
-            entityA.name === "virus" || entityA.type === "viruses" ||
-            entityB.name === "virus" || entityB.type === "viruses") return;
+        // 1. Component-based trigger check (triggers detect overlaps but generate no physical impulse)
+        if (entityA.abilities.collidable.isTrigger || entityB.abilities.collidable.isTrigger) return;
+
+        // 2. Optional game-level impulse filter hook (allows game cartridges to ignore impulse e.g. for eating/ghosting)
+        if (typeof this.filterImpulse === 'function' && !this.filterImpulse(entityA, entityB)) return;
 
         const posA = entityA.abilities.position.pos;
         const posB = entityB.abilities.position.pos;
@@ -997,15 +999,11 @@ function Collision(game) {
         const dy = posB.y - posA.y;
         const dist = Math.hypot(dx, dy);
 
-        // If one player is large enough to swallow the other and overlaps prey center, skip bounce
-        if (radA > radB * 1.15 && dist < radA * 0.8) return;
-        if (radB > radA * 1.15 && dist < radB * 0.8) return;
-
         const minDist = radA + radB;
         const penetration = minDist - dist;
         if (penetration <= 0) return;
 
-        // 1. Normalized collision normal vector (pointing from A to B)
+        // Normal collision vector (pointing from A to B)
         let nx = dx;
         let ny = dy;
         if (dist > 0.0001) {
@@ -1016,16 +1014,25 @@ function Collision(game) {
             ny = 0;
         }
 
-        // 2. Physical mass calculation (proportional to area: pi * r^2)
+        // Tangent vector (perpendicular to normal)
+        const tx = -ny;
+        const ty = nx;
+
+        // Physical mass calculation (proportional to area: pi * r^2)
+        const isStaticA = entityA.abilities.collidable.isStatic;
+        const isStaticB = entityB.abilities.collidable.isStatic;
+
         const baseMassA = entityA.has("mass") ? entityA.abilities.mass.mass : 100;
         const baseMassB = entityB.has("mass") ? entityB.abilities.mass.mass : 100;
-        const massA = Math.max(1, baseMassA * (radA / 20) * (radA / 20));
-        const massB = Math.max(1, baseMassB * (radB / 20) * (radB / 20));
-        const invMassA = 1 / massA;
-        const invMassB = 1 / massB;
-        const invMassSum = invMassA + invMassB;
+        const massA = isStaticA ? Infinity : Math.max(1, baseMassA * (radA / 20) * (radA / 20));
+        const massB = isStaticB ? Infinity : Math.max(1, baseMassB * (radB / 20) * (radB / 20));
 
-        // 3. Positional Separation (resolves penetration without sinking)
+        const invMassA = isStaticA ? 0 : 1 / massA;
+        const invMassB = isStaticB ? 0 : 1 / massB;
+        const invMassSum = invMassA + invMassB;
+        if (invMassSum <= 0) return; // Both static, no movement
+
+        // Positional Separation (resolves penetration without sinking)
         const percent = 0.85;
         const slop = 0.02;
         const separation = Math.max(0, penetration - slop) * percent;
@@ -1048,33 +1055,46 @@ function Collision(game) {
         if (entityA.has("aabb")) entityA.abilities.aabb = new this.game.abilities.Aabb(entityA.abilities.body);
         if (entityB.has("aabb")) entityB.abilities.aabb = new this.game.abilities.Aabb(entityB.abilities.body);
 
-        // 4. Relative velocity
+        // Relative velocity
         const velA = entityA.abilities.velocity.velocity;
         const velB = entityB.abilities.velocity.velocity;
         const relVelX = velB.x - velA.x;
         const relVelY = velB.y - velA.y;
 
-        // Relative velocity along collision normal
+        // Normal relative velocity
         const velAlongNormal = relVelX * nx + relVelY * ny;
 
         // If separating, do not apply repulsive impulse
         if (velAlongNormal > 0) return;
 
-        // 5. Coefficient of restitution (elasticity)
+        // Coefficient of restitution (elasticity)
         const corA = entityA.has("cor") ? entityA.abilities.cor.cor : 0.45;
         const corB = entityB.has("cor") ? entityB.abilities.cor.cor : 0.45;
-        const restitution = Math.max(0.3, Math.min(corA, corB));
+        const restitution = Math.max(0.1, Math.min(corA, corB));
 
-        // 6. Impulse scalar (Newtonian 2D Elastic Collision)
-        const j = -(1 + restitution) * velAlongNormal / invMassSum;
-        const impulseX = j * nx;
-        const impulseY = j * ny;
+        // Normal impulse scalar (Newtonian conservation of momentum)
+        const jn = -(1 + restitution) * velAlongNormal / invMassSum;
+        const impulseNormX = jn * nx;
+        const impulseNormY = jn * ny;
 
-        // 7. Apply impulse to velocities
-        velA.x -= impulseX * invMassA;
-        velA.y -= impulseY * invMassA;
-        velB.x += impulseX * invMassB;
-        velB.y += impulseY * invMassB;
+        // Tangential friction impulse (Coulomb friction model)
+        const velAlongTangent = relVelX * tx + relVelY * ty;
+        const jtRaw = -velAlongTangent / invMassSum;
+        const frictionCoeff = 0.15;
+        const maxFriction = frictionCoeff * jn;
+        const jt = Math.max(-maxFriction, Math.min(maxFriction, jtRaw));
+        const impulseTanX = jt * tx;
+        const impulseTanY = jt * ty;
+
+        // Total impulse vector
+        const totalImpulseX = impulseNormX + impulseTanX;
+        const totalImpulseY = impulseNormY + impulseTanY;
+
+        // Apply impulse inversely proportional to mass
+        velA.x -= totalImpulseX * invMassA;
+        velA.y -= totalImpulseY * invMassA;
+        velB.x += totalImpulseX * invMassB;
+        velB.y += totalImpulseY * invMassB;
 
         if (this.game && typeof this.game.addTickEvent === 'function') {
             this.game.addTickEvent({
@@ -1084,7 +1104,7 @@ function Collision(game) {
             });
         }
 
-        // 8. Velocity damping cap
+        // Velocity damping cap
         const maxVel = 9;
         const spdA = Math.hypot(velA.x, velA.y);
         if (spdA > maxVel) {
@@ -1097,6 +1117,7 @@ function Collision(game) {
             velB.y = (velB.y / spdB) * maxVel;
         }
     };
+
     this.rectToCircle = (rect, crcl) => {
         return this.aabbToRect(rect, crcl);
     };
