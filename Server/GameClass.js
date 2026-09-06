@@ -147,6 +147,16 @@ var Game = function Game() {
     };
 
     this.formatToRender = (player) => {
+        if (player.type === 'dots' || player.name === 'dot') {
+            return {
+                id: player.id,
+                x: player.abilities.position.pos.x,
+                y: player.abilities.position.pos.y,
+                radius: (player.abilities.body && player.abilities.body.shape && player.abilities.body.shape.radius) || 7,
+                color: player.abilities.body.color
+            };
+        }
+
         let ort = (player.has('orientation')) ? player.abilities.orientation.orientation : new Shapes.Vect();
         let angle = (player.has('orientation')) ? player.abilities.orientation.angle : 2;
 
@@ -189,16 +199,32 @@ var Game = function Game() {
         this.tickEvents.push(event);
     };
 
+    this.getAllDotsCompact = function() {
+        if (!this.entities['dots']) return [];
+        return this.entities['dots'].map(d => ({
+            id: d.id,
+            x: d.abilities.position.pos.x,
+            y: d.abilities.position.pos.y,
+            radius: (d.abilities.body && d.abilities.body.shape && d.abilities.body.shape.radius) || 7,
+            color: d.abilities.body.color
+        }));
+    };
+
     this.doTick = function() {
         let players = {};
-        Object.keys(this.entities).map((entityType) => {
+        Object.keys(this.entities).forEach((entityType) => {
+            // High-Performance Optimization: Skip static dots in 30Hz tick snapshots!
+            if (entityType === 'dots') return;
             players[entityType] = this.entities[entityType].map(this.formatToRender);
         });
 
         const events = this.tickEvents || [];
         this.tickEvents = [];
 
-        this.server.doTick({players, fps: this.lastFPS, events});
+        const dotsDelta = this.dotsDelta || [];
+        this.dotsDelta = [];
+
+        this.server.doTick({ players, dotsDelta, fps: this.lastFPS, events });
     };
 
     // Set new state
@@ -344,7 +370,7 @@ var Game = function Game() {
         //     return 0;
         // }
 
-        this.server.letEmPlay(player);
+        this.server.letEmPlay(player, this.getAllDotsCompact());
     };
 
 

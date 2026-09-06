@@ -128,6 +128,15 @@ function handlePlayerCollision(entity, object, game) {
         object.abilities.body.color = DOT_COLORS[Math.floor(Math.random() * DOT_COLORS.length)];
         object.abilities.aabb = new game.abilities.Aabb(object.abilities.body);
 
+        if (!game.dotsDelta) game.dotsDelta = [];
+        game.dotsDelta.push({
+            id: object.id,
+            x: newX,
+            y: newY,
+            radius: (object.abilities.body && object.abilities.body.shape && object.abilities.body.shape.radius) || 7,
+            color: object.abilities.body.color
+        });
+
         if (entity.has('score')) entity.abilities.score.add(10);
         if (entity.has('experience')) {
             entity.abilities.experience.add(1);
@@ -249,6 +258,15 @@ function handlePlayerCollision(entity, object, game) {
                 dot.abilities.position.pos.y = dotY;
                 dot.abilities.body.color = DOT_COLORS[Math.floor(Math.random() * DOT_COLORS.length)];
                 dot.abilities.aabb = new game.abilities.Aabb(dot.abilities.body);
+
+                if (!game.dotsDelta) game.dotsDelta = [];
+                game.dotsDelta.push({
+                    id: dot.id,
+                    x: dotX,
+                    y: dotY,
+                    radius: (dot.abilities.body && dot.abilities.body.shape && dot.abilities.body.shape.radius) || 7,
+                    color: dot.abilities.body.color
+                });
             }
         }
 

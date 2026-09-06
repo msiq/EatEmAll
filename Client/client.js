@@ -166,6 +166,23 @@ socket.on("play", (data) => {
     player = data.player;
     lastMyScore = null;
 
+    // Load initial full dots snapshot on join (sent once)
+    if (data.dots && Array.isArray(data.dots)) {
+        renderedDots.clear();
+        for (let i = 0; i < data.dots.length; i++) {
+            const d = data.dots[i];
+            renderedDots.set(d.id, {
+                id: d.id,
+                x: d.x,
+                y: d.y,
+                targetX: d.x,
+                targetY: d.y,
+                radius: d.radius || 7,
+                color: d.color || "#00bcd4"
+            });
+        }
+    }
+
     if (player && player.id) {
         localStorage.setItem("eeaid", player.id);
     }
@@ -386,38 +403,62 @@ function onServerTick(data) {
         }
     }
 
-    // Track active dots
-    const activeDotIds = new Set();
-    for (let i = 0; i < serverDots.length; i++) {
-        const sd = serverDots[i];
-        activeDotIds.add(sd.id);
-
-        let rd = renderedDots.get(sd.id);
-        if (!rd) {
-            renderedDots.set(sd.id, {
-                id: sd.id,
-                x: sd.x,
-                y: sd.y,
-                targetX: sd.x,
-                targetY: sd.y,
-                radius: sd.radius || 7,
-                color: sd.color || "#00bcd4"
-            });
-        } else {
-            const dDist = Math.hypot(sd.x - rd.x, sd.y - rd.y);
-            if (dDist > 50) {
-                rd.x = sd.x;
-                rd.y = sd.y;
+    // High-Performance Optimization: Process delta dots update
+    if (data.dotsDelta && Array.isArray(data.dotsDelta)) {
+        for (let i = 0; i < data.dotsDelta.length; i++) {
+            const dd = data.dotsDelta[i];
+            let rd = renderedDots.get(dd.id);
+            if (!rd) {
+                renderedDots.set(dd.id, {
+                    id: dd.id,
+                    x: dd.x,
+                    y: dd.y,
+                    targetX: dd.x,
+                    targetY: dd.y,
+                    radius: dd.radius || 7,
+                    color: dd.color
+                });
+            } else {
+                rd.x = dd.x;
+                rd.y = dd.y;
+                rd.targetX = dd.x;
+                rd.targetY = dd.y;
+                rd.color = dd.color;
             }
-            rd.targetX = sd.x;
-            rd.targetY = sd.y;
-            rd.color = sd.color || rd.color;
         }
-    }
+    } else if (serverDots && serverDots.length > 0) {
+        // Fallback for full snapshots
+        const activeDotIds = new Set();
+        for (let i = 0; i < serverDots.length; i++) {
+            const sd = serverDots[i];
+            activeDotIds.add(sd.id);
 
-    for (const id of renderedDots.keys()) {
-        if (!activeDotIds.has(id)) {
-            renderedDots.delete(id);
+            let rd = renderedDots.get(sd.id);
+            if (!rd) {
+                renderedDots.set(sd.id, {
+                    id: sd.id,
+                    x: sd.x,
+                    y: sd.y,
+                    targetX: sd.x,
+                    targetY: sd.y,
+                    radius: sd.radius || 7,
+                    color: sd.color || "#00bcd4"
+                });
+            } else {
+                const dDist = Math.hypot(sd.x - rd.x, sd.y - rd.y);
+                if (dDist > 50) {
+                    rd.x = sd.x;
+                    rd.y = sd.y;
+                }
+                rd.targetX = sd.x;
+                rd.targetY = sd.y;
+                rd.color = sd.color || rd.color;
+            }
+        }
+        for (const id of renderedDots.keys()) {
+            if (!activeDotIds.has(id)) {
+                renderedDots.delete(id);
+            }
         }
     }
 
@@ -600,8 +641,18 @@ function render(timestamp) {
     cxt.strokeStyle = "#ef4444";
     cxt.strokeRect(0, 0, 2000, 2000);
 
-    // 1. Render Food Dots
+    // 1. Render Food Dots with Camera Viewport Culling
+    const viewPad = 35;
+    const viewLeft = currentOrigin.x - viewPad;
+    const viewRight = currentOrigin.x + canvas.width + viewPad;
+    const viewTop = currentOrigin.y - viewPad;
+    const viewBottom = currentOrigin.y + canvas.height + viewPad;
+
     for (const dot of renderedDots.values()) {
+        // Viewport Culling: Skip dots outside the visible camera view
+        if (dot.x < viewLeft || dot.x > viewRight || dot.y < viewTop || dot.y > viewBottom) {
+            continue;
+        }
         cxt.beginPath();
         cxt.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
         cxt.fillStyle = dot.color;
@@ -615,8 +666,11 @@ function render(timestamp) {
         }
     }
 
-    // 3. Render Spiky Green Viruses
+    // 3. Render Spiky Green Viruses with Viewport Culling
     for (const v of renderedViruses.values()) {
+        if (v.x < viewLeft - v.radius || v.x > viewRight + v.radius || v.y < viewTop - v.radius || v.y > viewBottom + v.radius) {
+            continue;
+        }
         drawVirus(cxt, v.x, v.y, v.radius, v.rot);
     }
 

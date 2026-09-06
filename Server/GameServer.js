@@ -72,9 +72,9 @@ function GameServer() {
         });
     };
 
-    this.letEmPlay = (player) => {
+    this.letEmPlay = (player, allDots) => {
         if (io && player && player.socket_id) {
-            io.to(player.socket_id).emit('play', { player });
+            io.to(player.socket_id).emit('play', { player, dots: allDots || [] });
         }
     };
 
@@ -94,6 +94,7 @@ function GameServer() {
         if (io) {
             io.emit('tick', JSON.stringify({
                 players: data.players,
+                dotsDelta: data.dotsDelta || [],
                 fps: data.fps,
                 events: data.events || [],
             }));
