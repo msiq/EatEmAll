@@ -35,28 +35,21 @@ function GameServer() {
             } else {
                 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../../../Client/game.html')));
             }
-            // Benchmark Dashboard & Historical Metrics Data
-            const benchmarkHtmlPath = (options && options.clientDir && fs.existsSync(path.join(options.clientDir, 'benchmark.html')))
-                ? path.join(options.clientDir, 'benchmark.html')
-                : (fs.existsSync(path.resolve(__dirname, '../../../Client/benchmark.html'))
-                    ? path.resolve(__dirname, '../../../Client/benchmark.html')
-                    : path.resolve(__dirname, '../Client/benchmark.html'));
-
-            const benchmarkDataPath = fs.existsSync(path.resolve(__dirname, '../../../benchmark_history.json'))
-                ? path.resolve(__dirname, '../../../benchmark_history.json')
-                : path.resolve(__dirname, '../benchmark_history.json');
+            // Engine Benchmark Dashboard & Historical Metrics Data (Pure Engine Feature)
+            const engineBenchmarkHtml = path.resolve(__dirname, '../client/benchmark.html');
+            const engineBenchmarkData = path.resolve(__dirname, '../../../benchmark_history.json');
 
             app.get('/benchmark', (req, res) => {
-                if (fs.existsSync(benchmarkHtmlPath)) {
-                    res.sendFile(benchmarkHtmlPath);
+                if (fs.existsSync(engineBenchmarkHtml)) {
+                    res.sendFile(engineBenchmarkHtml);
                 } else {
-                    res.status(404).send('benchmark.html not found');
+                    res.status(404).send('Engine benchmark dashboard not found');
                 }
             });
 
             app.get('/benchmark-data', (req, res) => {
-                if (fs.existsSync(benchmarkDataPath)) {
-                    res.sendFile(benchmarkDataPath);
+                if (fs.existsSync(engineBenchmarkData)) {
+                    res.sendFile(engineBenchmarkData);
                 } else {
                     res.json({ runs: [] });
                 }
