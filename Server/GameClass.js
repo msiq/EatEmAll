@@ -10,6 +10,8 @@ const Player = require('./Player.js');
 const Abilities = require('./Abilities.js');
 const SubSystems = require('./SubSystems.js');
 const MessageSystem = require('./MessageBus.js');
+const SafetyTripwire = require('./SafetyTripwire.js');
+const { performance } = require('perf_hooks');
 
 
 var Game = function Game() {
@@ -18,6 +20,9 @@ var Game = function Game() {
     this.subSystems = SubSystems(this);
     // console.log(this.subSystems);
     this.messageBus = new MessageSystem.MessageBus(this);
+
+    this.mode = (config.server && config.server.mode) || 'standard';
+    this.safetyTripwire = new SafetyTripwire((config.server && config.server.unrestricted) || {});
 
     this.state = false;
     this.players = {};
@@ -64,52 +69,142 @@ var Game = function Game() {
             .then((mes) => {
                 console.log(mes);
                 this.setup();
-                this.loop();
+                this.startLoop();
             }).catch((er) => {
                 console.log(er);
             });
     };
     this.stop = function() {
-        if (this.active) {
-            // && this.control
-            // clearInterval(this.control);
+        this.stopLoop();
+    };
 
-            this.active = false;
+    this.setMode = function(newMode) {
+        if (newMode !== 'standard' && newMode !== 'unrestricted') {
+            console.error('[Game] Invalid mode requested:', newMode);
+            return false;
         }
+        if (this.mode === newMode && this.active) return true;
+        console.log(`[Game] Switching engine mode: ${this.mode} -> ${newMode}`);
+        this.stopLoop();
+        this.mode = newMode;
+        if (newMode === 'standard' && this.safetyTripwire) {
+            this.safetyTripwire.currentTps = this.lastFPS || 30;
+            this.safetyTripwire.status = 'NORMAL';
+        }
+        this.startLoop();
+        return true;
     };
 
 
-    // time delta here and  count FPS somehow
+    // FPS, timing and loop metrics
     this.fps = 0;
     this.lastFPS = 30;
     this.lastRun = Date.now();
     this.fpsLastRun = Date.now();
     this.now = 0;
-
     this.delta = 1 / 30;
-    this.loop = function() {
-        this.now = Date.now();
 
-        if ((this.now - this.lastRun) >= 1000 / config.server.frameRate) {
-            this.delta = (1500 / this.lastFPS) / 100;
-            this.doTick();
-            this.update();
-            this.internalUpdate();
-            this.lastRun = this.now;
-            this.fps++;
+    this.loopTimeout = null;
+    this.immediateHandle = null;
+
+    this.startLoop = function() {
+        this.active = true;
+        this.lastRun = Date.now();
+        this.fpsLastRun = Date.now();
+        this.fps = 0;
+
+        console.log(`[Game] Starting game loop in '${this.mode}' mode.`);
+        if (this.mode === 'unrestricted') {
+            this.runUnrestrictedStep();
+        } else {
+            this.runStandardStep();
         }
+    };
 
-        if (!this.control) {
-            this.control = setInterval(this.loop.bind(this), 1);
-            this.active = true;
+    this.stopLoop = function() {
+        this.active = false;
+        if (this.loopTimeout) {
+            clearTimeout(this.loopTimeout);
+            this.loopTimeout = null;
         }
+        if (this.immediateHandle) {
+            clearImmediate(this.immediateHandle);
+            this.immediateHandle = null;
+        }
+        if (this.control) {
+            clearInterval(this.control);
+            this.control = null;
+        }
+    };
 
-        if ((this.now - this.fpsLastRun) > 1000) {
+    // Standard mode loop (Drift-compensated setTimeout, fixed target frame rate, 97% fewer wakeups)
+    this.runStandardStep = function() {
+        if (!this.active || this.mode !== 'standard') return;
+
+        const now = Date.now();
+        this.now = now;
+
+        const targetFps = (this.config.server && this.config.server.frameRate) || 30;
+        this.delta = (1500 / (this.lastFPS || targetFps)) / 100;
+        this.doTick();
+        this.update();
+        this.internalUpdate();
+        this.lastRun = now;
+        this.fps++;
+
+        if ((now - this.fpsLastRun) >= 1000) {
             this.lastFPS = this.fps;
-            console.log(this.fps);
+            console.log(`[Standard Loop] FPS: ${this.lastFPS}`);
             this.fps = 0;
-            this.fpsLastRun = Date.now();
+            this.fpsLastRun = now;
         }
+
+        const elapsed = Date.now() - now;
+        const targetInterval = 1000 / targetFps;
+        const nextDelay = Math.max(1, Math.round(targetInterval - elapsed));
+        this.loopTimeout = setTimeout(() => this.runStandardStep(), nextDelay);
+    };
+
+    // Unrestricted mode loop (Cooperative setImmediate, uncapped physics simulation rate, protected by SafetyTripwire)
+    this.runUnrestrictedStep = function() {
+        if (!this.active || this.mode !== 'unrestricted') return;
+
+        // Multi-Layer Hardware & OS Safety Check (Lag, Memory, Thermal Breather)
+        const vitals = this.safetyTripwire.checkVitals();
+        if (vitals.pause) {
+            this.loopTimeout = setTimeout(() => this.runUnrestrictedStep(), vitals.duration);
+            return;
+        }
+
+        const now = Date.now();
+        this.now = now;
+
+        // Network Backpressure Throttling (Cap client snapshots to max 60 Hz so clients don't choke)
+        if (this.safetyTripwire.shouldBroadcast(now)) {
+            this.doTick();
+        }
+
+        // Run full physics simulation at maximum hardware speed
+        const currentRate = this.safetyTripwire.currentTps || this.lastFPS || 30;
+        this.delta = 15 / Math.max(1, currentRate);
+        this.update();
+        this.internalUpdate();
+
+        this.fps++;
+        if ((now - this.fpsLastRun) >= 1000) {
+            this.lastFPS = this.fps;
+            console.log(`[Unrestricted Loop] Real TPS: ${this.safetyTripwire.currentTps || this.lastFPS} (Lag: ${this.safetyTripwire.eventLoopLag.toFixed(1)}ms, Status: ${this.safetyTripwire.status})`);
+            this.fps = 0;
+            this.fpsLastRun = now;
+        }
+
+        // Cooperative non-blocking re-entry
+        this.immediateHandle = setImmediate(() => this.runUnrestrictedStep());
+    };
+
+    // Legacy fallback alias
+    this.loop = function() {
+        this.startLoop();
     };
 
     this.internalUpdate = function() {

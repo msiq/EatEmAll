@@ -133,6 +133,126 @@
             transform: translateY(-2px);
         }
 
+        /* Control Panel & Telemetry Styles */
+        .control-panel-card {
+            background: rgba(18, 26, 43, 0.85);
+            border: 1px solid rgba(56, 239, 125, 0.2);
+            backdrop-filter: blur(20px);
+            border-radius: 18px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        }
+
+        .control-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .mode-badge {
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .mode-standard {
+            background: rgba(56, 239, 125, 0.15);
+            color: #38ef7d;
+            border: 1px solid rgba(56, 239, 125, 0.3);
+        }
+
+        .mode-unrestricted {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ff5252;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            animation: pulse-border 1.5s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .mode-switcher-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .btn-mode {
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-mode.active {
+            background: rgba(56, 239, 125, 0.2);
+            color: #38ef7d;
+            font-weight: 700;
+            box-shadow: 0 2px 10px rgba(56, 239, 125, 0.2);
+        }
+
+        .btn-mode.btn-turbo.active {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .telemetry-card {
+            background: rgba(10, 14, 23, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .telemetry-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .telemetry-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-main);
+        }
+
+        .telemetry-sub {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
         /* Stat Cards Grid */
         .stats-grid {
             display: grid;
@@ -312,6 +432,59 @@
             <a href="/" class="btn btn-primary">🎮 Enter Arena</a>
         </div>
     </header>
+
+    <!-- Hardware Safety & Unrestricted Engine Mode Control -->
+    <div class="control-panel-card">
+        <div class="control-panel-header">
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <h2 style="font-size: 1.35rem; font-weight: 800; background: linear-gradient(135deg, #38ef7d 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        🛡️ Engine Execution Mode & Hardware Safety Protection
+                    </h2>
+                    <span id="active-mode-badge" class="mode-badge mode-standard">STANDARD MODE (30 Hz)</span>
+                </div>
+                <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    Switch between Eco-Friendly 30 Hz loop and Zero-Artificial-Restriction Uncapped Turbo simulation with active hardware protections against system freezes, memory crashes, and thermal CPU core throttling.
+                </p>
+            </div>
+            <div class="mode-switcher-group">
+                <button id="btn-mode-standard" class="btn btn-mode active" onclick="setEngineMode('standard')">
+                    🌱 Standard (30 Hz)
+                </button>
+                <button id="btn-mode-unrestricted" class="btn btn-mode btn-turbo" onclick="setEngineMode('unrestricted')">
+                    ⚡ Unrestricted Turbo
+                </button>
+            </div>
+        </div>
+
+        <div class="telemetry-grid">
+            <div class="telemetry-card">
+                <span class="telemetry-label">Live Simulation Rate</span>
+                <div class="telemetry-value" id="telem-tps">-- TPS</div>
+                <div class="telemetry-sub positive" id="telem-tps-sub">Target: 30 FPS Fixed</div>
+            </div>
+            <div class="telemetry-card">
+                <span class="telemetry-label">Event Loop Lag</span>
+                <div class="telemetry-value" id="telem-lag">-- ms</div>
+                <div class="telemetry-sub" id="telem-lag-sub">Safe Limit: &lt; 25.0 ms</div>
+            </div>
+            <div class="telemetry-card">
+                <span class="telemetry-label">V8 Heap Memory</span>
+                <div class="telemetry-value" id="telem-heap">-- MB</div>
+                <div class="telemetry-sub" id="telem-heap-sub">Ceiling: 1,400 MB</div>
+            </div>
+            <div class="telemetry-card">
+                <span class="telemetry-label">Tripwire Sentinel</span>
+                <div class="telemetry-value" id="telem-status" style="color: #38ef7d;">NORMAL</div>
+                <div class="telemetry-sub" id="telem-trip-count">0 Interventions</div>
+            </div>
+            <div class="telemetry-card">
+                <span class="telemetry-label">Network Backpressure</span>
+                <div class="telemetry-value" style="color: #4facfe;">60 Hz</div>
+                <div class="telemetry-sub">Client Broadcast Gate</div>
+            </div>
+        </div>
+    </div>
 
     <!-- Stat Highlights -->
     <div class="stats-grid">
@@ -804,6 +977,120 @@
         window.addEventListener('resize', () => {
             fetchData();
         });
+
+        let currentEngineMode = 'standard';
+
+        async function setEngineMode(mode) {
+            try {
+                const btnStd = document.getElementById('btn-mode-standard');
+                const btnUnres = document.getElementById('btn-mode-unrestricted');
+                if (btnStd) btnStd.disabled = true;
+                if (btnUnres) btnUnres.disabled = true;
+
+                const res = await fetch('/set-mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    updateModeUI(data.mode);
+                    fetchTelemetry();
+                }
+            } catch(e) {
+                console.error('Failed to set engine mode:', e);
+            } finally {
+                const btnStd = document.getElementById('btn-mode-standard');
+                const btnUnres = document.getElementById('btn-mode-unrestricted');
+                if (btnStd) btnStd.disabled = false;
+                if (btnUnres) btnUnres.disabled = false;
+            }
+        }
+
+        function updateModeUI(mode) {
+            currentEngineMode = mode;
+            const badge = document.getElementById('active-mode-badge');
+            const btnStd = document.getElementById('btn-mode-standard');
+            const btnUnres = document.getElementById('btn-mode-unrestricted');
+
+            if (mode === 'unrestricted') {
+                if (badge) {
+                    badge.className = 'mode-badge mode-unrestricted';
+                    badge.textContent = '🚀 UNRESTRICTED TURBO (PROTECTED)';
+                }
+                if (btnStd) btnStd.classList.remove('active');
+                if (btnUnres) btnUnres.classList.add('active');
+            } else {
+                if (badge) {
+                    badge.className = 'mode-badge mode-standard';
+                    badge.textContent = '🌱 STANDARD MODE (30 Hz ECO)';
+                }
+                if (btnStd) btnStd.classList.add('active');
+                if (btnUnres) btnUnres.classList.remove('active');
+            }
+        }
+
+        async function fetchTelemetry() {
+            try {
+                const res = await fetch('/engine-telemetry');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                updateModeUI(data.mode);
+
+                const tpsEl = document.getElementById('telem-tps');
+                const tpsSub = document.getElementById('telem-tps-sub');
+                if (tpsEl) {
+                    tpsEl.textContent = (data.tps || data.fps || 0).toLocaleString() + ' TPS';
+                    if (data.mode === 'unrestricted') {
+                        tpsEl.style.color = '#ef4444';
+                        if (tpsSub) tpsSub.textContent = 'Uncapped Hardware Speed';
+                    } else {
+                        tpsEl.style.color = '#38ef7d';
+                        if (tpsSub) tpsSub.textContent = 'Target: 30 FPS Fixed';
+                    }
+                }
+
+                const lagEl = document.getElementById('telem-lag');
+                const lagSub = document.getElementById('telem-lag-sub');
+                if (lagEl && data.tripwire) {
+                    lagEl.textContent = data.tripwire.eventLoopLagMs.toFixed(1) + ' ms';
+                    if (data.tripwire.eventLoopLagMs > 20) {
+                        lagEl.style.color = '#ef4444';
+                        if (lagSub) lagSub.textContent = 'High Lag - Breather Triggered';
+                    } else {
+                        lagEl.style.color = '#38ef7d';
+                        if (lagSub) lagSub.textContent = 'Safe Limit: < 25.0 ms';
+                    }
+                }
+
+                const heapEl = document.getElementById('telem-heap');
+                if (heapEl && data.tripwire) {
+                    heapEl.textContent = data.tripwire.heapMB + ' MB';
+                }
+
+                const statusEl = document.getElementById('telem-status');
+                const tripCountEl = document.getElementById('telem-trip-count');
+                if (statusEl && data.tripwire) {
+                    statusEl.textContent = data.tripwire.status;
+                    if (data.tripwire.status === 'NORMAL') {
+                        statusEl.style.color = '#38ef7d';
+                    } else if (data.tripwire.status === 'THERMAL_BREATHE') {
+                        statusEl.style.color = '#4facfe';
+                    } else {
+                        statusEl.style.color = '#f59e0b';
+                    }
+                    if (tripCountEl) {
+                        tripCountEl.textContent = data.tripwire.tripCount + ' Interventions';
+                    }
+                }
+            } catch (e) {
+                // Ignore transient network errors
+            }
+        }
+
+        setInterval(fetchTelemetry, 1000);
+        fetchTelemetry();
 
         fetchData();
     </script>
