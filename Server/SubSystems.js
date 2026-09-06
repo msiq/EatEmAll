@@ -830,6 +830,7 @@ function Collision(game) {
         }
 
         // 3. Broadphase Collision Query: find nearby candidate neighbors
+        const testedPairs = new Set();
         for (let i = 0; i < collidables.length; i++) {
             const entity = collidables[i];
             if (!entity.abilities || !entity.abilities.position || !entity.abilities.position.pos) continue;
@@ -849,11 +850,15 @@ function Collision(game) {
 
             const candidates = this.quadtree.query(searchBox);
 
-            // 4. Narrowphase: Exact collision tests only on returned candidates
+            // 4. Narrowphase: Exact collision tests only on unique candidate pairs
             for (let j = 0; j < candidates.length; j++) {
                 const object = candidates[j];
                 if (entity.id !== object.id) {
-                    this.collisionTest(entity, object);
+                    const pairKey = entity.id < object.id ? (entity.id + ":" + object.id) : (object.id + ":" + entity.id);
+                    if (!testedPairs.has(pairKey)) {
+                        testedPairs.add(pairKey);
+                        this.collisionTest(entity, object);
+                    }
                 }
             }
         }
@@ -907,10 +912,13 @@ function Collision(game) {
                 this.game.messageBus.add(new MessageSystem.Message(MessageSystem.Type.COLLISION, [object], {'collision': true, 'object': entity}));
             }
 
-            /**
-             * Stop entity to move inside another entity
-             */
-            // entity.abilities.position.pos = entity.abilities.position.pos.sub(eVal);
+            // Realistic Impulse Physics for circle-to-circle dynamic entities (e.g. players/bots)
+            if (entity.abilities.body && object.abilities.body &&
+                entity.abilities.body.shape.name === "circle" &&
+                object.abilities.body.shape.name === "circle") {
+                this.resolveCircleImpulse(entity, object);
+            }
+
             touching = true;
         } else {
             if (entity.abilities.collidable.collidingWith.indexOf(object) >= 0) {
@@ -948,27 +956,133 @@ function Collision(game) {
         return Math.sqrt(dx * dx + dy * dy);
     };
     this.circleToCicle = (entity, object) => {
-        let entityPos = new Shapes.Vect(
-            entity.abilities.position.pos.x,
-            entity.abilities.position.pos.y
-        );
-        let entityRad = entity.abilities.body.shape.radius;
-        let objectPos = new Shapes.Vect(
-            object.abilities.position.pos.x,
-            object.abilities.position.pos.y
-        );
-        let objectRad = object.abilities.body.shape.radius;
+        if (!entity.abilities || !object.abilities) return 0;
+        if (!entity.abilities.position || !object.abilities.position) return 0;
+        const posA = entity.abilities.position.pos;
+        const posB = object.abilities.position.pos;
+        const radA = (entity.abilities.body && entity.abilities.body.shape.radius) || 20;
+        const radB = (object.abilities.body && object.abilities.body.shape.radius) || 20;
 
-        let eVal = entity.abilities.velocity.velocity;
+        const dx = posB.x - posA.x;
+        const dy = posB.y - posA.y;
+        return (radA + radB) - Math.hypot(dx, dy);
+    };
 
-        // add velocity in position to calculate collision before it happens
-        // So we have more time to react
-        entityPos = entityPos.add(eVal);
+    /**
+     * Realistic 2D Circle Elastic Impulse Physics Resolution
+     * Implements Newtonian conservation of momentum with mass distribution,
+     * penetration depth separation, and coefficient of restitution (bounciness).
+     */
+    this.resolveCircleImpulse = (entityA, entityB) => {
+        if (!entityA.abilities || !entityB.abilities) return;
+        if (!entityA.has("position") || !entityB.has("position")) return;
+        if (!entityA.has("velocity") || !entityB.has("velocity")) return;
+        if (!entityA.has("body") || !entityB.has("body")) return;
 
-        let dx = entityPos.x - objectPos.x;
-        let dy = entityPos.y - objectPos.y;
+        // Only apply elastic impulse if neither is a collectible dot
+        if (entityA.name === "dot" || entityA.type === "dots" ||
+            entityB.name === "dot" || entityB.type === "dots") return;
 
-        return entityRad + objectRad - Math.sqrt(dx * dx + dy * dy);
+        const posA = entityA.abilities.position.pos;
+        const posB = entityB.abilities.position.pos;
+        const radA = entityA.abilities.body.shape.radius || 20;
+        const radB = entityB.abilities.body.shape.radius || 20;
+
+        const dx = posB.x - posA.x;
+        const dy = posB.y - posA.y;
+        const dist = Math.hypot(dx, dy);
+
+        // If one player is large enough to swallow the other and overlaps prey center, skip bounce
+        if (radA > radB * 1.15 && dist < radA * 0.8) return;
+        if (radB > radA * 1.15 && dist < radB * 0.8) return;
+
+        const minDist = radA + radB;
+        const penetration = minDist - dist;
+        if (penetration <= 0) return;
+
+        // 1. Normalized collision normal vector (pointing from A to B)
+        let nx = dx;
+        let ny = dy;
+        if (dist > 0.0001) {
+            nx /= dist;
+            ny /= dist;
+        } else {
+            nx = 1;
+            ny = 0;
+        }
+
+        // 2. Physical mass calculation (proportional to area: pi * r^2)
+        const baseMassA = entityA.has("mass") ? entityA.abilities.mass.mass : 100;
+        const baseMassB = entityB.has("mass") ? entityB.abilities.mass.mass : 100;
+        const massA = Math.max(1, baseMassA * (radA / 20) * (radA / 20));
+        const massB = Math.max(1, baseMassB * (radB / 20) * (radB / 20));
+        const invMassA = 1 / massA;
+        const invMassB = 1 / massB;
+        const invMassSum = invMassA + invMassB;
+
+        // 3. Positional Separation (resolves penetration without sinking)
+        const percent = 0.85;
+        const slop = 0.02;
+        const separation = Math.max(0, penetration - slop) * percent;
+        const sepA = separation * (invMassA / invMassSum);
+        const sepB = separation * (invMassB / invMassSum);
+
+        posA.x -= nx * sepA;
+        posA.y -= ny * sepA;
+        posB.x += nx * sepB;
+        posB.y += ny * sepB;
+
+        // Keep inside arena boundaries
+        const arenaW = (this.game.config && this.game.config.canvas && this.game.config.canvas.width) || 2000;
+        const arenaH = (this.game.config && this.game.config.canvas && this.game.config.canvas.height) || 2000;
+        posA.x = Math.max(radA, Math.min(arenaW - radA, posA.x));
+        posA.y = Math.max(radA, Math.min(arenaH - radA, posA.y));
+        posB.x = Math.max(radB, Math.min(arenaW - radB, posB.x));
+        posB.y = Math.max(radB, Math.min(arenaH - radB, posB.y));
+
+        if (entityA.has("aabb")) entityA.abilities.aabb = new this.game.abilities.Aabb(entityA.abilities.body);
+        if (entityB.has("aabb")) entityB.abilities.aabb = new this.game.abilities.Aabb(entityB.abilities.body);
+
+        // 4. Relative velocity
+        const velA = entityA.abilities.velocity.velocity;
+        const velB = entityB.abilities.velocity.velocity;
+        const relVelX = velB.x - velA.x;
+        const relVelY = velB.y - velA.y;
+
+        // Relative velocity along collision normal
+        const velAlongNormal = relVelX * nx + relVelY * ny;
+
+        // If separating, do not apply repulsive impulse
+        if (velAlongNormal > 0) return;
+
+        // 5. Coefficient of restitution (elasticity)
+        const corA = entityA.has("cor") ? entityA.abilities.cor.cor : 0.45;
+        const corB = entityB.has("cor") ? entityB.abilities.cor.cor : 0.45;
+        const restitution = Math.max(0.3, Math.min(corA, corB));
+
+        // 6. Impulse scalar (Newtonian 2D Elastic Collision)
+        const j = -(1 + restitution) * velAlongNormal / invMassSum;
+        const impulseX = j * nx;
+        const impulseY = j * ny;
+
+        // 7. Apply impulse to velocities
+        velA.x -= impulseX * invMassA;
+        velA.y -= impulseY * invMassA;
+        velB.x += impulseX * invMassB;
+        velB.y += impulseY * invMassB;
+
+        // 8. Velocity damping cap
+        const maxVel = 9;
+        const spdA = Math.hypot(velA.x, velA.y);
+        if (spdA > maxVel) {
+            velA.x = (velA.x / spdA) * maxVel;
+            velA.y = (velA.y / spdA) * maxVel;
+        }
+        const spdB = Math.hypot(velB.x, velB.y);
+        if (spdB > maxVel) {
+            velB.x = (velB.x / spdB) * maxVel;
+            velB.y = (velB.y / spdB) * maxVel;
+        }
     };
     this.rectToCircle = (rect, crcl) => {
         return this.aabbToRect(rect, crcl);
