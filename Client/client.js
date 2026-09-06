@@ -7,6 +7,8 @@ const killerName = document.getElementById("killer-name");
 const deathScore = document.getElementById("death-final-score");
 const deathRadius = document.getElementById("death-final-radius");
 const respawnBtn = document.getElementById("respawn-btn");
+const soundBtn = document.getElementById("sound-btn");
+const soundIcon = document.getElementById("sound-icon");
 const canvas = document.getElementById("canvas");
 const fpsBox = document.getElementById("current-fps");
 const playerStats = document.getElementById("player-stats");
@@ -24,6 +26,7 @@ let currentOrigin = { x: 0, y: 0 };
 let isMouseDown = false;
 let lastMouseSendTime = 0;
 let listenersInitialized = false;
+let lastMyScore = null;
 
 // Client-side interpolation state
 const renderedPlayers = new Map();
@@ -43,6 +46,15 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
+// Setup sound toggle button
+if (soundBtn && window.soundManager) {
+    soundIcon.textContent = window.soundManager.isMuted() ? "🔇" : "🔊";
+    soundBtn.addEventListener("click", () => {
+        const isMuted = window.soundManager.toggleMute();
+        soundIcon.textContent = isMuted ? "🔇" : "🔊";
+    });
+}
+
 // Handle login button & Enter key
 loginBtn.addEventListener("click", joinGame);
 userNameInput.addEventListener("keydown", (e) => {
@@ -54,6 +66,7 @@ if (respawnBtn) {
 }
 
 function joinGame() {
+    if (window.soundManager) window.soundManager.init();
     const name = userNameInput.value.trim() || "Player";
     socket.emit("letmeplay", {
         userName: name,
@@ -62,6 +75,7 @@ function joinGame() {
 }
 
 function respawnPlayer() {
+    if (window.soundManager) window.soundManager.init();
     if (gameOverModal) gameOverModal.style.display = "none";
     const name = userNameInput.value.trim() || (player && player.name) || "Player";
     socket.emit("letmeplay", {
@@ -73,12 +87,17 @@ function respawnPlayer() {
 socket.on("play", (data) => {
     connected = true;
     player = data.player;
+    lastMyScore = null;
+
     if (player && player.id) {
         localStorage.setItem("eeaid", player.id);
     }
     if (loginModal) loginModal.style.display = "none";
     if (gameOverModal) gameOverModal.style.display = "none";
     if (playerStats) playerStats.style.display = "flex";
+
+    // Play spawn chime
+    if (window.soundManager) window.soundManager.playSpawn();
 
     // Snap camera origin immediately to spawn location
     let spawnX = null;
@@ -105,6 +124,9 @@ socket.on("play", (data) => {
 socket.on("gameover", (data) => {
     connected = false;
     player = null;
+    lastMyScore = null;
+
+    if (window.soundManager) window.soundManager.playGameOver();
 
     if (playerStats) playerStats.style.display = "none";
     if (killerName) killerName.textContent = data.eatenBy || "A Predator";
@@ -134,6 +156,7 @@ function setupListeners() {
 
     window.addEventListener("keydown", doKeyDown);
     canvas.addEventListener("mousedown", (e) => {
+        if (window.soundManager) window.soundManager.init();
         isMouseDown = true;
         sendMousePosition(e);
     });
@@ -169,6 +192,8 @@ function sendMousePosition(evt) {
 }
 
 function doKeyDown(evt) {
+    if (window.soundManager) window.soundManager.init();
+
     // Quick respawn shortcut on Enter or Space when game over modal is active
     if (gameOverModal && gameOverModal.style.display !== "none") {
         if (evt.keyCode === 13 || evt.keyCode === 32) {
@@ -294,6 +319,33 @@ function onServerTick(data) {
         if (hudScore) hudScore.textContent = me.score;
         if (hudRadius) hudRadius.textContent = Math.round(me.radius);
         if (hudHealth) hudHealth.style.width = Math.max(0, Math.min(100, me.health)) + "%";
+
+        // Sound triggers on score increase
+        if (lastMyScore !== null && me.score > lastMyScore && window.soundManager) {
+            const diff = me.score - lastMyScore;
+            if (diff <= 20) {
+                window.soundManager.playPop();
+            } else {
+                window.soundManager.playChomp();
+            }
+        }
+        lastMyScore = me.score;
+    }
+
+    // Handle tick events (bounces & chomps)
+    if (data.events && Array.isArray(data.events) && player && player.id && window.soundManager) {
+        for (let i = 0; i < data.events.length; i++) {
+            const ev = data.events[i];
+            if (ev.type === "bounce") {
+                if (ev.p1 === player.id || ev.p2 === player.id) {
+                    window.soundManager.playBounce();
+                }
+            } else if (ev.type === "chomp") {
+                if (ev.predator === player.id) {
+                    window.soundManager.playChomp();
+                }
+            }
+        }
     }
 
     if (leaderboardList && renderedPlayers.size > 0) {

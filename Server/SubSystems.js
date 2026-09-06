@@ -1071,6 +1071,14 @@ function Collision(game) {
         velB.x += impulseX * invMassB;
         velB.y += impulseY * invMassB;
 
+        if (this.game && typeof this.game.addTickEvent === 'function') {
+            this.game.addTickEvent({
+                type: 'bounce',
+                p1: entityA.id,
+                p2: entityB.id
+            });
+        }
+
         // 8. Velocity damping cap
         const maxVel = 9;
         const spdA = Math.hypot(velA.x, velA.y);

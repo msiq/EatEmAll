@@ -183,18 +183,22 @@ var Game = function Game() {
         );
     };
 
+    this.tickEvents = [];
+    this.addTickEvent = function(event) {
+        if (!this.tickEvents) this.tickEvents = [];
+        this.tickEvents.push(event);
+    };
+
     this.doTick = function() {
         let players = {};
         Object.keys(this.entities).map((entityType) => {
             players[entityType] = this.entities[entityType].map(this.formatToRender);
         });
 
-        // // console.log(this.entities);
-        // let players = this.getEntities('players');
+        const events = this.tickEvents || [];
+        this.tickEvents = [];
 
-        // players = players.map(this.formatToRender);
-
-        this.server.doTick({players, fps: this.lastFPS});
+        this.server.doTick({players, fps: this.lastFPS, events});
     };
 
     // Set new state

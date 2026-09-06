@@ -93,6 +93,7 @@ function GameServer() {
             io.emit('tick', JSON.stringify({
                 players: data.players,
                 fps: data.fps,
+                events: data.events || [],
             }));
         }
     };

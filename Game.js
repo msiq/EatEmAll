@@ -130,6 +130,13 @@ function handlePlayerCollision(entity, object, game) {
 
         if (myRadius > otherRadius * 1.15) {
             console.log('[Game]', entity.name, 'ate', object.name);
+            if (game && typeof game.addTickEvent === 'function') {
+                game.addTickEvent({
+                    type: 'chomp',
+                    predator: entity.id,
+                    prey: object.id
+                });
+            }
             entity.abilities.score.add(Math.round(otherRadius * 20));
             entity.abilities.body.shape.radius = Math.min(180, Math.sqrt(myRadius * myRadius + otherRadius * otherRadius * 0.5));
             entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
