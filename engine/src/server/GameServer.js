@@ -1,3 +1,4 @@
+const fs = require('fs');
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -34,8 +35,32 @@ function GameServer() {
             } else {
                 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../../../Client/game.html')));
             }
-            app.get('/benchmark', (req, res) => res.sendFile(path.join(__dirname, '../Client/benchmark.html')));
-            app.get('/benchmark-data', (req, res) => res.sendFile(path.join(__dirname, '../benchmark_history.json')));
+            // Benchmark Dashboard & Historical Metrics Data
+            const benchmarkHtmlPath = (options && options.clientDir && fs.existsSync(path.join(options.clientDir, 'benchmark.html')))
+                ? path.join(options.clientDir, 'benchmark.html')
+                : (fs.existsSync(path.resolve(__dirname, '../../../Client/benchmark.html'))
+                    ? path.resolve(__dirname, '../../../Client/benchmark.html')
+                    : path.resolve(__dirname, '../Client/benchmark.html'));
+
+            const benchmarkDataPath = fs.existsSync(path.resolve(__dirname, '../../../benchmark_history.json'))
+                ? path.resolve(__dirname, '../../../benchmark_history.json')
+                : path.resolve(__dirname, '../benchmark_history.json');
+
+            app.get('/benchmark', (req, res) => {
+                if (fs.existsSync(benchmarkHtmlPath)) {
+                    res.sendFile(benchmarkHtmlPath);
+                } else {
+                    res.status(404).send('benchmark.html not found');
+                }
+            });
+
+            app.get('/benchmark-data', (req, res) => {
+                if (fs.existsSync(benchmarkDataPath)) {
+                    res.sendFile(benchmarkDataPath);
+                } else {
+                    res.json({ runs: [] });
+                }
+            });
 
             // Live Engine Hardware & Simulation Telemetry
             app.get('/engine-telemetry', (req, res) => {
