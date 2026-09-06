@@ -331,6 +331,54 @@ class SoundManager {
             osc.stop(start + 0.23);
         });
     }
+    // High-impact visceral shatter sound when a player pops on a virus
+    playVirusPop() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+
+        // 1. Resonant lowpass downward sweep (impact thud)
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(680, now);
+        osc.frequency.exponentialRampToValueAtTime(55, now + 0.35);
+
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(1400, now);
+        filter.frequency.exponentialRampToValueAtTime(120, now + 0.35);
+
+        gain.gain.setValueAtTime(0.45 * this.volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.4);
+
+        // 2. High-frequency crackle/burst
+        const oscHi = this.ctx.createOscillator();
+        const gainHi = this.ctx.createGain();
+
+        oscHi.type = "square";
+        oscHi.frequency.setValueAtTime(980, now);
+        oscHi.frequency.exponentialRampToValueAtTime(180, now + 0.18);
+
+        gainHi.gain.setValueAtTime(0.3 * this.volume, now);
+        gainHi.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        oscHi.connect(gainHi);
+        gainHi.connect(this.ctx.destination);
+
+        oscHi.start(now);
+        oscHi.stop(now + 0.22);
+    }
 }
 
 window.soundManager = new SoundManager();

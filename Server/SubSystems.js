@@ -979,9 +979,11 @@ function Collision(game) {
         if (!entityA.has("velocity") || !entityB.has("velocity")) return;
         if (!entityA.has("body") || !entityB.has("body")) return;
 
-        // Only apply elastic impulse if neither is a collectible dot
+        // Only apply elastic impulse if neither is a collectible dot or virus hazard
         if (entityA.name === "dot" || entityA.type === "dots" ||
-            entityB.name === "dot" || entityB.type === "dots") return;
+            entityB.name === "dot" || entityB.type === "dots" ||
+            entityA.name === "virus" || entityA.type === "viruses" ||
+            entityB.name === "virus" || entityB.type === "viruses") return;
 
         const posA = entityA.abilities.position.pos;
         const posB = entityB.abilities.position.pos;

@@ -39,6 +39,13 @@ let lastMyScore = null;
 // Client-side interpolation state
 const renderedPlayers = new Map();
 const renderedDots = new Map();
+const renderedViruses = new Map();
+
+// Visual effects state
+let screenShakeTime = 0;
+let screenShakeIntensity = 0;
+const shockwaves = [];
+const particles = [];
 
 // Frame timing & FPS tracking
 let lastFrameTime = performance.now();
@@ -349,6 +356,36 @@ function onServerTick(data) {
         }
     }
 
+    // Track active viruses
+    const serverViruses = (data.players && data.players.viruses) || [];
+    const activeVirusIds = new Set();
+    for (let i = 0; i < serverViruses.length; i++) {
+        const sv = serverViruses[i];
+        activeVirusIds.add(sv.id);
+
+        let rv = renderedViruses.get(sv.id);
+        if (!rv) {
+            renderedViruses.set(sv.id, {
+                id: sv.id,
+                x: sv.x,
+                y: sv.y,
+                targetX: sv.x,
+                targetY: sv.y,
+                radius: sv.radius || 48,
+                rot: Math.random() * Math.PI * 2
+            });
+        } else {
+            rv.targetX = sv.x;
+            rv.targetY = sv.y;
+            rv.radius = sv.radius || 48;
+        }
+    }
+    for (const id of renderedViruses.keys()) {
+        if (!activeVirusIds.has(id)) {
+            renderedViruses.delete(id);
+        }
+    }
+
     // Track active dots
     const activeDotIds = new Set();
     for (let i = 0; i < serverDots.length; i++) {
@@ -420,6 +457,35 @@ function onServerTick(data) {
                 if (ev.predator === player.id) {
                     window.soundManager.playChomp();
                 }
+            } else if (ev.type === "virus_pop") {
+                if (window.soundManager) {
+                    window.soundManager.playVirusPop();
+                }
+                screenShakeTime = 0.35;
+                screenShakeIntensity = 14;
+
+                shockwaves.push({
+                    x: ev.x,
+                    y: ev.y,
+                    radius: ev.radius || 45,
+                    maxRadius: (ev.radius || 45) * 2.6,
+                    life: 1.0
+                });
+
+                for (let p = 0; p < 18; p++) {
+                    const pAngle = (p / 18) * Math.PI * 2 + Math.random() * 0.25;
+                    const pSpeed = 70 + Math.random() * 150;
+                    particles.push({
+                        x: ev.x,
+                        y: ev.y,
+                        vx: Math.cos(pAngle) * pSpeed,
+                        vy: Math.sin(pAngle) * pSpeed,
+                        life: 0.55,
+                        maxLife: 0.55,
+                        size: 3 + Math.random() * 4,
+                        color: "#4ade80"
+                    });
+                }
             }
         }
     }
@@ -465,6 +531,13 @@ function render(timestamp) {
         p.radius += (p.targetRadius - p.radius) * radLerp;
     }
 
+    // Interpolate viruses
+    for (const v of renderedViruses.values()) {
+        v.x += (v.targetX - v.x) * posLerp;
+        v.y += (v.targetY - v.y) * posLerp;
+        v.rot = (v.rot + dt * 0.35) % (Math.PI * 2);
+    }
+
     // Camera follow with smooth damping
     let me = null;
     if (player && player.id) {
@@ -492,11 +565,21 @@ function render(timestamp) {
         currentOrigin.y += (targetCamY - currentOrigin.y) * camLerp;
     }
 
+    // Calculate Screen Shake
+    let shakeX = 0;
+    let shakeY = 0;
+    if (screenShakeTime > 0) {
+        screenShakeTime -= dt;
+        const currentIntensity = screenShakeIntensity * Math.max(0, screenShakeTime / 0.35);
+        shakeX = (Math.random() - 0.5) * currentIntensity * 2;
+        shakeY = (Math.random() - 0.5) * currentIntensity * 2;
+    }
+
     // Render Scene
     cxt.clearRect(0, 0, canvas.width, canvas.height);
 
     cxt.save();
-    cxt.translate(-Math.round(currentOrigin.x), -Math.round(currentOrigin.y));
+    cxt.translate(-Math.round(currentOrigin.x + shakeX), -Math.round(currentOrigin.y + shakeY));
 
     // Draw Grid Lines (0..2000)
     cxt.lineWidth = 1;
@@ -517,7 +600,7 @@ function render(timestamp) {
     cxt.strokeStyle = "#ef4444";
     cxt.strokeRect(0, 0, 2000, 2000);
 
-    // Render Dots
+    // 1. Render Food Dots
     for (const dot of renderedDots.values()) {
         cxt.beginPath();
         cxt.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
@@ -525,39 +608,58 @@ function render(timestamp) {
         cxt.fill();
     }
 
-    // Render Players
+    // 2. Render Small Hiding Players (radius < 45px) beneath the viruses
     for (const p of renderedPlayers.values()) {
-        const isMe = me && p.id === me.id;
-
-        // Player Circle
-        cxt.beginPath();
-        cxt.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        cxt.fillStyle = p.color || (isMe ? "#38ef7d" : "#4facfe");
-        cxt.fill();
-
-        cxt.lineWidth = isMe ? 4 : 2.5;
-        cxt.strokeStyle = isMe ? "#ffffff" : "rgba(255, 255, 255, 0.75)";
-        cxt.stroke();
-
-        // Direction Indicator Line
-        if (p.dir && (p.dir.x !== 0 || p.dir.y !== 0)) {
-            cxt.beginPath();
-            cxt.moveTo(p.x, p.y);
-            cxt.lineTo(p.x + p.dir.x * 1.3, p.y + p.dir.y * 1.3);
-            cxt.strokeStyle = "rgba(0, 0, 0, 0.4)";
-            cxt.lineWidth = 3;
-            cxt.stroke();
+        if (p.radius < 45) {
+            drawPlayerEntity(cxt, p, me && p.id === me.id);
         }
+    }
 
-        // Name & Score Label
-        const fontSize = Math.max(12, Math.min(18, p.radius * 0.45));
-        cxt.font = "600 " + fontSize + "px Outfit, sans-serif";
-        cxt.textAlign = "center";
-        cxt.fillStyle = "#ffffff";
-        cxt.shadowColor = "rgba(0, 0, 0, 0.85)";
-        cxt.shadowBlur = 4;
-        cxt.fillText(p.name || "Player", p.x, p.y + (fontSize * 0.35));
-        cxt.shadowBlur = 0;
+    // 3. Render Spiky Green Viruses
+    for (const v of renderedViruses.values()) {
+        drawVirus(cxt, v.x, v.y, v.radius, v.rot);
+    }
+
+    // 4. Render Large Players (radius >= 45px) above the viruses
+    for (const p of renderedPlayers.values()) {
+        if (p.radius >= 45) {
+            drawPlayerEntity(cxt, p, me && p.id === me.id);
+        }
+    }
+
+    // 5. Render Expanding Shockwaves
+    for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.life -= dt * 2.2;
+        if (sw.life <= 0) {
+            shockwaves.splice(i, 1);
+            continue;
+        }
+        const curR = sw.radius + (sw.maxRadius - sw.radius) * (1.0 - sw.life);
+        cxt.beginPath();
+        cxt.arc(sw.x, sw.y, curR, 0, Math.PI * 2);
+        cxt.strokeStyle = "rgba(74, 222, 128, " + (sw.life * 0.85) + ")";
+        cxt.lineWidth = 4 * sw.life;
+        cxt.stroke();
+    }
+
+    // 6. Render Burst Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.life -= dt;
+        if (pt.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+        pt.x += pt.vx * dt;
+        pt.y += pt.vy * dt;
+        pt.vx *= 0.94;
+        pt.vy *= 0.94;
+        const alpha = Math.max(0, pt.life / pt.maxLife);
+        cxt.beginPath();
+        cxt.arc(pt.x, pt.y, pt.size * alpha, 0, Math.PI * 2);
+        cxt.fillStyle = "rgba(34, 197, 94, " + alpha + ")";
+        cxt.fill();
     }
 
     cxt.restore();
@@ -567,3 +669,79 @@ function render(timestamp) {
 
 // Start decoupled render loop
 requestAnimationFrame(render);
+// Draw an individual player entity
+function drawPlayerEntity(ctx, p, isMe) {
+    // Player Circle
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fillStyle = p.color || (isMe ? "#38ef7d" : "#4facfe");
+    ctx.fill();
+
+    ctx.lineWidth = isMe ? 4 : 2.5;
+    ctx.strokeStyle = isMe ? "#ffffff" : "rgba(255, 255, 255, 0.75)";
+    ctx.stroke();
+
+    // Direction Indicator Line
+    if (p.dir && (p.dir.x !== 0 || p.dir.y !== 0)) {
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x + p.dir.x * 1.3, p.y + p.dir.y * 1.3);
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    }
+
+    // Name & Score Label
+    const fontSize = Math.max(12, Math.min(18, p.radius * 0.45));
+    ctx.font = "600 " + fontSize + "px Outfit, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+    ctx.shadowBlur = 4;
+    ctx.fillText(p.name || "Player", p.x, p.y + (fontSize * 0.35));
+    ctx.shadowBlur = 0;
+}
+
+// Draw a spiky green hazard virus with saw-tooth spikes
+function drawVirus(ctx, x, y, radius, rot) {
+    const spikes = 16;
+    const innerR = radius * 0.90;
+    const outerR = radius * 1.08;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+
+    ctx.beginPath();
+    for (let i = 0; i < spikes * 2; i++) {
+        const angle = (i / (spikes * 2)) * Math.PI * 2;
+        const r = (i % 2 === 0) ? outerR : innerR;
+        const sx = Math.cos(angle) * r;
+        const sy = Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+    }
+    ctx.closePath();
+
+    // Vibrant green radial gradient
+    const grad = ctx.createRadialGradient(0, 0, innerR * 0.15, 0, 0, outerR);
+    grad.addColorStop(0, "#4ade80");
+    grad.addColorStop(0.65, "#22c55e");
+    grad.addColorStop(1, "#16a34a");
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Spiky dark green outline
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = "#14532d";
+    ctx.stroke();
+
+    // Inner ring texture
+    ctx.beginPath();
+    ctx.arc(0, 0, innerR * 0.45, 0, Math.PI * 2);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(20, 83, 45, 0.4)";
+    ctx.stroke();
+
+    ctx.restore();
+}

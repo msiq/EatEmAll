@@ -20,8 +20,9 @@ let botUpdateTick = 0;
 game.setup = function() {
     game.addEntityType('players', Entity.TYPE_MAIN);
     game.addEntityType('dots', Entity.TYPE_DEFAULT);
+    game.addEntityType('viruses', Entity.TYPE_DEFAULT);
 
-    console.log('[Game] Stress Test: Spawning 1,000 dots & 10 bots...');
+    console.log('[Game] Spawning 1,000 dots, 10 bots & 18 hazard viruses...');
 
     // 1. Spawn 1,000 collectible dots
     for (let i = 0; i < 1000; i++) {
@@ -31,6 +32,11 @@ game.setup = function() {
     // 2. Spawn 10 autonomous AI bot players
     for (let i = 0; i < BOT_NAMES.length; i++) {
         initiateBot(this, BOT_NAMES[i]);
+    }
+
+    // 3. Spawn 18 spiky hazard viruses
+    for (let i = 0; i < 18; i++) {
+        initiateVirus(this);
     }
 };
 
@@ -58,12 +64,25 @@ game.update = function() {
         let target = null;
         let minDist = Infinity;
 
+        let virusAvoidX = 0;
+        let virusAvoidY = 0;
+        let closeVirus = false;
+
         for (let i = 0; i < nearby.length; i++) {
             const item = nearby[i];
             if (item.id === p.id || !item.abilities || !item.abilities.position) continue;
 
             const itemPos = item.abilities.position.pos;
             const dist = Math.hypot(itemPos.x - myPos.x, itemPos.y - myPos.y);
+
+            // Large bots actively steer away from viruses
+            const isVirus = item.name === 'virus' || item.type === 'viruses';
+            if (isVirus && myRadius >= 42 && dist < 160) {
+                virusAvoidX += (myPos.x - itemPos.x) / Math.max(1, dist);
+                virusAvoidY += (myPos.y - itemPos.y) / Math.max(1, dist);
+                closeVirus = true;
+                continue;
+            }
 
             // Prefer eating dots or smaller players
             const isEdiblePlayer = item.type === 'players' && myRadius > (item.abilities.body.shape.radius || 20) * 1.15;
@@ -75,7 +94,15 @@ game.update = function() {
             }
         }
 
-        if (target && minDist > 4) {
+        if (closeVirus) {
+            const norm = Math.hypot(virusAvoidX, virusAvoidY) || 1;
+            const speed = 3.8;
+            p.abilities.velocity.velocity = new Shapes.Vect(
+                (virusAvoidX / norm) * speed,
+                (virusAvoidY / norm) * speed,
+                0
+            );
+        } else if (target && minDist > 4) {
             const dx = target.x - myPos.x;
             const dy = target.y - myPos.y;
             const speed = 3.8;
@@ -169,6 +196,67 @@ function handlePlayerCollision(entity, object, game) {
                 game.onPlayerDisconnect(object.socket_id);
             }
         }
+    }
+
+    // 3. Colliding with a Virus Hazard (HIDING OR POPPING)
+    if (object.name === 'virus' || object.type === 'viruses') {
+        let playerRadius = (entity.abilities.body && entity.abilities.body.shape && entity.abilities.body.shape.radius) || 20;
+        let virusRadius = (object.abilities.body && object.abilities.body.shape && object.abilities.body.shape.radius) || 48;
+
+        // If player is smaller than virus, player can hide underneath safely!
+        if (playerRadius < virusRadius) {
+            return;
+        }
+
+        // Large player pops/shatters!
+        console.log('[Game]', entity.name, 'hit a virus and popped!');
+
+        const currentScore = entity.has('score') ? entity.abilities.score.score : 0;
+        const lostScore = Math.floor(currentScore * 0.45);
+        if (entity.has('score')) {
+            entity.abilities.score.score = Math.max(0, currentScore - lostScore);
+        }
+
+        // Shrink radius down to ~55% of current size (minimum 22px)
+        const newRadius = Math.max(22, Math.round(playerRadius * 0.55));
+        entity.abilities.body.shape.radius = newRadius;
+        entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
+
+        // Broadcast pop event to clients for audio/visual shockwave
+        const popX = object.abilities.position.pos.x;
+        const popY = object.abilities.position.pos.y;
+        if (game && typeof game.addTickEvent === 'function') {
+            game.addTickEvent({
+                type: 'virus_pop',
+                playerId: entity.id,
+                x: popX,
+                y: popY,
+                radius: playerRadius
+            });
+        }
+
+        // Erupt 20 collectible food dots scattered radially outward around the impact site
+        if (game.entities && game.entities['dots']) {
+            const dots = game.entities['dots'];
+            const numDots = Math.min(20, dots.length);
+            for (let i = 0; i < numDots; i++) {
+                const dot = dots[i];
+                const angle = (i / numDots) * Math.PI * 2 + Math.random() * 0.3;
+                const dist = 40 + Math.random() * 90;
+                let dotX = Math.max(30, Math.min(game.config.canvas.width - 30, popX + Math.cos(angle) * dist));
+                let dotY = Math.max(30, Math.min(game.config.canvas.height - 30, popY + Math.sin(angle) * dist));
+                dot.abilities.position.pos.x = dotX;
+                dot.abilities.position.pos.y = dotY;
+                dot.abilities.body.color = DOT_COLORS[Math.floor(Math.random() * DOT_COLORS.length)];
+                dot.abilities.aabb = new game.abilities.Aabb(dot.abilities.body);
+            }
+        }
+
+        // Respawn virus at a new random location in the arena
+        let pad = 120;
+        object.abilities.position.pos.x = Math.floor(Math.random() * (game.config.canvas.width - pad * 2)) + pad;
+        object.abilities.position.pos.y = Math.floor(Math.random() * (game.config.canvas.height - pad * 2)) + pad;
+        object.abilities.aabb = new game.abilities.Aabb(object.abilities.body);
     }
 }
 
@@ -276,6 +364,33 @@ function initiateDot(game, x, y) {
     game.subSystems.motion.AddEntity(dot);
 
     game.addEntity(dot, 'dots');
+}
+
+
+function initiateVirus(game, x, y) {
+    let pad = 120;
+    let virusPos = new game.shapes.Vect(
+        x || Math.floor(Math.random() * (game.config.canvas.width - pad * 2)) + pad,
+        y || Math.floor(Math.random() * (game.config.canvas.height - pad * 2)) + pad
+    );
+    let virusRadius = 48;
+    let virusCirc = new game.shapes.Circ(virusRadius);
+    let virus = new game.Entity('virus');
+    virus.type = 'viruses';
+
+    virus.attach(new game.abilities.Body(virusCirc, '#22c55e'));
+    virus.attach(new game.abilities.Position(virusPos));
+    virus.attach(new game.abilities.Collidable());
+    virus.attach(new game.abilities.Mass(500));
+    virus.attach(new game.abilities.Velocity());
+    virus.attach(new game.abilities.Orientation());
+
+    game.subSystems.collision.AddEntity(virus);
+    game.subSystems.physics.AddEntity(virus);
+    game.subSystems.motion.AddEntity(virus);
+
+    game.addEntity(virus, 'viruses');
+    return virus;
 }
 
 module.exports = exports = game;
