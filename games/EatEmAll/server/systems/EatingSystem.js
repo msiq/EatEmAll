@@ -74,7 +74,7 @@ class EatingSystem {
             if (entity.has('body')) {
                 let shape = entity.abilities.body.shape;
                 if (shape && shape.radius) {
-                    const pelletMass = 2.5;
+                    const pelletMass = 6.0;
                     shape.radius = Math.min(160, Math.sqrt(shape.radius * shape.radius + pelletMass));
                     entity.abilities.aabb = new game.abilities.Aabb(entity.abilities.body);
                 }

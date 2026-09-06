@@ -159,6 +159,7 @@ var Game = function Game() {
         const dtSec = Math.min(0.1, Math.max(0.0001, (nowPerf - this.lastTickTime) / 1000));
         this.lastTickTime = nowPerf;
         this.timeScale = dtSec * 30;
+        this.dtSec = dtSec;
 
         const targetFps = (this.config.server && this.config.server.frameRate) || 30;
         this.delta = (1500 / (this.lastFPS || targetFps)) / 100;
@@ -199,6 +200,7 @@ var Game = function Game() {
         const dtSec = Math.min(0.1, Math.max(0.0001, (nowPerf - this.lastTickTime) / 1000));
         this.lastTickTime = nowPerf;
         this.timeScale = dtSec * 30;
+        this.dtSec = dtSec;
 
         // Network Backpressure Throttling (Cap client snapshots to max 60 Hz so clients don't choke)
         if (this.safetyTripwire.shouldBroadcast(now)) {
@@ -229,14 +231,15 @@ var Game = function Game() {
     };
 
     this.internalUpdate = function() {
+        const dt = this.dtSec || 0.033;
         if (this.gameFSM && typeof this.gameFSM.update === 'function') {
-            this.gameFSM.update(this.delta);
+            this.gameFSM.update(dt);
         }
         let players = this.getEntities('players');
         if (Array.isArray(players)) {
             players.forEach(p => {
                 if (p.playerFSM && typeof p.playerFSM.update === 'function') {
-                    p.playerFSM.update(this.delta);
+                    p.playerFSM.update(dt);
                 }
             });
         }

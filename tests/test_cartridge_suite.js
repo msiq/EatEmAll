@@ -79,7 +79,7 @@ test("EatingSystem allows predation but filters physical impulse bounce", () => 
     assert.strictEqual(eatingSystem.filterImpulse(p1, p2), true, "Similar players must physical bounce");
 });
 
-test("Eating a food dot applies area-based growth (sqrt(r^2 + 2.5)) and +2 score", () => {
+test("Eating a food dot applies area-based growth (sqrt(r^2 + 6.0)) and +2 score", () => {
     const game = new Game(EatEmAllCartridge.config);
     const eatingSystem = new EatingSystem(game);
 
@@ -110,8 +110,8 @@ test("Eating a food dot applies area-based growth (sqrt(r^2 + 2.5)) and +2 score
     // Score must be +2
     assert.strictEqual(player.abilities.score.score, 2, "Eating a dot should add 2 score points");
 
-    // Radius must grow via area conservation: sqrt(20^2 + 2.5) = sqrt(402.5) ~= 20.0624
-    const expectedRadius = Math.sqrt(20 * 20 + 2.5);
+    // Radius must grow via area conservation: sqrt(20^2 + 6.0) = sqrt(406) ~= 20.1494
+    const expectedRadius = Math.sqrt(20 * 20 + 6.0);
     assert(Math.abs(player.abilities.body.shape.radius - expectedRadius) < 1e-4, "Radius must grow via area formula");
 });
 

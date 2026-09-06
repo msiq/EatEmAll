@@ -16,7 +16,7 @@ class LobbyGameState extends BaseGameState {
 
         // When at least 1 human player connects, start match round
         if (activePlayers.length > 0) {
-            game.gameFSM.setState('round_active', { durationSec: 180 });
+            game.gameFSM.setState('round_active', { durationSec: 300 });
         }
     }
 }
@@ -28,7 +28,7 @@ class RoundActiveGameState extends BaseGameState {
     }
 
     enter(game, params) {
-        this.timeRemaining = (params && params.durationSec) || 180;
+        this.timeRemaining = (params && params.durationSec) || 300;
         console.log(`[GameFSM] Round active! Time limit: ${this.timeRemaining}s`);
     }
 
@@ -42,7 +42,7 @@ class RoundActiveGameState extends BaseGameState {
     getStateData() {
         return {
             timeRemaining: Math.ceil(this.timeRemaining),
-            totalDuration: 180
+            totalDuration: 300
         };
     }
 }
@@ -85,17 +85,17 @@ class RoundOverGameState extends BaseGameState {
     update(game, dt) {
         this.celebrateTime -= dt;
         if (this.celebrateTime <= 0) {
-            // Reset scores & restart round
+            // Next round: Crowned winner celebrated; active players retain their mass!
             if (game.entities && game.entities['players']) {
                 game.entities['players'].forEach(p => {
-                    if (p.abilities.score) p.abilities.score.score = 0;
-                    if (p.abilities.body && p.abilities.body.shape) {
-                        p.abilities.body.shape.radius = 20;
-                        if (p.abilities.aabb) p.abilities.aabb = new game.abilities.Aabb(p.abilities.body);
+                    if (p.abilities.score) {
+                        // Reset round score based on current living mass
+                        const curRadius = (p.abilities.body && p.abilities.body.shape && p.abilities.body.shape.radius) || 20;
+                        p.abilities.score.score = Math.round(curRadius * 2);
                     }
                 });
             }
-            game.gameFSM.setState('round_active', { durationSec: 180 });
+            game.gameFSM.setState('round_active', { durationSec: 300 });
         }
     }
 
