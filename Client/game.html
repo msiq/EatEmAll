@@ -72,6 +72,27 @@
             color: #38ef7d;
             font-weight: 700;
         }
+        .fps-toggle-btn {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            gap: 4px;
+            padding: 5px 9px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.25s ease;
+        }
+        .fps-toggle-btn.active {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(245, 158, 11, 0.4));
+            border: 1px solid #f59e0b;
+            color: #fbbf24;
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
+        }
+        .fps-badge.uncapped {
+            border-color: #f59e0b;
+            color: #fbbf24;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+        }
         .sound-toggle-btn {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.15);
@@ -489,6 +510,10 @@
         <div id="top-bar" class="hud-panel">
             <div class="logo">EAT 'EM ALL</div>
             <div class="fps-badge">FPS: <span id="current-fps" class="fps-val">60</span></div>
+            <button id="max-fps-btn" class="sound-toggle-btn fps-toggle-btn" title="Toggle Max Uncapped FPS (Bypass 60Hz V-Sync)">
+                <span id="max-fps-icon">⚡</span>
+                <span id="max-fps-label">MAX FPS</span>
+            </button>
             <button id="sound-btn" class="sound-toggle-btn" title="Toggle Mute">
                 <span id="sound-icon">🔊</span>
             </button>

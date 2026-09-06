@@ -288,6 +288,14 @@ function sendMousePosition(evt) {
 function doKeyDown(evt) {
     if (window.soundManager) window.soundManager.init();
 
+    // Toggle Max FPS shortcut on key 'F' or 'U'
+    if (evt.key === 'f' || evt.key === 'F' || evt.key === 'u' || evt.key === 'U') {
+        if (!document.activeElement || document.activeElement.tagName !== 'INPUT') {
+            toggleMaxFps();
+            return;
+        }
+    }
+
     // Close settings modal on Escape
     if (evt.keyCode === 27 && soundSettingsModal && soundSettingsModal.style.display !== "none") {
         soundSettingsModal.style.display = "none";
@@ -546,6 +554,58 @@ function onServerTick(data) {
     }
 }
 
+// Max Uncapped FPS Driver (MessageChannel zero-latency scheduler)
+let uncappedFps = localStorage.getItem("eat_uncapped_fps") === "true";
+const maxFpsBtn = document.getElementById("max-fps-btn");
+const maxFpsLabel = document.getElementById("max-fps-label");
+const maxFpsIcon = document.getElementById("max-fps-icon");
+
+function updateMaxFpsUI() {
+    if (maxFpsBtn) {
+        if (uncappedFps) {
+            maxFpsBtn.classList.add("active");
+            if (maxFpsLabel) maxFpsLabel.textContent = "UNCAPPED";
+            if (maxFpsIcon) maxFpsIcon.textContent = "🚀";
+            if (fpsBox && fpsBox.parentElement) fpsBox.parentElement.classList.add("uncapped");
+        } else {
+            maxFpsBtn.classList.remove("active");
+            if (maxFpsLabel) maxFpsLabel.textContent = "MAX FPS";
+            if (maxFpsIcon) maxFpsIcon.textContent = "⚡";
+            if (fpsBox && fpsBox.parentElement) fpsBox.parentElement.classList.remove("uncapped");
+        }
+    }
+}
+
+function toggleMaxFps() {
+    uncappedFps = !uncappedFps;
+    localStorage.setItem("eat_uncapped_fps", uncappedFps ? "true" : "false");
+    updateMaxFpsUI();
+    if (uncappedFps) {
+        scheduleNextFrame();
+    }
+}
+
+if (maxFpsBtn) {
+    maxFpsBtn.addEventListener("click", toggleMaxFps);
+}
+
+const renderChannel = typeof MessageChannel !== "undefined" ? new MessageChannel() : null;
+if (renderChannel) {
+    renderChannel.port1.onmessage = () => {
+        if (uncappedFps && !document.hidden) {
+            render(performance.now());
+        }
+    };
+}
+
+function scheduleNextFrame() {
+    if (uncappedFps && !document.hidden && renderChannel) {
+        renderChannel.port2.postMessage(null);
+    } else {
+        requestAnimationFrame(render);
+    }
+}
+
 // Decoupled 60-144 FPS Rendering Loop with Linear/Exponential Interpolation
 function render(timestamp) {
     const dt = Math.min((timestamp - lastFrameTime) / 1000, 0.1);
@@ -718,11 +778,12 @@ function render(timestamp) {
 
     cxt.restore();
 
-    requestAnimationFrame(render);
+    scheduleNextFrame();
 }
 
 // Start decoupled render loop
-requestAnimationFrame(render);
+updateMaxFpsUI();
+scheduleNextFrame();
 // Draw an individual player entity
 function drawPlayerEntity(ctx, p, isMe) {
     // Player Circle

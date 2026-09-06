@@ -5,7 +5,7 @@ module.exports =
             mode: 'standard', // 'standard' (capped at frameRate) or 'unrestricted' (max simulation speed + hardware tripwires)
             frameRate: 30,
             unrestricted: {
-                maxBroadcastFps: 60, // Capped network broadcast rate to keep browser clients smooth
+                maxBroadcastFps: 120, // 120 Hz network broadcast for ultra-high FPS // Capped network broadcast rate to keep browser clients smooth
                 maxEventLoopLagMs: 25, // Event loop freeze circuit breaker
                 maxHeapMB: 1400, // Memory ceiling sentinel
                 cooldownMs: 6, // Tripwire pause

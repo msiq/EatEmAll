@@ -10,7 +10,7 @@ class SafetyTripwire {
         this.maxEventLoopLagMs = config.maxEventLoopLagMs || 25; // Trigger if event loop lags > 25ms
         this.maxHeapMB = config.maxHeapMB || 1400; // Trigger if heap > 1.4 GB
         this.cooldownMs = config.cooldownMs || 6; // Cool-down breathing pause
-        this.broadcastIntervalMs = 1000 / (config.broadcastFpsLimit || 60); // Cap network broadcasts to 60 Hz
+        this.broadcastIntervalMs = 1000 / (config.broadcastFpsLimit || config.maxBroadcastFps || 120); // Cap network broadcasts up to 120 Hz
         this.thermalBreatherIntervalMs = config.thermalBreatherEveryMs || 1000;
         this.thermalBreatherDurationMs = config.thermalBreatherDurationMs || 10;
 
