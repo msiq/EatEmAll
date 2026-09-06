@@ -72,26 +72,58 @@
             color: #38ef7d;
             font-weight: 700;
         }
-        .fps-toggle-btn {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 700;
-            font-size: 0.8rem;
-            gap: 4px;
-            padding: 5px 9px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            transition: all 0.25s ease;
-        }
-        .fps-toggle-btn.active {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(245, 158, 11, 0.4));
-            border: 1px solid #f59e0b;
-            color: #fbbf24;
-            box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
-        }
         .fps-badge.uncapped {
             border-color: #f59e0b;
             color: #fbbf24;
             box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+        }
+        /* 2-Button Segmented FPS Mode Toggle */
+        .fps-mode-toggle {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 3px;
+            gap: 3px;
+        }
+        .fps-seg-btn {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.78rem;
+            letter-spacing: 0.2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 16px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+        .fps-seg-btn:hover {
+            color: #f1f5f9;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .fps-seg-btn.active {
+            font-weight: 700;
+            cursor: default;
+        }
+        #fps-mode-vsync.active {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(6, 182, 212, 0.28));
+            border: 1px solid #10b981;
+            color: #34d399;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+        }
+        #fps-mode-max.active {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(245, 158, 11, 0.35));
+            border: 1px solid #f59e0b;
+            color: #fbbf24;
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
         }
         .sound-toggle-btn {
             background: rgba(255, 255, 255, 0.08);
@@ -510,10 +542,16 @@
         <div id="top-bar" class="hud-panel">
             <div class="logo">EAT 'EM ALL</div>
             <div class="fps-badge">FPS: <span id="current-fps" class="fps-val">60</span></div>
-            <button id="max-fps-btn" class="sound-toggle-btn fps-toggle-btn" title="Toggle Max Uncapped FPS (Bypass 60Hz V-Sync)">
-                <span id="max-fps-icon">⚡</span>
-                <span id="max-fps-label">MAX FPS</span>
-            </button>
+            <div class="fps-mode-toggle" id="fps-mode-group" title="Framerate Control Mode (Shortcut: 'F' or 'U')">
+                <button id="fps-mode-vsync" class="fps-seg-btn active" title="60Hz V-Sync (Standard Smooth Display Sync)">
+                    <span>🔒</span>
+                    <span>60Hz V-Sync</span>
+                </button>
+                <button id="fps-mode-max" class="fps-seg-btn" title="Max FPS (Unlocked High-Refresh 140+ FPS)">
+                    <span>⚡</span>
+                    <span>Max FPS</span>
+                </button>
+            </div>
             <button id="sound-btn" class="sound-toggle-btn" title="Toggle Mute">
                 <span id="sound-icon">🔊</span>
             </button>

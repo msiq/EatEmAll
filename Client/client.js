@@ -554,30 +554,13 @@ function onServerTick(data) {
     }
 }
 
-// Max Uncapped FPS Driver (MessageChannel zero-latency scheduler)
+// 2-Button Segmented FPS Mode Driver (60Hz V-Sync vs Max FPS)
 let uncappedFps = localStorage.getItem("eat_uncapped_fps") === "true";
-const maxFpsBtn = document.getElementById("max-fps-btn");
-const maxFpsLabel = document.getElementById("max-fps-label");
-const maxFpsIcon = document.getElementById("max-fps-icon");
+const btnVsync = document.getElementById("fps-mode-vsync");
+const btnMaxFps = document.getElementById("fps-mode-max");
 
-function updateMaxFpsUI() {
-    if (maxFpsBtn) {
-        if (uncappedFps) {
-            maxFpsBtn.classList.add("active");
-            if (maxFpsLabel) maxFpsLabel.textContent = "UNCAPPED";
-            if (maxFpsIcon) maxFpsIcon.textContent = "🚀";
-            if (fpsBox && fpsBox.parentElement) fpsBox.parentElement.classList.add("uncapped");
-        } else {
-            maxFpsBtn.classList.remove("active");
-            if (maxFpsLabel) maxFpsLabel.textContent = "MAX FPS";
-            if (maxFpsIcon) maxFpsIcon.textContent = "⚡";
-            if (fpsBox && fpsBox.parentElement) fpsBox.parentElement.classList.remove("uncapped");
-        }
-    }
-}
-
-function toggleMaxFps() {
-    uncappedFps = !uncappedFps;
+function setFpsMode(enableMaxFps) {
+    uncappedFps = !!enableMaxFps;
     localStorage.setItem("eat_uncapped_fps", uncappedFps ? "true" : "false");
     updateMaxFpsUI();
     if (uncappedFps) {
@@ -585,8 +568,29 @@ function toggleMaxFps() {
     }
 }
 
-if (maxFpsBtn) {
-    maxFpsBtn.addEventListener("click", toggleMaxFps);
+function updateMaxFpsUI() {
+    if (btnVsync && btnMaxFps) {
+        if (uncappedFps) {
+            btnMaxFps.classList.add("active");
+            btnVsync.classList.remove("active");
+            if (fpsBox && fpsBox.parentElement) fpsBox.parentElement.classList.add("uncapped");
+        } else {
+            btnVsync.classList.add("active");
+            btnMaxFps.classList.remove("active");
+            if (fpsBox && fpsBox.parentElement) fpsBox.parentElement.classList.remove("uncapped");
+        }
+    }
+}
+
+function toggleMaxFps() {
+    setFpsMode(!uncappedFps);
+}
+
+if (btnVsync) {
+    btnVsync.addEventListener("click", () => setFpsMode(false));
+}
+if (btnMaxFps) {
+    btnMaxFps.addEventListener("click", () => setFpsMode(true));
 }
 
 // Paced High-Refresh Scheduler (Guarantees WebSockets, mouse inputs, and UI never freeze)
