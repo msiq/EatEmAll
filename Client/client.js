@@ -589,18 +589,13 @@ if (maxFpsBtn) {
     maxFpsBtn.addEventListener("click", toggleMaxFps);
 }
 
-const renderChannel = typeof MessageChannel !== "undefined" ? new MessageChannel() : null;
-if (renderChannel) {
-    renderChannel.port1.onmessage = () => {
-        if (uncappedFps && !document.hidden) {
-            render(performance.now());
-        }
-    };
-}
-
+// Paced High-Refresh Scheduler (Guarantees WebSockets, mouse inputs, and UI never freeze)
 function scheduleNextFrame() {
-    if (uncappedFps && !document.hidden && renderChannel) {
-        renderChannel.port2.postMessage(null);
+    if (uncappedFps && !document.hidden) {
+        // Cooperative yield via setTimeout so browser event loop, WebSockets, and mouse inputs remain 100% responsive
+        setTimeout(() => {
+            render(performance.now());
+        }, 0);
     } else {
         requestAnimationFrame(render);
     }
