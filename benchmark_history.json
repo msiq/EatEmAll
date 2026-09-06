@@ -485,6 +485,169 @@
           "reductionPct": 99.8
         }
       ]
+    },
+    {
+      "id": 7,
+      "timestamp": "2026-09-06T00:59:11.794Z",
+      "commit": "82518b9",
+      "milestone": "Delta Serialization and Viewport Culling",
+      "entities": {
+        "total": 1028,
+        "dots": 1000,
+        "botsAndPlayers": 10,
+        "viruses": 18
+      },
+      "tickMetrics": {
+        "avgTickMs": 1.438,
+        "minTickMs": 1.18,
+        "maxTickMs": 2.585,
+        "stdDevMs": 0.27,
+        "theoreticalMaxFps": 695,
+        "cpuBudgetHeadroomPct": 95.7
+      },
+      "memoryMB": {
+        "heapUsed": 19.34,
+        "heapTotal": 52.23,
+        "rss": 96.55
+      },
+      "scaling": [
+        {
+          "n": 100,
+          "buildTimeMs": 0.213,
+          "queryTimeMs": 0.423,
+          "totalTimeMs": 0.636,
+          "candidatePairs": 8,
+          "bruteForceChecks": 4950,
+          "reductionPct": 99.84
+        },
+        {
+          "n": 250,
+          "buildTimeMs": 0.457,
+          "queryTimeMs": 0.834,
+          "totalTimeMs": 1.291,
+          "candidatePairs": 75,
+          "bruteForceChecks": 31125,
+          "reductionPct": 99.76
+        },
+        {
+          "n": 500,
+          "buildTimeMs": 0.36,
+          "queryTimeMs": 1.302,
+          "totalTimeMs": 1.662,
+          "candidatePairs": 267,
+          "bruteForceChecks": 124750,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 1000,
+          "buildTimeMs": 0.649,
+          "queryTimeMs": 0.81,
+          "totalTimeMs": 1.459,
+          "candidatePairs": 1025,
+          "bruteForceChecks": 499500,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 1500,
+          "buildTimeMs": 0.324,
+          "queryTimeMs": 2.131,
+          "totalTimeMs": 2.455,
+          "candidatePairs": 2314,
+          "bruteForceChecks": 1124250,
+          "reductionPct": 99.79
+        },
+        {
+          "n": 2000,
+          "buildTimeMs": 0.353,
+          "queryTimeMs": 2.085,
+          "totalTimeMs": 2.438,
+          "candidatePairs": 4075,
+          "bruteForceChecks": 1999000,
+          "reductionPct": 99.8
+        }
+      ]
     }
-  ]
+  ],
+  "activeBreakingPoints": {
+    "discoveredAt": "2026-09-06T00:58:20.014Z",
+    "commit": "82518b9",
+    "movingBots": {
+      "breakingPoint": 14700,
+      "tickMs": 34.25,
+      "budgetLimitMs": 33.33,
+      "bottleneck": "CPU Quadtree Collision Queries & Newtonian Impulse Physics",
+      "progression": [
+        {
+          "count": 1000,
+          "avgMs": 4.4,
+          "memMB": 30,
+          "estFps": "30.0",
+          "passed": true
+        },
+        {
+          "count": 5000,
+          "avgMs": 13.27,
+          "memMB": 68,
+          "estFps": "30.0",
+          "passed": true
+        },
+        {
+          "count": 10000,
+          "avgMs": 22.94,
+          "memMB": 164,
+          "estFps": "30.0",
+          "passed": true
+        },
+        {
+          "count": 15000,
+          "avgMs": 35.13,
+          "memMB": 235,
+          "estFps": "28.5",
+          "passed": false
+        }
+      ]
+    },
+    "worldEntities": {
+      "safeLimit": 200000,
+      "crashLimit": 215000,
+      "bottleneck": "V8 JavaScript 2GB Heap Allocation Limit (~1.3 GB per 200k entities)",
+      "progression": [
+        {
+          "count": 25000,
+          "avgMs": 0.32,
+          "memMB": 178,
+          "passed": true
+        },
+        {
+          "count": 50000,
+          "avgMs": 0.72,
+          "memMB": 333,
+          "passed": true
+        },
+        {
+          "count": 100000,
+          "avgMs": 0.41,
+          "memMB": 648,
+          "passed": true
+        },
+        {
+          "count": 150000,
+          "avgMs": 0.36,
+          "memMB": 964,
+          "passed": true
+        },
+        {
+          "count": 200000,
+          "avgMs": 0.51,
+          "memMB": 1282,
+          "passed": true
+        }
+      ]
+    },
+    "legacyBeforeFix": {
+      "breakingPoint": 6000,
+      "tickMs": 35.25,
+      "bottleneck": "Full JSON Snapshot Serialization of Static Dots (146 MB/s)"
+    }
+  }
 }

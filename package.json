@@ -5,7 +5,8 @@
     "main": "Server.js",
     "scripts": {
         "test": "test",
-        "benchmark": "node scripts/benchmark.js"
+        "benchmark": "node scripts/benchmark.js",
+        "benchmark:breaking": "node scripts/find_breaking_point.js"
     },
     "repository": {
         "type": "git",

@@ -366,15 +366,24 @@
     <!-- Full-Width Breaking Point Chart -->
     <div class="chart-card" style="margin-top: 0.5rem;">
         <div class="chart-header">
-            <h3>💥 Engine Scaling & Breaking Point: Before vs. After Cheap Fix</h3>
-            <span style="font-size: 0.85rem; color: #38ef7d; font-weight: 700; font-family: 'JetBrains Mono';">10k Entities: 212x Speedup (0.29 ms) | 100k Entities: Locked 30 FPS</span>
+            <h3>💥 Dynamic Engine Breaking Point Discovery</h3>
+            <span id="bp-status-badge" style="font-size: 0.85rem; color: #38ef7d; font-weight: 700; font-family: 'JetBrains Mono';">Active Limit: 14,700 Bots (34.3 ms) | 200,000+ World Entities</span>
         </div>
         <div style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
-            Side-by-side benchmark comparing full engine tick latency across entity scales (1,000 to 100,000 entities). 
-            <strong style="color: #ef4444">Before Fix (Full Snapshots):</strong> JSON serialization broke the 30 FPS budget at 6,000 entities (35.25 ms) and choked at 10,000 (61.49 ms, 4.9 MB). 
-            <strong style="color: #38ef7d">After Fix (Delta Dot Serialization + Viewport Culling):</strong> Payload dropped by 99.7% (13 KB), tick time reduced to <strong style="color: #38ef7d">0.29 ms at 10,000 entities (212x faster)</strong>, and handles <strong style="color: #38ef7d">100,000 entities at 0.86 ms locked at 30 FPS</strong>!
+            Our automated breaking point suite dynamically scales the engine until it hits the exact point of breakdown (> 33.33 ms / 30 FPS budget limit).
+            <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; margin-bottom: 0.25rem; flex-wrap: wrap;">
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 6px 12px; border-radius: 8px;">
+                    <span style="color: #ef4444; font-weight: bold; font-family: 'JetBrains Mono';">Legacy Before-Fix Break:</span> <strong>6,000 Entities</strong> (35.25 ms, JSON serialization)
+                </div>
+                <div style="background: rgba(56, 239, 125, 0.1); border: 1px solid rgba(56, 239, 125, 0.3); padding: 6px 12px; border-radius: 8px;">
+                    <span style="color: #38ef7d; font-weight: bold; font-family: 'JetBrains Mono';">Moving Agent Breaking Point:</span> <strong id="bp-bot-val">14,700 Bots</strong> (34.25 ms, CPU Bound)
+                </div>
+                <div style="background: rgba(79, 172, 254, 0.1); border: 1px solid rgba(79, 172, 254, 0.3); padding: 6px 12px; border-radius: 8px;">
+                    <span style="color: #4facfe; font-weight: bold; font-family: 'JetBrains Mono';">Static World Capacity:</span> <strong id="bp-dot-val">200,000+ Entities</strong> (0.51 ms, 1.3 GB RAM)
+                </div>
+            </div>
         </div>
-        <div class="chart-container" style="height: 260px;">
+        <div class="chart-container" style="height: 270px;">
             <canvas id="chart-breaking-point"></canvas>
         </div>
     </div>
@@ -428,32 +437,49 @@
             document.getElementById('stat-headroom').textContent = latest.tickMetrics.cpuBudgetHeadroomPct + '%';
             document.getElementById('stat-entities').textContent = latest.entities.total;
 
+            // Update Breaking Point Badges if present
+            if (data.activeBreakingPoints) {
+                const bp = data.activeBreakingPoints;
+                if (bp.movingBots) {
+                    const botEl = document.getElementById('bp-bot-val');
+                    if (botEl) botEl.textContent = bp.movingBots.breakingPoint.toLocaleString() + ' Bots (' + bp.movingBots.tickMs + ' ms)';
+                }
+                if (bp.worldEntities) {
+                    const dotEl = document.getElementById('bp-dot-val');
+                    if (dotEl) dotEl.textContent = bp.worldEntities.safeLimit.toLocaleString() + '+ Entities';
+                }
+                const badge = document.getElementById('bp-status-badge');
+                if (badge && bp.movingBots) {
+                    badge.textContent = 'Active Limit: ' + bp.movingBots.breakingPoint.toLocaleString() + ' Bots (' + bp.movingBots.tickMs + ' ms) | 200,000+ World Entities';
+                }
+            }
+
             // 2. Render Table
             const tbody = document.getElementById('history-body');
-            tbody.innerHTML = '';
-            data.runs.slice().reverse().forEach((run, idx) => {
-                const tr = document.createElement('tr');
-                const d = new Date(run.timestamp);
-                const timeStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+            if (tbody) {
+                tbody.innerHTML = '';
+                data.runs.slice().reverse().forEach((run, idx) => {
+                    const tr = document.createElement('tr');
+                    const d = new Date(run.timestamp);
+                    const timeStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
 
-                tr.innerHTML = `
-                    <td>${run.id}</td>
-                    <td style="color: var(--text-muted)">${timeStr}</td>
-                    <td><span class="commit-badge">${run.commit}</span></td>
-                    <td class="milestone-name">${run.milestone}</td>
-                    <td>${run.entities.total}</td>
-                    <td style="color: var(--primary); font-weight: 700">${run.tickMetrics.avgTickMs} ms</td>
-                    <td style="color: var(--text-muted)">${run.tickMetrics.minTickMs} / ${run.tickMetrics.maxTickMs} ms</td>
-                    <td style="color: #38ef7d">${run.tickMetrics.cpuBudgetHeadroomPct}%</td>
-                    <td>${run.memoryMB.heapUsed} MB</td>
-                `;
-                tbody.appendChild(tr);
-            });
+                    tr.innerHTML = `
+                        <td>${run.id}</td>
+                        <td style="color: var(--text-muted)">${timeStr}</td>
+                        <td><span class="commit-badge">${run.commit}</span></td>
+                        <td class="milestone-name">${run.milestone}</td>
+                        <td>${run.entities.total}</td>
+                        <td style="color: var(--primary); font-weight: 700">${run.tickMetrics.avgTickMs} ms</td>
+                        <td style="color: var(--text-muted)">${run.tickMetrics.minTickMs} / ${run.tickMetrics.maxTickMs} ms</td>
+                        <td style="color: #38ef7d">${run.tickMetrics.cpuBudgetHeadroomPct}%</td>
+                        <td>${run.memoryMB.heapUsed} MB</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
 
-            // 3. Render Scaling Canvas Chart
+            // 3. Draw Charts
             drawScalingChart(latest.scaling);
-
-            // 4. Render History Line Canvas Chart
             drawHistoryChart(data.runs);
 
             // 5. Render Breaking Point Chart
@@ -716,13 +742,13 @@
 
             // Grouped Data Points: [Before, After]
             const groups = [
-                { label: "1,000", before: 5.55, after: 0.30 },
-                { label: "2,500", before: 10.06, after: 0.39 },
-                { label: "5,000", before: 27.20, after: 0.30 },
-                { label: "6,000 (LAG)", before: 35.25, after: 0.30 },
-                { label: "10,000 (CHOKE)", before: 61.49, after: 0.29 },
-                { label: "25,000", before: null, after: 0.21 },
-                { label: "100,000", before: null, after: 0.86 }
+                { label: "1,000", before: 5.55, after: 0.30, sub: "18x faster" },
+                { label: "2,500", before: 10.06, after: 0.39, sub: "26x faster" },
+                { label: "6,000 (OLD BREAK)", before: 35.25, after: 0.30, sub: "117x faster" },
+                { label: "10,000 (OLD CHOKE)", before: 61.49, after: 0.29, sub: "212x faster" },
+                { label: "14,700 (BOT BREAK)", before: null, after: 34.25, sub: "CPU Limit", failAfter: true },
+                { label: "100,000 (DOTS)", before: null, after: 0.41, sub: "30.0 FPS" },
+                { label: "200,000 (CAP)", before: null, after: 0.51, sub: "1.3 GB RAM" }
             ];
 
             const groupW = chartW / groups.length;
@@ -754,10 +780,10 @@
                 const xAfter = xBefore + barW + 4;
                 const ah = Math.max(5, (g.after / maxVal) * chartH);
                 const yAfter = padTop + chartH - ah;
-                ctx.fillStyle = "rgba(56, 239, 125, 0.9)";
+                ctx.fillStyle = g.failAfter ? "rgba(239, 68, 68, 0.85)" : "rgba(56, 239, 125, 0.9)";
                 ctx.fillRect(xAfter, yAfter, barW, ah);
 
-                ctx.fillStyle = "#38ef7d";
+                ctx.fillStyle = g.failAfter ? "#ef4444" : "#38ef7d";
                 ctx.font = "bold 10px 'JetBrains Mono'";
                 ctx.textAlign = "center";
                 ctx.fillText(g.after.toFixed(2) + "ms", xAfter + barW / 2, yAfter - 5);
@@ -768,17 +794,10 @@
                 ctx.textAlign = "center";
                 ctx.fillText(g.label, groupX + groupW * 0.5, h - padBottom + 18);
 
-                // Speedup / status badge
-                if (g.before) {
-                    const speedup = (g.before / g.after).toFixed(0);
-                    ctx.fillStyle = "#38ef7d";
-                    ctx.font = "bold 10px 'JetBrains Mono'";
-                    ctx.fillText(speedup + "x faster", groupX + groupW * 0.5, h - padBottom + 32);
-                } else {
-                    ctx.fillStyle = "#38ef7d";
-                    ctx.font = "bold 10px 'JetBrains Mono'";
-                    ctx.fillText("30.0 FPS", groupX + groupW * 0.5, h - padBottom + 32);
-                }
+                // Subtitle badge
+                ctx.fillStyle = g.failAfter ? "#ef4444" : "#38ef7d";
+                ctx.font = "bold 10px 'JetBrains Mono'";
+                ctx.fillText(g.sub, groupX + groupW * 0.5, h - padBottom + 32);
             });
         }
 
