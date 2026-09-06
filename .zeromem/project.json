@@ -1,0 +1,43 @@
+{
+  "key": "eatemall",
+  "name": "Eat 'Em All - 2D Multiplayer Game Engine",
+  "status": "Active",
+  "tags": [
+    "game-engine",
+    "2d-physics",
+    "multiplayer",
+    "ecs",
+    "nodejs",
+    "canvas-2d",
+    "websockets",
+    "socket-io"
+  ],
+  "urls": {
+    "repository": "git+https://msiq@bitbucket.org/msiq/eatem.git",
+    "production": null,
+    "local": "http://localhost:4444"
+  },
+  "metrics": {
+    "openIssues": 0,
+    "lastDeployed": null
+  },
+  "scripts": {
+    "dev": "node Server.js",
+    "test": "node tests/test_engine_suite.js",
+    "benchmark": "node scripts/benchmark.js",
+    "benchmark:breaking": "node scripts/find_breaking_point.js"
+  },
+  "spec_order": [
+    "master-spec",
+    "engine-architecture",
+    "physics-and-impulse",
+    "bot-steering-ai",
+    "gameplay-balancing"
+  ],
+  "playbook_order": [
+    "local-development",
+    "performance-benchmarks",
+    "running-automated-tests"
+  ],
+  "master_spec_id": "master-spec"
+}

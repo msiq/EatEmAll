@@ -1,0 +1,113 @@
+{
+  "projectKey": "eatemall",
+  "tasks": [
+    {
+      "id": "EEA-101",
+      "title": "Purge game leaks ('dot', 'virus', 'dotsDelta') from /Server/",
+      "description": "Decoupled engine core from Eat 'Em All rules. Replaced hardcoded entity names with generic ECS isTrigger and isStatic flags and generic staticLayers.",
+      "status": "done",
+      "priority": 1,
+      "order": 1,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "npm test",
+      "specId": "engine-architecture"
+    },
+    {
+      "id": "EEA-102",
+      "title": "Implement 2D Newtonian circle-to-circle impulse solver",
+      "description": "Added momentum conservation (m1*v1 + m2*v2 = m1*v1' + m2*v2'), coefficient of restitution (e), Coulomb tangential friction, and inverse-mass separation in SubSystems.js.",
+      "status": "done",
+      "priority": 1,
+      "order": 2,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "npm test",
+      "specId": "physics-and-impulse"
+    },
+    {
+      "id": "EEA-103",
+      "title": "Build GameStateMachine & PlayerStateMachine frameworks",
+      "description": "Created generic BaseGameState/GameStateMachine in GameState.js and BasePlayerState/PlayerStateMachine in PlayerState.js. Added 3.5s glowing spawn shield.",
+      "status": "done",
+      "priority": 1,
+      "order": 3,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "npm test",
+      "specId": "engine-architecture"
+    },
+    {
+      "id": "EEA-104",
+      "title": "Implement Reynolds context steering bot AI",
+      "description": "Fixed high-frequency bot jitter/vibration. Implemented angular velocity lerping (steerWeight=0.20), target locking (1.2-2.2s), predator evasion (w=2.5), and wall repulsion.",
+      "status": "done",
+      "priority": 1,
+      "order": 4,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "npm test",
+      "specId": "bot-steering-ai"
+    },
+    {
+      "id": "EEA-105",
+      "title": "Tune pellet size (3.5px) and area-based mass growth",
+      "description": "Reduced pellet radius from 7px to 3.5px. Replaced flat radius += 0.3 with area conservation r = sqrt(r^2 + 2.5) for natural diminishing returns on large blobs.",
+      "status": "done",
+      "priority": 2,
+      "order": 5,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "node Server.js",
+      "specId": "gameplay-balancing"
+    },
+    {
+      "id": "EEA-106",
+      "title": "10-test automated verification test suite",
+      "description": "Created comprehensive unit and integration test suite in tests/test_engine_suite.js validating decoupling, physics momentum, restitution, FSM, and bot steering.",
+      "status": "done",
+      "priority": 1,
+      "order": 6,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "npm test",
+      "specId": "engine-architecture"
+    },
+    {
+      "id": "EEA-107",
+      "title": "Implement Spacebar cell splitting into projectile halves",
+      "description": "Player cell splits into two equal mass halves along cursor heading vector with initial forward boost impulse and 15s recombine timer.",
+      "status": "todo",
+      "priority": 2,
+      "order": 7,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "node Server.js",
+      "specId": "master-spec"
+    },
+    {
+      "id": "EEA-108",
+      "title": "Implement 'W' key mass ejection pellets",
+      "description": "Eject small mass pellets (radius ~5px) forward to feed viruses, bait opponents, or quickly shed weight to escape predators.",
+      "status": "todo",
+      "priority": 2,
+      "order": 8,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "node Server.js",
+      "specId": "master-spec"
+    },
+    {
+      "id": "EEA-109",
+      "title": "Autonomous bot tactical split-kill AI",
+      "description": "Bots calculate distance to prey and evaluate split feasibility if prey radius < 0.70 * bot radius and no nearby predators threaten split cells.",
+      "status": "todo",
+      "priority": 3,
+      "order": 9,
+      "parentId": null,
+      "childrenIds": [],
+      "actionCommand": "npm test",
+      "specId": "bot-steering-ai"
+    }
+  ]
+}

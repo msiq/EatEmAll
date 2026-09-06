@@ -1,0 +1,80 @@
+{
+  "projectKey": "eatemall",
+  "features": [
+    {
+      "id": "F-1",
+      "title": "Decoupled 2D ECS Core Engine",
+      "description": "Pure 100% game-agnostic engine in /Server/ with generic ECS abilities, Quadtree spatial index, layer-based network synchronization, and tick loop.",
+      "status": "done",
+      "specId": "engine-architecture",
+      "taskIds": [
+        "EEA-101",
+        "EEA-106"
+      ]
+    },
+    {
+      "id": "F-2",
+      "title": "Newtonian Elastic Impulse & Momentum Physics",
+      "description": "Complete 2D physical circle collision solver conserving linear momentum (m1*v1 + m2*v2), restitution coefficient, and Coulomb tangential friction.",
+      "status": "done",
+      "specId": "physics-and-impulse",
+      "taskIds": [
+        "EEA-102",
+        "EEA-106"
+      ]
+    },
+    {
+      "id": "F-3",
+      "title": "Game & Player Finite State Machines (FSM)",
+      "description": "Lifecycle managers for match rounds (Lobby, 3-min RoundActive, RoundOver celebration) and players (3.5s spawn invulnerability shield aura).",
+      "status": "done",
+      "specId": "engine-architecture",
+      "taskIds": [
+        "EEA-103",
+        "EEA-106"
+      ]
+    },
+    {
+      "id": "F-4",
+      "title": "Reynolds Context Steering Autonomous Bot AI",
+      "description": "Fluid steering AI replacing vibrating jitter with angular inertia velocity lerping (alpha=0.20), target commitment locking, predator evasion, and boundary repulsion.",
+      "status": "done",
+      "specId": "bot-steering-ai",
+      "taskIds": [
+        "EEA-104",
+        "EEA-106"
+      ]
+    },
+    {
+      "id": "F-5",
+      "title": "Area-Based Mass Growth & Pellet Balancing",
+      "description": "Sleek 3.5px food pellets with physics-accurate area growth (sqrt(r^2 + 2.5)), preventing runaway ballooning and providing diminishing returns for large blobs.",
+      "status": "done",
+      "specId": "gameplay-balancing",
+      "taskIds": [
+        "EEA-105"
+      ]
+    },
+    {
+      "id": "F-6",
+      "title": "Cell Splitting & Mass Ejection",
+      "description": "Spacebar tactical cell splitting into projectile halves with impulse boost and recombine timer, plus 'W' mass pellet ejection.",
+      "status": "planned",
+      "specId": "master-spec",
+      "taskIds": [
+        "EEA-107",
+        "EEA-108"
+      ]
+    },
+    {
+      "id": "F-7",
+      "title": "Tactical Bot Splitting AI",
+      "description": "Autonomous AI bots assess opportunities to split-kill smaller players when within lethal strike range and recombine safely.",
+      "status": "planned",
+      "specId": "bot-steering-ai",
+      "taskIds": [
+        "EEA-109"
+      ]
+    }
+  ]
+}
