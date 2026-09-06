@@ -160,75 +160,172 @@ game.joinGame = function(data) {
     return initiatePlayer(this, data);
 };
 
-// AI Bots decision loop (steers using Quadtree at constant ~10 Hz fixed interval)
+// AI Bots decision loop (Realistic Context Steering AI with target commitment, evasion, and momentum)
 let lastBotAiTime = 0;
 game.update = function() {
     const now = Date.now();
-    if (now - lastBotAiTime < 100) return; // run bot AI every ~100ms (10 Hz fixed across all engine modes)
+    if (now - lastBotAiTime < 60) return; // run bot AI every ~60ms (~16 Hz smooth updates)
+    const dtSec = Math.min(0.1, (now - lastBotAiTime) / 1000);
     lastBotAiTime = now;
 
     if (!game.entities['players'] || !game.subSystems.collision.quadtree) return;
 
-    game.entities['players'].forEach(p => {
-        if (!p.isBot || !p.abilities || !p.abilities.position) return;
+    const arenaW = (game.config && game.config.canvas && game.config.canvas.width) || 2000;
+    const arenaH = (game.config && game.config.canvas && game.config.canvas.height) || 2000;
+    const wallMargin = 140;
 
+    game.entities['players'].forEach(p => {
+        if (!p.isBot || !p.abilities || !p.abilities.position || !p.abilities.velocity) return;
+        if (!p.aiState) {
+            p.aiState = {
+                targetId: null,
+                targetPos: null,
+                targetLockUntil: 0,
+                wanderAngle: Math.random() * Math.PI * 2,
+                turnRate: 0.22,
+            };
+        }
+
+        const ai = p.aiState;
         const myPos = p.abilities.position.pos;
         const myRadius = (p.abilities.body && p.abilities.body.shape && p.abilities.body.shape.radius) || 20;
 
-        // Query Quadtree for nearby items within 400px
-        const searchBox = new Rectangle(myPos.x - 300, myPos.y - 300, 600, 600);
+        // Speed scaling based on cell size (larger cells move slightly slower)
+        const baseSpeed = Math.max(2.2, 4.2 * Math.pow(20 / myRadius, 0.3));
+
+        // Query Quadtree for nearby items within 380px
+        const searchBox = new Rectangle(myPos.x - 380, myPos.y - 380, 760, 760);
         const nearby = game.subSystems.collision.quadtree.query(searchBox);
 
-        let target = null;
-        let minDist = Infinity;
+        let fleeVecX = 0;
+        let fleeVecY = 0;
+        let hasThreat = false;
 
-        let virusAvoidX = 0;
-        let virusAvoidY = 0;
-        let closeVirus = false;
+        let preyTarget = null;
+        let minPreyDist = Infinity;
+
+        let bestDot = null;
+        let minDotDist = Infinity;
 
         for (let i = 0; i < nearby.length; i++) {
             const item = nearby[i];
             if (item.id === p.id || !item.abilities || !item.abilities.position) continue;
 
             const itemPos = item.abilities.position.pos;
-            const dist = Math.hypot(itemPos.x - myPos.x, itemPos.y - myPos.y);
+            const dx = itemPos.x - myPos.x;
+            const dy = itemPos.y - myPos.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < 0.001) continue;
 
-            // Large bots actively steer away from viruses
-            const isVirus = item.name === 'virus' || item.type === 'viruses';
-            if (isVirus && myRadius >= 42 && dist < 160) {
-                virusAvoidX += (myPos.x - itemPos.x) / Math.max(1, dist);
-                virusAvoidY += (myPos.y - itemPos.y) / Math.max(1, dist);
-                closeVirus = true;
+            const itemRadius = (item.abilities.body && item.abilities.body.shape && item.abilities.body.shape.radius) || 20;
+
+            // 1. THREAT EVALUATION: Bigger players that can swallow me
+            const isPlayer = item.type === 'players';
+            const isPredator = isPlayer && itemRadius > myRadius * 1.15;
+
+            if (isPredator && dist < 260) {
+                const threatWeight = Math.pow((260 - dist) / 260, 1.5) * 3.5;
+                fleeVecX -= (dx / dist) * threatWeight;
+                fleeVecY -= (dy / dist) * threatWeight;
+                hasThreat = true;
                 continue;
             }
 
-            // Prefer eating dots or smaller players
-            const isEdiblePlayer = item.type === 'players' && myRadius > (item.abilities.body.shape.radius || 20) * 1.15;
-            const isDot = item.name === 'dot' || item.type === 'dots';
+            // 2. VIRUS THREAT: Large bots avoid viruses
+            const isVirus = item.name === 'virus' || item.type === 'viruses';
+            if (isVirus && myRadius >= 45 && dist < 180) {
+                const virusWeight = ((180 - dist) / 180) * 2.5;
+                fleeVecX -= (dx / dist) * virusWeight;
+                fleeVecY -= (dy / dist) * virusWeight;
+                hasThreat = true;
+                continue;
+            }
 
-            if ((isDot || isEdiblePlayer) && dist < minDist) {
-                minDist = dist;
-                target = itemPos;
+            // 3. PREY HUNTING: Smaller players that I can eat
+            const isPrey = isPlayer && myRadius > itemRadius * 1.15;
+            if (isPrey && !hasThreat && dist < minPreyDist && dist < 320) {
+                if (!item.playerFSM || !item.playerFSM.isShielded()) {
+                    minPreyDist = dist;
+                    preyTarget = itemPos;
+                }
+            }
+
+            // 4. COLLECTIBLE DOTS:
+            const isDot = item.name === 'dot' || item.type === 'dots';
+            if (isDot && !hasThreat && dist < minDotDist) {
+                minDotDist = dist;
+                bestDot = { id: item.id, pos: itemPos };
             }
         }
 
-        if (closeVirus) {
-            const norm = Math.hypot(virusAvoidX, virusAvoidY) || 1;
-            const speed = 3.8;
-            p.abilities.velocity.velocity = new Shapes.Vect(
-                (virusAvoidX / norm) * speed,
-                (virusAvoidY / norm) * speed,
-                0
-            );
-        } else if (target && minDist > 4) {
-            const dx = target.x - myPos.x;
-            const dy = target.y - myPos.y;
-            const speed = 3.8;
-            p.abilities.velocity.velocity = new Shapes.Vect(
-                (dx / minDist) * speed,
-                (dy / minDist) * speed,
-                0
-            );
+        // Arena Boundary Repulsion (keeps bots safely away from arena edges)
+        let wallVecX = 0;
+        let wallVecY = 0;
+        if (myPos.x < wallMargin) wallVecX += (wallMargin - myPos.x) / wallMargin;
+        if (myPos.x > arenaW - wallMargin) wallVecX -= (myPos.x - (arenaW - wallMargin)) / wallMargin;
+        if (myPos.y < wallMargin) wallVecY += (wallMargin - myPos.y) / wallMargin;
+        if (myPos.y > arenaH - wallMargin) wallVecY -= (myPos.y - (arenaH - wallMargin)) / wallMargin;
+
+        let desiredDirX = 0;
+        let desiredDirY = 0;
+
+        if (hasThreat) {
+            // High Priority: Escape from predator
+            desiredDirX = fleeVecX + wallVecX * 2.0;
+            desiredDirY = fleeVecY + wallVecY * 2.0;
+            ai.targetLockUntil = 0; // Break target lock when fleeing
+        } else if (preyTarget) {
+            // Medium-High Priority: Chase down prey
+            const pdx = preyTarget.x - myPos.x;
+            const pdy = preyTarget.y - myPos.y;
+            const pDist = Math.hypot(pdx, pdy) || 1;
+            desiredDirX = (pdx / pDist) * 2.2 + wallVecX * 1.5;
+            desiredDirY = (pdy / pDist) * 2.2 + wallVecY * 1.5;
+            ai.targetLockUntil = 0;
+        } else {
+            // Normal: Target lock or Wandering
+            if (now < ai.targetLockUntil && ai.targetPos && Math.hypot(ai.targetPos.x - myPos.x, ai.targetPos.y - myPos.y) > 8) {
+                const tdx = ai.targetPos.x - myPos.x;
+                const tdy = ai.targetPos.y - myPos.y;
+                const tDist = Math.hypot(tdx, tdy) || 1;
+                desiredDirX = (tdx / tDist) + wallVecX * 1.5;
+                desiredDirY = (tdy / tDist) + wallVecY * 1.5;
+            } else if (bestDot) {
+                ai.targetId = bestDot.id;
+                ai.targetPos = bestDot.pos;
+                ai.targetLockUntil = now + 1200 + Math.random() * 1000;
+
+                const tdx = bestDot.pos.x - myPos.x;
+                const tdy = bestDot.pos.y - myPos.y;
+                const tDist = Math.hypot(tdx, tdy) || 1;
+                desiredDirX = (tdx / tDist) + wallVecX * 1.5;
+                desiredDirY = (tdy / tDist) + wallVecY * 1.5;
+            } else {
+                ai.wanderAngle += (Math.random() - 0.5) * 0.4;
+                desiredDirX = Math.cos(ai.wanderAngle) + wallVecX * 2.0;
+                desiredDirY = Math.sin(ai.wanderAngle) + wallVecY * 2.0;
+            }
+        }
+
+        // Normalize desired direction vector
+        const desiredMag = Math.hypot(desiredDirX, desiredDirY);
+        let targetVelX = 0;
+        let targetVelY = 0;
+        if (desiredMag > 0.001) {
+            targetVelX = (desiredDirX / desiredMag) * baseSpeed;
+            targetVelY = (desiredDirY / desiredMag) * baseSpeed;
+        }
+
+        // Smooth Steering & Inertia (lerp current velocity towards target velocity)
+        const curVel = p.abilities.velocity.velocity;
+        const steerWeight = Math.min(1.0, 0.20 * (game.timeScale || 1.0));
+
+        curVel.x += (targetVelX - curVel.x) * steerWeight;
+        curVel.y += (targetVelY - curVel.y) * steerWeight;
+
+        if (p.abilities.orientation && (Math.abs(curVel.x) > 0.01 || Math.abs(curVel.y) > 0.01)) {
+            const heading = curVel.unit();
+            p.abilities.orientation.orientation = heading;
         }
     });
 };
