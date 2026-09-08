@@ -29,7 +29,13 @@ function GameServer() {
             // Serve Universal Engine Client & Plugin Assets
             const engineClientDir = path.resolve(__dirname, '../client');
             const universalIndexHtml = path.join(engineClientDir, 'index.html');
-            app.use('/engine/client', express.static(engineClientDir));
+            app.use('/engine/client', express.static(engineClientDir, {
+                setHeaders: (res) => {
+                    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                    res.setHeader('Pragma', 'no-cache');
+                    res.setHeader('Expires', '0');
+                }
+            }));
             app.use('/Client', express.static(path.join(__dirname, '../../../Client')));
 
             // Dynamic Active Cartridge Visual Manifest
@@ -37,6 +43,9 @@ function GameServer() {
             const visualsPath = (options && options.visualsPath) || (cartridgeDir ? path.join(cartridgeDir, 'visuals.js') : null);
 
             app.get('/game/visuals.js', (req, res) => {
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
                 if (visualsPath && fs.existsSync(visualsPath)) {
                     res.sendFile(visualsPath);
                 } else if (options && options.clientDir && fs.existsSync(path.join(options.clientDir, 'visuals.js'))) {
@@ -141,11 +150,11 @@ function GameServer() {
                             }
                         } else if (event === 'input') {
                             if (this.game && typeof this.game.playerInput === 'function') {
-                                this.game.playerInput(data);
+                                data.socketId = sock.id; data.playerId = sock.id; this.game.playerInput(data);
                             }
                         } else if (event === 'click') {
                             if (this.game && typeof this.game.playerClick === 'function') {
-                                this.game.playerClick(data);
+                                data.socketId = sock.id; data.playerId = sock.id; this.game.playerClick(data);
                             }
                         }
                     } catch (e) {

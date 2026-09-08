@@ -1,0 +1,14 @@
+{
+    "name": "CosmicSingularity",
+    "gameport": 4444,
+    "canvas": {
+        "width": 4000,
+        "height": 4000
+    },
+    "fps": 30,
+    "botCount": 5,
+    "planetCount": 120,
+    "stardustCount": 280,
+    "asteroidCount": 22,
+    "pulsarCount": 4
+}

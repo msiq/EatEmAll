@@ -17,6 +17,8 @@
             this.dpr = 1;
             this.width = 0;
             this.height = 0;
+            this.bgImg = new Image();
+            this.bgImg.src = "/engine/client/nebula_bg.jpg";
         }
 
         init(container, options = {}) {
@@ -58,15 +60,28 @@
             }
         }
 
-        renderBackground(worldConfig = {}, theme = {}) {
-            const worldW = worldConfig.width || 2000;
-            const worldH = worldConfig.height || 2000;
+        renderBackground(worldConfig = {}, theme = {}, visuals = {}) {
+            const worldW = worldConfig.width || 4000;
+            const worldH = worldConfig.height || 4000;
+
+            // Custom Cartridge Background Hook (e.g. for atmospheric/sparse space)
+            if (visuals && typeof visuals.drawBackground === 'function') {
+                visuals.drawBackground(this.ctx, this.camera, worldW, worldH, this.bgImg);
+                return;
+            }
+
             const bg = theme.backgroundColor || '#0a0e17';
             const gridCfg = theme.grid || { enabled: true, size: 50, color: 'rgba(255, 255, 255, 0.04)' };
 
             // Fill world backdrop
-            this.ctx.fillStyle = bg;
-            this.ctx.fillRect(0, 0, worldW, worldH);
+            if (this.bgImg && this.bgImg.complete && this.bgImg.naturalWidth > 0) {
+                this.ctx.drawImage(this.bgImg, 0, 0, worldW, worldH);
+                this.ctx.fillStyle = theme.dimOverlay || "rgba(0, 0, 0, 0.6)";
+                this.ctx.fillRect(0, 0, worldW, worldH);
+            } else {
+                this.ctx.fillStyle = bg;
+                this.ctx.fillRect(0, 0, worldW, worldH);
+            }
 
             // Draw grid if enabled
             if (gridCfg.enabled !== false) {

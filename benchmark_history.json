@@ -566,6 +566,87 @@
           "reductionPct": 99.8
         }
       ]
+    },
+    {
+      "id": 8,
+      "timestamp": "2026-09-07T20:34:05.308Z",
+      "commit": "0cc585c",
+      "milestone": "Delta Serialization and Viewport Culling",
+      "entities": {
+        "total": 1028,
+        "dots": 1000,
+        "botsAndPlayers": 10,
+        "viruses": 18
+      },
+      "tickMetrics": {
+        "avgTickMs": 1.292,
+        "minTickMs": 1.017,
+        "maxTickMs": 2.564,
+        "stdDevMs": 0.298,
+        "theoreticalMaxFps": 774,
+        "cpuBudgetHeadroomPct": 96.1
+      },
+      "memoryMB": {
+        "heapUsed": 30.24,
+        "heapTotal": 50.48,
+        "rss": 94.96
+      },
+      "scaling": [
+        {
+          "n": 100,
+          "buildTimeMs": 0.203,
+          "queryTimeMs": 0.27,
+          "totalTimeMs": 0.473,
+          "candidatePairs": 13,
+          "bruteForceChecks": 4950,
+          "reductionPct": 99.74
+        },
+        {
+          "n": 250,
+          "buildTimeMs": 1.393,
+          "queryTimeMs": 0.698,
+          "totalTimeMs": 2.092,
+          "candidatePairs": 75,
+          "bruteForceChecks": 31125,
+          "reductionPct": 99.76
+        },
+        {
+          "n": 500,
+          "buildTimeMs": 0.369,
+          "queryTimeMs": 0.642,
+          "totalTimeMs": 1.011,
+          "candidatePairs": 277,
+          "bruteForceChecks": 124750,
+          "reductionPct": 99.78
+        },
+        {
+          "n": 1000,
+          "buildTimeMs": 0.746,
+          "queryTimeMs": 0.92,
+          "totalTimeMs": 1.666,
+          "candidatePairs": 986,
+          "bruteForceChecks": 499500,
+          "reductionPct": 99.8
+        },
+        {
+          "n": 1500,
+          "buildTimeMs": 0.24,
+          "queryTimeMs": 1.218,
+          "totalTimeMs": 1.458,
+          "candidatePairs": 2275,
+          "bruteForceChecks": 1124250,
+          "reductionPct": 99.8
+        },
+        {
+          "n": 2000,
+          "buildTimeMs": 0.51,
+          "queryTimeMs": 2.756,
+          "totalTimeMs": 3.267,
+          "candidatePairs": 4079,
+          "bruteForceChecks": 1999000,
+          "reductionPct": 99.8
+        }
+      ]
     }
   ],
   "activeBreakingPoints": {

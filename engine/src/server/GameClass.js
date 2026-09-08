@@ -279,6 +279,7 @@ var Game = function Game(customConfig) {
     };
 
     this.formatToRender = (player) => {
+        if (typeof player.has !== "function") return player;
         if (this.staticLayers.has(player.type) || (player.abilities && player.abilities.collidable && player.abilities.collidable.isStatic)) {
             return {
                 id: player.id,

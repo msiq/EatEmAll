@@ -135,41 +135,35 @@
     // INPUT MANAGER: Mouse, touch, keyboard, pointer tracking
     // -------------------------------------------------------------
     class InputManager {
-        constructor(canvas, onInput, onClick) {
+        constructor(canvas, onInput, onClick, getPlayerScreenPos, transformDirection) {
             this.canvas = canvas;
             this.onInput = onInput;
             this.onClick = onClick;
-            this.lastInput = { x: 0, y: 0, angle: 0 };
+            this.getPlayerScreenPos = getPlayerScreenPos;
+            this.transformDirection = transformDirection;
+            this.lastInput = { x: 0, y: 0, angle: 0, isThrusting: false };
             this.lastSendTime = 0;
+            this.pointerPos = null;
             this.keys = new Set();
             this.init();
         }
 
         init() {
-            const handlePointer = (clientX, clientY) => {
+            const updatePointer = (clientX, clientY) => {
                 const rect = this.canvas.getBoundingClientRect();
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                const dx = (clientX - rect.left) - centerX;
-                const dy = (clientY - rect.top) - centerY;
-                const dist = Math.hypot(dx, dy);
-                const maxDist = Math.min(centerX, centerY) * 0.8 || 1;
-                const normDist = Math.min(1.0, dist / maxDist);
-                const angle = Math.atan2(dy, dx);
-                const x = Math.cos(angle) * normDist;
-                const y = Math.sin(angle) * normDist;
-
-                const now = performance.now();
-                if (now - this.lastSendTime > 33 || Math.hypot(x - this.lastInput.x, y - this.lastInput.y) > 0.03) {
-                    this.lastSendTime = now;
-                    this.lastInput = { x, y, angle };
-                    if (this.onInput) this.onInput(this.lastInput);
-                }
+                this.pointerPos = {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+                this.evaluateAndSend();
             };
 
-            window.addEventListener('mousemove', (e) => handlePointer(e.clientX, e.clientY));
+            window.addEventListener('mousemove', (e) => updatePointer(e.clientX, e.clientY));
             window.addEventListener('touchmove', (e) => {
-                if (e.touches.length > 0) handlePointer(e.touches[0].clientX, e.touches[0].clientY);
+                if (e.touches.length > 0) updatePointer(e.touches[0].clientX, e.touches[0].clientY);
+            });
+            window.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 0) updatePointer(e.touches[0].clientX, e.touches[0].clientY);
             });
 
             this.canvas.addEventListener('mousedown', (e) => {
@@ -180,11 +174,92 @@
                 this.keys.add(e.code);
                 if (e.code === 'Space' && this.onClick) {
                     this.onClick({ action: 'action_space' });
-                } else if (e.code === 'KeyW' && this.onClick) {
-                    this.onClick({ action: 'action_w' });
                 }
+                this.evaluateAndSend();
             });
-            window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+            window.addEventListener('keyup', (e) => {
+                this.keys.delete(e.code);
+                this.evaluateAndSend();
+            });
+
+            // Steady 30Hz ticker for continuous steering & input sync
+            setInterval(() => {
+                this.evaluateAndSend(true);
+            }, 33);
+        }
+
+        evaluateAndSend(isTick = false) {
+            let dx = 0;
+            let dy = 0;
+            let isThrusting = false;
+
+            // 1. Keyboard Controls (WASD / Arrows)
+            let keyDx = 0;
+            let keyDy = 0;
+            if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) keyDy -= 1;
+            if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) keyDy += 1;
+            if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) keyDx -= 1;
+            if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) keyDx += 1;
+
+            if (keyDx !== 0 || keyDy !== 0) {
+                const len = Math.hypot(keyDx, keyDy);
+                dx = keyDx / len;
+                dy = keyDy / len;
+                isThrusting = true;
+            } else if (this.pointerPos) {
+                // 2. Mouse / Pointer Controls relative to player screen position
+                const rect = this.canvas.getBoundingClientRect();
+                let originX = rect.width / 2;
+                let originY = rect.height / 2;
+
+                if (typeof this.getPlayerScreenPos === 'function') {
+                    const pos = this.getPlayerScreenPos();
+                    if (pos && pos.x !== undefined && pos.y !== undefined) {
+                        originX = pos.x;
+                        originY = pos.y;
+                    }
+                }
+
+                const diffX = this.pointerPos.x - originX;
+                const diffY = this.pointerPos.y - originY;
+                const dist = Math.hypot(diffX, diffY);
+
+                // Deadzone of 25px around player to allow coasting / staying still
+                if (dist > 25) {
+                    isThrusting = true;
+                    const maxDist = Math.min(rect.width, rect.height) * 0.4 || 180;
+                    const normDist = Math.min(1.0, (dist - 15) / maxDist);
+                    const angle = Math.atan2(diffY, diffX);
+                    dx = Math.cos(angle) * normDist;
+                    dy = Math.sin(angle) * normDist;
+                } else {
+                    isThrusting = false;
+                    dx = 0;
+                    dy = 0;
+                }
+            }
+
+            let sendDx = dx;
+            let sendDy = dy;
+            if (isThrusting && typeof this.transformDirection === "function") {
+                const [tdx, tdy] = this.transformDirection(dx, dy);
+                sendDx = tdx;
+                sendDy = tdy;
+            }
+            const angle = Math.atan2(sendDy, sendDx);
+            const now = performance.now();
+
+            const changed = isThrusting !== this.lastInput.isThrusting ||
+                            Math.abs(angle - this.lastInput.angle) > 0.05 ||
+                            Math.hypot(dx - this.lastInput.x, dy - this.lastInput.y) > 0.05;
+
+            if (changed || (isTick && isThrusting && (now - this.lastSendTime >= 33))) {
+                this.lastSendTime = now;
+                this.lastInput = { x: sendDx, y: sendDy, angle, isThrusting };
+                if (this.onInput) {
+                    this.onInput(this.lastInput);
+                }
+            }
         }
     }
 
@@ -418,8 +493,12 @@
             this.audio = new AudioManager();
             this.net = new NetworkClient();
 
-            // 2. Pluggable Renderer initialization
-            const RendererClass = (global.EngineClient && global.EngineClient.Canvas2DRenderer) || class {};
+            // 2. Pluggable Renderer initialization (Canvas2D or WebGL3D)
+            const rType = (this.visuals && this.visuals.rendererType) || "canvas2d";
+            let RendererClass = (global.EngineClient && global.EngineClient.Canvas2DRenderer) || class {};
+            if (rType === "webgl3d" && global.EngineClient && global.EngineClient.WebGL3DRenderer) {
+                RendererClass = global.EngineClient.WebGL3DRenderer;
+            }
             this.renderer = new RendererClass();
             this.canvas = this.renderer.init(this.container);
 
@@ -438,6 +517,28 @@
                 (clickData) => {
                     this.audio.init();
                     this.net.emit('click', clickData);
+                },
+                () => {
+                    const p = this.getMyPlayer();
+                    if (p) {
+                        if (this.renderer && typeof this.renderer.worldToScreen === 'function') {
+                            const screenPos = this.renderer.worldToScreen(p.x, p.y);
+                            if (screenPos) return screenPos;
+                        }
+                        if (this.camera && this.camera.origin) {
+                            return {
+                                x: p.x - this.camera.origin.x,
+                                y: p.y - this.camera.origin.y
+                            };
+                        }
+                    }
+                    return null;
+                },
+                (dx, dy) => {
+                    if (this.renderer && typeof this.renderer.transformInputDirection === 'function') {
+                        return this.renderer.transformInputDirection(dx, dy);
+                    }
+                    return [dx, dy];
                 }
             );
 
@@ -558,9 +659,8 @@
             // Interpolation
             this.interpolator.lerpAll(0.18);
 
-            // Find my player
-            const playersCol = this.interpolator.getCollection('players');
-            const myPlayer = this.myPlayerId ? playersCol.get(this.myPlayerId) : null;
+            // Find my player across any active entity collection
+            const myPlayer = this.getMyPlayer();
 
             // Camera follow
             const worldW = (this.visuals.world && this.visuals.world.width) || 2000;
@@ -570,33 +670,39 @@
             }
 
             // Begin rendering
-            this.renderer.beginFrame(this.camera);
+            this.renderer.beginFrame(this.camera, myPlayer);
 
             // Background & grid
-            this.renderer.renderBackground(this.visuals.world || {}, this.visuals.theme || {});
+            this.renderer.renderBackground(this.visuals.world || {}, this.visuals.theme || {}, this.visuals);
 
             // Render all entities through Cartridge Visual Hooks
-            const renderers = this.visuals.renderers || {};
+            const renderers = this.visuals.drawHooks || this.visuals.renderers || {};
 
-            // Render background layer first (e.g. dots / obstacles)
-            ['dots', 'obstacles'].forEach(type => {
-                const col = this.interpolator.getCollection(type);
+            // Dynamic Layered Entity Rendering (respects cartridge layerOrder)
+            const defaultOrder = ['dots', 'stardust', 'obstacles', 'planets', 'asteroids', 'pulsars', 'viruses', 'bullets', 'players', 'blackholes'];
+            const layerOrder = this.visuals.layerOrder || defaultOrder;
+            const renderedTypes = new Set();
+
+            layerOrder.forEach(type => {
                 const hook = renderers[type];
                 if (hook) {
+                    renderedTypes.add(type);
+                    const col = this.interpolator.getCollection(type);
                     for (const ent of col.values()) {
                         this.renderer.renderEntity(type, ent, hook);
                     }
                 }
             });
 
-            // Render active entities (players, bots, viruses, bullets)
+            // Render any custom entity types not enumerated in layerOrder
             Object.keys(renderers).forEach(type => {
-                if (type === 'dots' || type === 'obstacles') return;
-                const col = this.interpolator.getCollection(type);
-                const hook = renderers[type];
-                if (hook) {
-                    for (const ent of col.values()) {
-                        this.renderer.renderEntity(type, ent, hook);
+                if (!renderedTypes.has(type)) {
+                    const hook = renderers[type];
+                    if (hook) {
+                        const col = this.interpolator.getCollection(type);
+                        for (const ent of col.values()) {
+                            this.renderer.renderEntity(type, ent, hook);
+                        }
                     }
                 }
             });
@@ -612,6 +718,17 @@
             if (myPlayer) {
                 this.updateHUD(myPlayer);
             }
+        }
+
+        getMyPlayer() {
+            if (!this.myPlayerId) return null;
+            const playersCol = this.interpolator.getCollection('players');
+            let p = playersCol.get(this.myPlayerId);
+            if (p) return p;
+            for (const col of this.interpolator.collections.values()) {
+                if (col.has(this.myPlayerId)) return col.get(this.myPlayerId);
+            }
+            return null;
         }
 
         updateHUD(player) {
@@ -631,9 +748,12 @@
             }
 
             // Update Leaderboard
-            const playersCol = this.interpolator.getCollection('players');
-            const sorted = Array.from(playersCol.values())
-                .sort((a, b) => (b.score || 0) - (a.score || 0))
+            let leaderboardCol = this.interpolator.getCollection('players');
+            if (leaderboardCol.size === 0 && this.interpolator.collections.has('blackholes')) {
+                leaderboardCol = this.interpolator.getCollection('blackholes');
+            }
+            const sorted = Array.from(leaderboardCol.values())
+                .sort((a, b) => (b.mass !== undefined ? b.mass : (b.score || 0)) - (a.mass !== undefined ? a.mass : (a.score || 0)))
                 .slice(0, 8);
 
             const lbList = document.getElementById('hud-leaderboard-list');
@@ -642,7 +762,7 @@
                     const isMe = p.id === this.myPlayerId;
                     return `<li class="${isMe ? 'self' : ''}">
                         <span>${idx + 1}. ${p.name || 'Player'}</span>
-                        <span>${p.score || 0}</span>
+                        <span>${p.mass !== undefined ? Math.round(p.mass) + 'M' : (p.score || 0)}</span>
                     </li>`;
                 }).join('');
             }

@@ -432,6 +432,9 @@
                 <button class="hud-btn" id="audio-toggle-btn" title="Toggle Sound Effects">
                     <span id="audio-icon">🔊</span>
                 </button>
+                <button class="hud-btn" id="settings-btn" title="Game Settings">
+                    <span id="settings-icon">⚙️</span>
+                </button>
             </div>
         </div>
 
@@ -441,6 +444,24 @@
             <ul id="hud-leaderboard-list">
                 <!-- Injected via EngineClient -->
             </ul>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="width: 320px; z-index: 1000;">
+            <h2 style="margin-bottom: 20px;">Camera Settings</h2>
+            <div style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
+                <div>
+                    <label style="color: var(--text-secondary); font-size: 13px;">Camera Distance (<span id="cam-dist-val">720</span>)</label>
+                    <input type="range" id="cam-dist-slider" min="200" max="3000" value="720" style="width: 100%;">
+                </div>
+                <div>
+                    <label style="color: var(--text-secondary); font-size: 13px;">Camera Height (<span id="cam-height-val">390</span>)</label>
+                    <input type="range" id="cam-height-slider" min="100" max="2000" value="390" style="width: 100%;">
+                </div>
+            </div>
+            <button type="button" id="close-settings-btn" class="modal-btn-primary" style="margin-top: 20px;">Close</button>
         </div>
     </div>
 
@@ -493,9 +514,10 @@
     <!-- Pluggable Engine Client Runtime Scripts -->
     <script src="/engine/client/renderers/IRenderer.js"></script>
     <script src="/engine/client/renderers/Canvas2DRenderer.js"></script>
+    <script src="/engine/client/renderers/three.min.js"></script>
+    <script src="/engine/client/renderers/WebGL3DRenderer.js"></script>
     <script src="/engine/client/EngineClient.js"></script>
     <script src="/game/visuals.js"></script>
-
     <!-- Client Bootstrap Orchestrator -->
     <script>
         (function () {
@@ -566,6 +588,43 @@
                 respawnBtn.addEventListener("click", () => {
                     const name = localStorage.getItem("engine_player_name") || "Player";
                     app.join(name);
+                });
+            }
+
+            // Camera Settings
+            window.cameraSettings = {
+                distance: 720,
+                height: 390
+            };
+
+            const settingsBtn = document.getElementById("settings-btn");
+            const settingsModal = document.getElementById("settings-modal");
+            const closeSettingsBtn = document.getElementById("close-settings-btn");
+            const camDistSlider = document.getElementById("cam-dist-slider");
+            const camHeightSlider = document.getElementById("cam-height-slider");
+            const camDistVal = document.getElementById("cam-dist-val");
+            const camHeightVal = document.getElementById("cam-height-val");
+
+            if (settingsBtn) {
+                settingsBtn.addEventListener("click", () => {
+                    settingsModal.style.display = "flex";
+                });
+            }
+            if (closeSettingsBtn) {
+                closeSettingsBtn.addEventListener("click", () => {
+                    settingsModal.style.display = "none";
+                });
+            }
+            if (camDistSlider) {
+                camDistSlider.addEventListener("input", (e) => {
+                    window.cameraSettings.distance = parseInt(e.target.value);
+                    camDistVal.textContent = e.target.value;
+                });
+            }
+            if (camHeightSlider) {
+                camHeightSlider.addEventListener("input", (e) => {
+                    window.cameraSettings.height = parseInt(e.target.value);
+                    camHeightVal.textContent = e.target.value;
                 });
             }
 
