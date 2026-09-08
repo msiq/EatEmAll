@@ -3,12 +3,49 @@ const { createBlackHole } = require("../entities/BlackHole.js");
 const { createStardust } = require("../entities/Stardust.js");
 const { createAsteroid } = require("../entities/Asteroid.js");
 const { createPulsar } = require("../entities/Pulsar.js");
+const { getGalaxies, galaxyAt, clampToDisc } = require("../galaxies.js");
 
 class SpacePhysicsSystem {
     constructor(game, config) {
         this.game = game;
         this.config = config;
         this.G = 50;
+        this.galaxies = getGalaxies(config);
+        // Pulse waves top the universe up, but only until every galaxy is at
+        // roughly its configured stardust density.
+        this.stardustCap = Math.round((config.stardustCount || 100) * this.galaxies.length * 1.15);
+    }
+
+    /** The galaxy a body currently belongs to. */
+    homeOf(entity) {
+        return galaxyAt(this.galaxies, entity.x, entity.y);
+    }
+
+    /**
+     * Hold a body inside its galaxy's rim. Bodies with velocity bounce off it;
+     * the rim is a hard edge of the disc, not a square wall.
+     */
+    containInDisc(g, e, inset) {
+        const maxR = Math.max(1, g.radius - inset);
+        const dx = e.x - g.x;
+        const dy = e.y - g.y;
+        const d = Math.hypot(dx, dy);
+        if (d <= maxR) return false;
+
+        const nx = dx / (d || 1);
+        const ny = dy / (d || 1);
+        e.x = g.x + nx * maxR;
+        e.y = g.y + ny * maxR;
+
+        // Reflect any outward velocity back into the disc.
+        if (e.vx !== undefined) {
+            const outward = e.vx * nx + e.vy * ny;
+            if (outward > 0) {
+                e.vx -= 2 * outward * nx;
+                e.vy -= 2 * outward * ny;
+            }
+        }
+        return true;
     }
 
     update(dt) {
@@ -17,8 +54,7 @@ class SpacePhysicsSystem {
         const stardust = this.game.entities["stardust"] || [];
         const asteroids = this.game.entities["asteroids"] || [];
         const pulsars = this.game.entities["pulsars"] || [];
-        const W = this.config.canvas.width;
-        const H = this.config.canvas.height;
+        const wormholes = this.game.entities["wormholes"] || [];
 
         // 1. Radius, Timers & Mass Decay for Black Holes
         for (const bh of bhs) {
@@ -126,16 +162,47 @@ class SpacePhysicsSystem {
                 bh.vy *= scale;
             }
             
+            // Resolve the home galaxy before moving, so a fast body can never
+            // be handed to a neighbour by overshooting its own wall.
+            const home = this.homeOf(bh);
+
             bh.x += bh.vx * dt;
             bh.y += bh.vy * dt;
 
-            bh.x = Math.max(bh.radius, Math.min(W - bh.radius, bh.x));
-            bh.y = Math.max(bh.radius, Math.min(H - bh.radius, bh.y));
+            // The rim of the disc is the edge of the world. Slide along it
+            // rather than bouncing, so hugging the rim stays controllable.
+            const held = clampToDisc(home, bh.x, bh.y, home.radius - bh.radius);
+            bh.x = held.x;
+            bh.y = held.y;
+        }
+
+
+        // Wormhole Teleportation. Bots stay home: they are the local fauna, and
+        // letting them drift through gateways slowly empties whole galaxies.
+        for (const bh of bhs) {
+            if (bh.isBot) continue;
+            if (bh.wormholeCooldown > 0) {
+                bh.wormholeCooldown -= dt;
+                continue;
+            }
+            
+            for (const wh of wormholes) {
+                const dist = Math.hypot(bh.x - wh.x, bh.y - wh.y);
+                if (dist < bh.radius + wh.radius) {
+                    bh.x = wh.destX;
+                    bh.y = wh.destY;
+                    bh.vx = 0;
+                    bh.vy = 0;
+                    bh.wormholeCooldown = 3.0; // 3 seconds cooldown
+                    break;
+                }
+            }
         }
 
         // 4. Stardust Micro-Motes: Gravity Pull & Ingestion
         for (let i = stardust.length - 1; i >= 0; i--) {
             const sd = stardust[i];
+            const home = this.homeOf(sd);
             let eatenBy = null;
             let ax = 0, ay = 0;
 
@@ -162,7 +229,7 @@ class SpacePhysicsSystem {
             if (eatenBy) {
                 eatenBy.mass += sd.mass;
                 stardust.splice(i, 1);
-                createStardust(this.game, this.config.canvas);
+                createStardust(this.game, home);
                 continue;
             }
 
@@ -171,24 +238,20 @@ class SpacePhysicsSystem {
             sd.x += sd.vx * dt;
             sd.y += sd.vy * dt;
 
-            if (sd.x < 0) sd.x += W;
-            if (sd.x > W) sd.x -= W;
-            if (sd.y < 0) sd.y += H;
-            if (sd.y > H) sd.y -= H;
+            // Motes are held inside the disc; drifting off the rim bounces back.
+            this.containInDisc(home, sd, sd.radius);
         }
 
         // 5. Asteroids: Tumble, Drift & Tactical Tidal Disruption (Virus Mechanics)
         for (let i = asteroids.length - 1; i >= 0; i--) {
             const ast = asteroids[i];
+            const home = this.homeOf(ast);
             ast.angle += ast.rotSpeed * dt;
             ast.x += ast.vx * dt;
             ast.y += ast.vy * dt;
 
-            // Bounce off boundaries
-            if (ast.x < ast.radius) { ast.x = ast.radius; ast.vx = Math.abs(ast.vx); }
-            if (ast.x > W - ast.radius) { ast.x = W - ast.radius; ast.vx = -Math.abs(ast.vx); }
-            if (ast.y < ast.radius) { ast.y = ast.radius; ast.vy = Math.abs(ast.vy); }
-            if (ast.y > H - ast.radius) { ast.y = H - ast.radius; ast.vy = -Math.abs(ast.vy); }
+            // Bounce off the rim of the host galaxy
+            this.containInDisc(home, ast, ast.radius);
 
             let destroyed = false;
 
@@ -218,12 +281,14 @@ class SpacePhysicsSystem {
                         const massLost = Math.min(75, Math.max(15, bh.mass * 0.10));
                         bh.mass -= massLost;
 
-                        // Spawn fragmented stardust motes around collision site
-                        const fragmentCount = 6;
+                        // Spawn fragmented stardust motes around collision site.
+                        // Respects the same population cap as pulsar waves, or a
+                        // long match slowly silts the universe up with debris.
+                        const fragmentCount = stardust.length < this.stardustCap ? 6 : 0;
                         for (let f = 0; f < fragmentCount; f++) {
                             const fAng = (Math.PI * 2 / fragmentCount) * f + Math.random() * 0.5;
                             const fDist = ast.radius * 1.3;
-                            createStardust(this.game, this.config.canvas, {
+                            createStardust(this.game, home, {
                                 x: ast.x + Math.cos(fAng) * fDist,
                                 y: ast.y + Math.sin(fAng) * fDist
                             });
@@ -235,7 +300,7 @@ class SpacePhysicsSystem {
 
             if (destroyed) {
                 asteroids.splice(i, 1);
-                createAsteroid(this.game, this.config.canvas);
+                createAsteroid(this.game, home);
             }
         }
 
@@ -250,11 +315,11 @@ class SpacePhysicsSystem {
                 psr.pulseTimer = 0;
 
                 // PULSE WAVE: Eject a burst of glowing stardust radiating outward!
-                if (stardust.length < 320) {
+                if (stardust.length < this.stardustCap) {
                     const burstCount = 4;
                     for (let b = 0; b < burstCount; b++) {
                         const bAng = (Math.PI * 2 / burstCount) * b + Math.random() * 0.4;
-                        const sd = createStardust(this.game, this.config.canvas, {
+                        const sd = createStardust(this.game, this.homeOf(psr), {
                             x: psr.x + Math.cos(bAng) * (psr.radius + 15),
                             y: psr.y + Math.sin(bAng) * (psr.radius + 15)
                         });
@@ -313,6 +378,7 @@ class SpacePhysicsSystem {
         // 7. Planets & Capped Gravity Pull
         for (let i = planets.length - 1; i >= 0; i--) {
             const p = planets[i];
+            const home = this.homeOf(p);
             let ax = 0, ay = 0;
             let eatenBy = null;
 
@@ -340,7 +406,7 @@ class SpacePhysicsSystem {
             if (eatenBy) {
                 eatenBy.mass += p.mass;
                 planets.splice(i, 1);
-                createPlanet(this.game, this.config.canvas);
+                createPlanet(this.game, home);
                 continue;
             }
 
@@ -349,10 +415,7 @@ class SpacePhysicsSystem {
             p.x += p.vx * dt;
             p.y += p.vy * dt;
 
-            if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx); }
-            if (p.x > W - p.radius) { p.x = W - p.radius; p.vx = -Math.abs(p.vx); }
-            if (p.y < p.radius) { p.y = p.radius; p.vy = Math.abs(p.vy); }
-            if (p.y > H - p.radius) { p.y = H - p.radius; p.vy = -Math.abs(p.vy); }
+            this.containInDisc(home, p, p.radius);
         }
 
         // 8. Consumption between Black Holes (Protected by Spawn Immunity)
@@ -397,7 +460,7 @@ class SpacePhysicsSystem {
                         name: bh.name,
                         isBot: true,
                         color: bh.color,
-                        canvas: this.config.canvas
+                        galaxy: this.homeOf(bh)
                     });
                 }
             }

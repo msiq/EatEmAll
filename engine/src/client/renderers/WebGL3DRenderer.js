@@ -65,7 +65,7 @@
 
             // 2. Scene with vast space atmospheric depth
             this.scene = new THREE.Scene();
-            this.scene.fog = new THREE.FogExp2(0x020510, 0.000020);
+            this.scene.fog = new THREE.FogExp2(0x020510, 0.000042);
 
             // 3. Perspective 3D Camera (FOV 62, Far 75000 for immense cosmic vistas)
             this.camera3D = new THREE.PerspectiveCamera(62, this.width / this.height, 2, 75000);
@@ -85,8 +85,10 @@
             this.lights.fill.position.set(-2000, -1000, -2000);
             this.scene.add(this.lights.fill);
 
-            // 5. High-Tech Cosmic Backdrop (Nebula, Starfield, Planet, Sun Flare)
+            // 5. Cosmic Backdrop. Cartridges opt out of the stock props via
+            //    visuals.backdrop, e.g. { planet: false, sun: false }.
             this.backdropObjects = {};
+            this.backdropOptions = options.backdrop || {};
             this.initCosmicBackdrop();
 
             console.log('[WebGL3DRenderer] Initialized Vast Cosmic 3D Universe Renderer');
@@ -95,25 +97,31 @@
 
         initCosmicBackdrop() {
             // 1. Procedural 360-degree Cosmic Sky Dome
+            // 4096x2048: at 1024x512 each texel covered ~7 screen pixels, so the
+            // stars painted here smeared into fuzzy squares. Stars now come from
+            // the crisp 3D starfield below; the dome carries only soft nebula.
+            const SKY_W = 4096, SKY_H = 2048;
             const skyCvs = document.createElement('canvas');
-            skyCvs.width = 1024;
-            skyCvs.height = 512;
+            skyCvs.width = SKY_W;
+            skyCvs.height = SKY_H;
             const skyCtx = skyCvs.getContext('2d');
 
             // Deep cosmic gradient
-            const bgGrad = skyCtx.createLinearGradient(0, 0, 0, 512);
+            const bgGrad = skyCtx.createLinearGradient(0, 0, 0, SKY_H);
             bgGrad.addColorStop(0.0, '#010206');
             bgGrad.addColorStop(0.3, '#020510');
             bgGrad.addColorStop(0.5, '#040a1c');
             bgGrad.addColorStop(0.7, '#020510');
             bgGrad.addColorStop(1.0, '#010206');
             skyCtx.fillStyle = bgGrad;
-            skyCtx.fillRect(0, 0, 1024, 512);
+            skyCtx.fillRect(0, 0, SKY_W, SKY_H);
 
-            // Sweeping Galactic Nebula Clouds
+            // Sweeping Galactic Nebula Clouds (coords scale with the canvas)
+            const K = SKY_W / 1024;
             const nebulae = [
-                { cx: 300, cy: 180, rx: 350, ry: 120, col: 'rgba(56, 189, 248, 0.08)' },
-                { cx: 750, cy: 300, rx: 380, ry: 130, col: 'rgba(217, 119, 6, 0.06)' }
+                { cx: 300 * K, cy: 180 * K, rx: 350 * K, ry: 120 * K, col: 'rgba(56, 189, 248, 0.08)' },
+                { cx: 750 * K, cy: 300 * K, rx: 380 * K, ry: 130 * K, col: 'rgba(217, 119, 6, 0.06)' },
+                { cx: 520 * K, cy: 400 * K, rx: 420 * K, ry: 150 * K, col: 'rgba(139, 92, 246, 0.05)' }
             ];
             for (const neb of nebulae) {
                 const nGrad = skyCtx.createRadialGradient(neb.cx, neb.cy, 10, neb.cx, neb.cy, Math.max(neb.rx, neb.ry));
@@ -125,22 +133,19 @@
                 skyCtx.fill();
             }
 
-            // Distant Micro Stars in Skybox
-            for (let s = 0; s < 1800; s++) {
-                const sx = Math.random() * 1024;
-                const sy = Math.random() * 512;
-                const sr = Math.random() * 1.5;
-                const alpha = 0.3 + Math.random() * 0.7;
-                skyCtx.fillStyle = Math.random() > 0.4 ? `rgba(255, 255, 255, ${alpha})` : 
-`rgba(56, 189, 248, ${alpha})`;
-                skyCtx.beginPath();
-                skyCtx.arc(sx, sy, sr, 0, Math.PI * 2);
-                skyCtx.fill();
-            }
+            // No painted stars here on purpose: at this dome's angular scale they
+            // magnify into blurry squares. The starfield Points below draw them.
 
             const skyTex = new THREE.CanvasTexture(skyCvs);
+            // CanvasTexture defaults to LinearEncoding, but the renderer outputs
+            // sRGB - so a canvas painted in sRGB values gets brightened on the way
+            // out and deep space renders as pale grey. Declare the real encoding.
+            skyTex.encoding = THREE.sRGBEncoding;
+            skyTex.generateMipmaps = true;
+            skyTex.minFilter = THREE.LinearMipmapLinearFilter;
+            skyTex.magFilter = THREE.LinearFilter;
             skyTex.needsUpdate = true;
-            const skyGeom = new THREE.SphereGeometry(65000, 32, 32);
+            const skyGeom = new THREE.SphereGeometry(65000, 64, 48);
             const skyMat = new THREE.MeshBasicMaterial({
                 map: skyTex,
                 side: THREE.BackSide,
@@ -172,9 +177,11 @@
                 const phi = Math.acos(2.0 * v - 1.0);
                 const r = 2500 + Math.random() * 42000;
 
-                starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta) + 2000;
+                // Centred on zero; the field is parked on the camera each frame
+                // so its density is even no matter which galaxy you are in.
+                starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
                 starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.85 + 1200;
-                starPositions[i * 3 + 2] = r * Math.cos(phi) + 2000;
+                starPositions[i * 3 + 2] = r * Math.cos(phi);
 
                 const col = starPalettes[Math.floor(Math.random() * starPalettes.length)];
                 starColors[i * 3] = col.r;
@@ -214,11 +221,12 @@
             this.starfield = new THREE.Points(starGeom, starMat);
             this.scene.add(this.starfield);
 
-            // 3. Giant Gas Giant & Equatorial Rings (Saturn aesthetic)
-            this.initGiantPlanet();
-
-            // 4. Distant Stellar Flare (Sun)
-            this.initStellarSun();
+            // 3 & 4. Stock backdrop props. A cartridge that supplies its own sky
+            // landmarks (CosmicSingularity3D draws neighbouring galaxies) turns
+            // these off - the gas giant's rings were 14,400 units across, nearly
+            // twice the width of a whole galaxy, and pinned to the camera.
+            if (this.backdropOptions.planet !== false) this.initGiantPlanet();
+            if (this.backdropOptions.sun !== false) this.initStellarSun();
         }
 
         initGiantPlanet() {
@@ -460,6 +468,13 @@
                     this.skydome.position.set(this.camPos.x, this.camPos.y * 0.2, this.camPos.z);
                 }
 
+                // The starfield travels with the camera too. Left at the origin it
+                // showed its own sphere edge as a seam once you reached a distant
+                // galaxy, and thinned out on one side.
+                if (this.starfield) {
+                    this.starfield.position.set(this.camPos.x, 0, this.camPos.z);
+                }
+
                 // Position Saturn gas giant in the upper-right sky horizon ahead of the player
                 if (this.backdropObjects && this.backdropObjects.planet) {
                     this.backdropObjects.planet.position.set(this.camPos.x + 5200, 3500, this.camPos.z - 12000);
@@ -477,6 +492,9 @@
 
                 if (this.skydome) {
                     this.skydome.position.set(cx, 0, cz);
+                }
+                if (this.starfield) {
+                    this.starfield.position.set(cx, 0, cz);
                 }
             }
 

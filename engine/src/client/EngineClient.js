@@ -500,7 +500,9 @@
                 RendererClass = global.EngineClient.WebGL3DRenderer;
             }
             this.renderer = new RendererClass();
-            this.canvas = this.renderer.init(this.container);
+            this.canvas = this.renderer.init(this.container, {
+                backdrop: this.visuals.backdrop
+            });
 
             // 3. Game state
             this.myPlayerId = null;

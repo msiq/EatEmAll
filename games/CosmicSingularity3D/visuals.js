@@ -481,11 +481,325 @@
     }
 
     // ------------------------------------------------------------------------
+    // GALAXY DISCS - procedural spiral texture, one palette per galaxy
+    // ------------------------------------------------------------------------
+    // ARM GEOMETRY MUST MATCH server/galaxies.js spiralPoint(). The stardust and
+    // planets are scattered against that formula; if these drift apart the arms
+    // drawn here stop lining up with where the loot actually is.
+    const ARM_INNER = 0.13;
+    const ARM_OUTER = 0.87;
+    const SPREAD_BASE = 0.034;
+    const SPREAD_GROWTH = 0.117;
+
+    const GALAXY_PALETTES = {
+        amber: {
+            core:     ["rgba(255,255,245,1)", "rgba(255,214,140,0.95)", "rgba(240,150,45,0.55)"],
+            stars:    ["rgba(255,248,232,", "rgba(255,208,150,", "rgba(255,170,90,"],
+            armGlow:  "rgba(220,150,70,",
+            dust:     "rgba(28,10,4,",
+            rim:      "rgba(190,120,55,",
+            haze:     "rgba(90,50,20,"
+        },
+        azure: {
+            core:     ["rgba(255,255,255,1)", "rgba(198,228,255,0.95)", "rgba(90,150,255,0.55)"],
+            stars:    ["rgba(255,255,255,", "rgba(170,215,255,", "rgba(120,180,255,"],
+            armGlow:  "rgba(90,150,255,",
+            dust:     "rgba(6,14,40,",
+            rim:      "rgba(90,160,235,",
+            haze:     "rgba(25,55,120,"
+        },
+        violet: {
+            core:     ["rgba(255,255,255,1)", "rgba(226,200,255,0.95)", "rgba(150,90,240,0.55)"],
+            stars:    ["rgba(255,255,255,", "rgba(210,175,255,", "rgba(255,150,220,"],
+            armGlow:  "rgba(150,110,245,",
+            dust:     "rgba(28,8,38,",
+            rim:      "rgba(180,110,230,",
+            haze:     "rgba(60,30,110,"
+        }
+    };
+
+    // Deterministic so a galaxy looks identical on every client and reload.
+    function mulberry32(a) {
+        return function () {
+            a |= 0; a = a + 0x6D2B79F5 | 0;
+            let t = Math.imul(a ^ a >>> 15, 1 | a);
+            t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        };
+    }
+
+    // Presentation tunables for the galaxy discs.
+    const HOME_DISC_Y = -1100;       // how far the plane sits below the action
+    const HOME_DISC_OPACITY = 0.34;  // dim enough that entities stay readable
+    const SKY_DIST = 38000;          // where neighbours are parked in the sky
+    const SKY_Y = 6400;              // high enough to clear the play area
+    const SKY_SIZE = 9000;           // apparent size of a neighbour
+    const SKY_OPACITY = 0.5;         // a landmark, not a spotlight
+
+    // Edible stardust: larger than the decorative motes, with a slow steady
+    // breath rather than a fast random twinkle.
+    const EDIBLE_SCALE = 1.55;
+    const EDIBLE_PULSE_RATE = Math.PI * 2 / 1.6;   // one breath every 1.6s
+    const EDIBLE_PULSE_DEPTH = 0.16;
+
+    // Motes making up the volumetric arms of the galaxy you are inside.
+    // 90k looked dense in a small preview pane but thin at 1280p, where the same
+    // motes cover ~5x the screen area. Density is per-pixel, not per-scene.
+    const ARM_MOTES = 180000;
+    const ARM_THICKNESS = 380;    // vertical sigma - motes sit above AND below the field
+    const ARM_TIGHTNESS = 0.55;   // how closely motes hug the arm spine
+
+    // Decorative mote colours per palette. Deliberately desaturated whites and
+    // pale tints: edible stardust is saturated, so colour alone separates the
+    // things you can eat from the things you cannot.
+    const ARM_MOTE_COLORS = {
+        amber:  [0xfff6e6, 0xffdca8, 0xffc37e, 0xf0a95c],
+        azure:  [0xf2f8ff, 0xc2ddff, 0x93c2ff, 0x6ea8f5],
+        violet: [0xf7f2ff, 0xdcc4ff, 0xc09bff, 0xa87ff0]
+    };
+    const ARM_CORE_GLOW = { amber: 0xffce8a, azure: 0xa8d0ff, violet: 0xc9a0ff };
+
+    const ARM_VERT = [
+        "attribute float aPhase;",
+        "attribute float aSize;",
+        "attribute vec3  aColor;",
+        "uniform float uTime;",
+        "uniform float uPixelScale;",
+        "varying vec3  vColor;",
+        "varying float vTw;",
+        "void main() {",
+        "    vec4 mv = modelViewMatrix * vec4(position, 1.0);",
+        // Fast, per-mote-random twinkle. Edible stardust pulses slowly instead,
+        // so the two read apart by motion as well as by colour.
+        "    float tw = 0.45 + 0.55 * sin(uTime * 2.1 + aPhase);",
+        "    vTw = tw;",
+        "    vColor = aColor;",
+        "    gl_PointSize = aSize * (0.70 + 0.60 * tw) * (uPixelScale / max(-mv.z, 1.0));",
+        "    gl_Position = projectionMatrix * mv;",
+        "}"
+    ].join("\n");
+
+    const ARM_FRAG = [
+        "varying vec3  vColor;",
+        "varying float vTw;",
+        "void main() {",
+        "    vec2 d = gl_PointCoord - vec2(0.5);",
+        "    float r = length(d);",
+        "    if (r > 0.5) discard;",
+        "    float a = smoothstep(0.5, 0.0, r);",
+        "    gl_FragColor = vec4(vColor * (0.55 + vTw), a * (0.30 + 0.70 * vTw));",
+        "}"
+    ].join("\n");
+
+    /**
+     * The galaxy you are inside, as a volume of twinkling motes scattered along
+     * the same spiral the server spawns against. Client-side only - it costs
+     * nothing on the wire.
+     */
+    function buildArmVolume(THREE, g) {
+        const colors = ARM_MOTE_COLORS[g.palette] || ARM_MOTE_COLORS.amber;
+        const arms = g.arms || 2;
+        const twist = g.twist || 2.6;
+        const R = g.radius || 9000;
+        const rng = mulberry32((g.seed || 1) * 977 + 13);
+
+        const pos = new Float32Array(ARM_MOTES * 3);
+        const col = new Float32Array(ARM_MOTES * 3);
+        const size = new Float32Array(ARM_MOTES);
+        const phase = new Float32Array(ARM_MOTES);
+        const c = new THREE.Color();
+
+        for (let i = 0; i < ARM_MOTES; i++) {
+            // sqrt gives even density per unit AREA. Uniform t looks even along
+            // a radius but thins as 1/r, leaving the outer disc - where players
+            // actually fly - noticeably empty.
+            const t = Math.sqrt(rng());
+            const arm = Math.floor(rng() * arms) % arms;
+            const th = (arm / arms) * Math.PI * 2 + t * twist * Math.PI;
+            const r = R * (ARM_INNER + t * ARM_OUTER);
+            const spread = R * (SPREAD_BASE + t * SPREAD_GROWTH) * ARM_TIGHTNESS;
+
+            pos[i * 3]     = g.x + Math.cos(th) * r + (rng() + rng() + rng() - 1.5) * 2 * spread;
+            pos[i * 3 + 1] = (rng() + rng() + rng() - 1.5) * 2 * ARM_THICKNESS * (0.6 + t * 0.9);
+            pos[i * 3 + 2] = g.y + Math.sin(th) * r + (rng() + rng() + rng() - 1.5) * 2 * spread;
+
+            const towardCore = 1 - t;
+            c.setHex(colors[rng() < 0.4 + towardCore * 0.35 ? 0 : 1 + Math.floor(rng() * (colors.length - 1))]);
+            col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+
+            size[i] = (rng() < 0.03 ? 5.5 + rng() * 5 : 1.5 + rng() * 2.6) * (0.7 + towardCore * 0.8);
+            phase[i] = rng() * Math.PI * 2;
+        }
+
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        geom.setAttribute("aColor", new THREE.BufferAttribute(col, 3));
+        geom.setAttribute("aSize", new THREE.BufferAttribute(size, 1));
+        geom.setAttribute("aPhase", new THREE.BufferAttribute(phase, 1));
+
+        const pts = new THREE.Points(geom, new THREE.ShaderMaterial({
+            // uPixelScale is refreshed from the viewport height each frame:
+            // gl_PointSize is in device pixels, so a fixed value makes the motes
+            // shrink and the galaxy look thin on a large display.
+            uniforms: { uTime: { value: 0 }, uPixelScale: { value: 900 } },
+            vertexShader: ARM_VERT,
+            fragmentShader: ARM_FRAG,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        }));
+        // The volume surrounds the camera, so the bounding sphere test is useless.
+        pts.frustumCulled = false;
+        pts.renderOrder = -10;
+        return pts;
+    }
+
+    /** Soft glowing bulge at the galactic core. */
+    function buildCoreGlow(THREE, g) {
+        const cvs = document.createElement("canvas");
+        cvs.width = cvs.height = 256;
+        const x = cvs.getContext("2d");
+        const col = new THREE.Color(ARM_CORE_GLOW[g.palette] || ARM_CORE_GLOW.amber);
+        const rgb = Math.round(col.r * 255) + "," + Math.round(col.g * 255) + "," + Math.round(col.b * 255);
+        const gr = x.createRadialGradient(128, 128, 0, 128, 128, 126);
+        gr.addColorStop(0.00, "rgba(255,255,255,0.95)");
+        gr.addColorStop(0.18, "rgba(" + rgb + ",0.75)");
+        gr.addColorStop(0.45, "rgba(" + rgb + ",0.28)");
+        gr.addColorStop(1.00, "rgba(" + rgb + ",0)");
+        x.fillStyle = gr;
+        x.fillRect(0, 0, 256, 256);
+
+        const tex = new THREE.CanvasTexture(cvs);
+        tex.encoding = THREE.sRGBEncoding;
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: tex, transparent: true, blending: THREE.AdditiveBlending,
+            depthWrite: false, opacity: 0.45
+        }));
+        // radius*0.9 made an 8000-unit blob that drowned the arms.
+        sp.scale.set(g.radius * 0.30, g.radius * 0.30, 1);
+        sp.position.set(g.x, 0, g.y);
+        sp.renderOrder = -10;
+        return sp;
+    }
+
+    const _galaxyTexCache = {};
+
+    function getGalaxyTexture(palette, arms, twist, seed) {
+        const key = palette + "|" + arms + "|" + twist + "|" + seed;
+        if (_galaxyTexCache[key]) return _galaxyTexCache[key];
+
+        const P = GALAXY_PALETTES[palette] || GALAXY_PALETTES.amber;
+        const size = 1536;
+        const rng = mulberry32(seed || 1);
+
+        const cvs = document.createElement("canvas");
+        cvs.width = cvs.height = size;
+        const ctx = cvs.getContext("2d");
+        const c = size / 2;
+        const R = size * 0.47;
+
+        // 1. Outer halo haze
+        const haze = ctx.createRadialGradient(c, c, R * 0.15, c, c, R);
+        haze.addColorStop(0.0, P.haze + "0.42)");
+        haze.addColorStop(0.55, P.haze + "0.14)");
+        haze.addColorStop(1.0, P.haze + "0)");
+        ctx.fillStyle = haze;
+        ctx.beginPath(); ctx.arc(c, c, R, 0, Math.PI * 2); ctx.fill();
+
+        // 2. Dust lanes, trailing just inside each arm
+        for (let a = 0; a < arms; a++) {
+            const base = (a / arms) * Math.PI * 2 + 0.22;
+            ctx.beginPath();
+            for (let t = 0; t <= 1.0; t += 0.004) {
+                const th = base + t * twist * Math.PI;
+                const r = R * (ARM_INNER + t * ARM_OUTER);
+                const x = c + Math.cos(th) * r, y = c + Math.sin(th) * r;
+                if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = P.dust + "0.75)";
+            ctx.lineWidth = size * 0.030;
+            ctx.lineCap = "round";
+            ctx.stroke();
+        }
+
+        // 3. Arm glow ribbons
+        ctx.globalCompositeOperation = "lighter";
+        for (let a = 0; a < arms; a++) {
+            const base = (a / arms) * Math.PI * 2;
+            for (let pass = 0; pass < 3; pass++) {
+                ctx.beginPath();
+                for (let t = 0; t <= 1.0; t += 0.004) {
+                    const th = base + t * twist * Math.PI;
+                    const r = R * (ARM_INNER + t * ARM_OUTER);
+                    const x = c + Math.cos(th) * r, y = c + Math.sin(th) * r;
+                    if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = P.armGlow + (0.040 + pass * 0.024) + ")";
+                ctx.lineWidth = size * (0.075 - pass * 0.021);
+                ctx.lineCap = "round";
+                ctx.stroke();
+            }
+        }
+
+        // 4. Star population along the arms - same gaussian spread the server spawns with
+        const STARS = 17000;
+        for (let i = 0; i < STARS; i++) {
+            const t = Math.pow(rng(), 0.62);
+            const arm = Math.floor(rng() * arms) % arms;
+            const th = (arm / arms) * Math.PI * 2 + t * twist * Math.PI;
+            const r = R * (ARM_INNER + t * ARM_OUTER);
+            const spread = R * (SPREAD_BASE + t * SPREAD_GROWTH);
+            const x = c + Math.cos(th) * r + (rng() + rng() + rng() - 1.5) * 2 * spread;
+            const y = c + Math.sin(th) * r + (rng() + rng() + rng() - 1.5) * 2 * spread;
+            const d = Math.hypot(x - c, y - c);
+            if (d > R) continue;
+
+            const fade = 1 - d / R;
+            const alpha = (0.14 + rng() * 0.44) * (0.35 + fade);
+            const rad = rng() < 0.02 ? 1.6 + rng() * 1.8 : 0.4 + rng() * 0.85;
+            ctx.fillStyle = P.stars[Math.floor(rng() * P.stars.length)] + alpha.toFixed(3) + ")";
+            ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // 5. Core bulge
+        const core = ctx.createRadialGradient(c, c, 0, c, c, R * 0.30);
+        core.addColorStop(0.00, P.core[0]);
+        core.addColorStop(0.16, P.core[1]);
+        core.addColorStop(0.45, P.core[2]);
+        core.addColorStop(1.00, "rgba(0,0,0,0)");
+        ctx.fillStyle = core;
+        ctx.beginPath(); ctx.arc(c, c, R * 0.30, 0, Math.PI * 2); ctx.fill();
+
+        // 6. Rim - the boundary players cannot cross
+        const rim = ctx.createRadialGradient(c, c, R * 0.88, c, c, R);
+        rim.addColorStop(0.0, P.rim + "0)");
+        rim.addColorStop(0.75, P.rim + "0.30)");
+        rim.addColorStop(1.0, P.rim + "0)");
+        ctx.fillStyle = rim;
+        ctx.beginPath(); ctx.arc(c, c, R, 0, Math.PI * 2); ctx.fill();
+
+        // 7. Trim to the disc
+        ctx.globalCompositeOperation = "destination-in";
+        const mask = ctx.createRadialGradient(c, c, R * 0.90, c, c, R);
+        mask.addColorStop(0, "rgba(0,0,0,1)");
+        mask.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = mask;
+        ctx.beginPath(); ctx.arc(c, c, R, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+
+        _galaxyTexCache[key] = cvs;
+        return cvs;
+    }
+
+    // ------------------------------------------------------------------------
     // MAIN CARTRIDGE VISUAL HOOKS FOR 3D RENDERER
     // ------------------------------------------------------------------------
     const CosmicSingularity3DVisuals = {
         title: "Cosmic Singularity 3D - Relativistic Gargantua Universe",
         rendererType: "webgl3d",
+        // Neighbouring galaxies are this cartridge's sky landmarks - the stock
+        // gas giant and sun flare are camera-pinned and out of scale here.
+        backdrop: { planet: false, sun: false },
         canvas: {
             width: 8000,
             height: 8000
@@ -497,7 +811,98 @@
                 { id: "radius", label: "HORIZON (KM)" }
             ]
         },
+        // Galaxies paint first, everything else sits on top of them.
+        layerOrder: ["galaxies", "wormholes", "stardust", "planets", "asteroids", "pulsars", "blackholes"],
+
         drawHooks: {
+            // =================================================================
+            // GALAXY DISC
+            //   - the one you are in becomes the plane you fly over
+            //   - the others hang in the sky, in the true direction of their
+            //     gateway, so the horizon tells you where to fly
+            // =================================================================
+            galaxies: function (renderer, p, THREE, mesh) {
+                const radius = p.radius || 9000;
+
+                if (!mesh) {
+                    // A group holding both presentations: the volume you fly
+                    // through, and the billboard seen from another galaxy.
+                    mesh = new THREE.Group();
+
+                    const tex = new THREE.CanvasTexture(
+                        getGalaxyTexture(p.palette, p.arms || 2, p.twist || 2.6, p.seed || 1)
+                    );
+                    // Painted in sRGB; without this the renderer's sRGB output
+                    // pass brightens it and the disc washes the whole scene out.
+                    tex.encoding = THREE.sRGBEncoding;
+                    tex.needsUpdate = true;
+                    tex.anisotropy = 8;
+                    const sky = new THREE.Mesh(
+                        new THREE.PlaneGeometry(radius * 2, radius * 2),
+                        new THREE.MeshBasicMaterial({
+                            map: tex,
+                            transparent: true,
+                            blending: THREE.AdditiveBlending,
+                            depthWrite: false,
+                            side: THREE.DoubleSide,
+                            fog: false,
+                            opacity: SKY_OPACITY
+                        })
+                    );
+                    sky.name = "sky";
+                    sky.renderOrder = -10;
+                    mesh.add(sky);
+                }
+
+                const me = renderer.myPlayer;
+                if (!me) { mesh.visible = false; return mesh; }
+                mesh.visible = true;
+
+                const dx = p.x - me.x;
+                const dz = p.y - me.y;
+                const dist = Math.hypot(dx, dz);
+                const sky = mesh.getObjectByName("sky");
+                const inside = dist <= radius * 1.05;
+
+                if (inside) {
+                    // Build the 90k-mote volume the first time this galaxy
+                    // becomes home, then keep it for the rest of the session.
+                    if (!mesh.userData.arms) {
+                        mesh.userData.arms = buildArmVolume(THREE, p);
+                        mesh.add(mesh.userData.arms);
+                        mesh.add(buildCoreGlow(THREE, p));
+                    }
+                    mesh.userData.arms.visible = true;
+                    const u = mesh.userData.arms.material.uniforms;
+                    u.uTime.value = performance.now() * 0.001;
+                    u.uPixelScale.value = renderer.height || 900;
+                    const glow = mesh.children.find(o => o.isSprite);
+                    if (glow) glow.visible = true;
+                    sky.visible = false;
+                } else {
+                    // A landmark in the sky along the true bearing, so the
+                    // horizon tells you where the gateway leads.
+                    if (mesh.userData.arms) mesh.userData.arms.visible = false;
+                    const glow = mesh.children.find(o => o.isSprite);
+                    if (glow) glow.visible = false;
+
+                    sky.visible = true;
+                    const len = dist || 1;
+                    sky.position.set(
+                        me.x + (dx / len) * SKY_DIST,
+                        SKY_Y,
+                        me.y + (dz / len) * SKY_DIST
+                    );
+                    const k = SKY_SIZE / (radius * 2);
+                    sky.scale.set(k, k, k);
+                    sky.lookAt(me.x, SKY_Y * 0.25, me.y);
+                    sky.rotateX(-0.34);
+                    sky.rotateZ(((p.seed || 1) % 7) * 0.29);
+                }
+
+                return mesh;
+            },
+
             // =================================================================
             // BLACK HOLE (Player & Rivals: Gargantua Relativistic Structure)
             // =================================================================
@@ -625,6 +1030,91 @@
             },
 
             // =================================================================
+            // WORMHOLES (Inter-Galactic Gateways: Spinning Violet Event Ring)
+            // =================================================================
+            wormholes: function (renderer, p, THREE, mesh) {
+                const px = p.x || 0;
+                const pz = p.y || 0;
+                const r = p.radius || 90;
+                const colHex = p.color ? parseInt(p.color.replace("#", "0x")) : 0xa855f7;
+
+                if (!mesh) {
+                    const group = new THREE.Group();
+
+                    // 1. Throat: a dark lens you fall through, tilted to face the pilot
+                    const throatGeom = new THREE.CircleGeometry(1, 48);
+                    const throatMat = new THREE.MeshBasicMaterial({
+                        color: 0x05010f,
+                        transparent: true,
+                        opacity: 0.92,
+                        side: THREE.DoubleSide
+                    });
+                    const throat = new THREE.Mesh(throatGeom, throatMat);
+                    throat.name = "throat";
+                    throat.rotation.x = -Math.PI / 2;
+                    group.add(throat);
+
+                    // 2. Counter-rotating accretion rings marking the aperture
+                    for (let ring = 0; ring < 2; ring++) {
+                        const ringGeom = new THREE.TorusGeometry(1, 0.055 + ring * 0.02, 16, 64);
+                        const ringMat = new THREE.MeshBasicMaterial({
+                            color: ring === 0 ? colHex : 0x38bdf8,
+                            transparent: true,
+                            opacity: ring === 0 ? 0.9 : 0.55,
+                            blending: THREE.AdditiveBlending,
+                            depthWrite: false
+                        });
+                        const torus = new THREE.Mesh(ringGeom, ringMat);
+                        torus.name = "ring" + ring;
+                        torus.rotation.x = -Math.PI / 2;
+                        group.add(torus);
+                    }
+
+                    // 3. Halo so the gateway is findable from across the galaxy
+                    const haloGeom = new THREE.SphereGeometry(1.35, 24, 24);
+                    const haloMat = new THREE.MeshBasicMaterial({
+                        color: colHex,
+                        transparent: true,
+                        opacity: 0.16,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                        side: THREE.BackSide
+                    });
+                    const halo = new THREE.Mesh(haloGeom, haloMat);
+                    halo.name = "halo";
+                    group.add(halo);
+
+                    mesh = group;
+                }
+
+                const time = performance.now() * 0.001;
+                mesh.position.set(px, 0, pz);
+
+                const throat = mesh.getObjectByName("throat");
+                if (throat) throat.scale.set(r * 0.92, r * 0.92, 1);
+
+                const ring0 = mesh.getObjectByName("ring0");
+                if (ring0) {
+                    ring0.scale.set(r, r, r);
+                    ring0.rotation.z += 0.010;
+                }
+
+                const ring1 = mesh.getObjectByName("ring1");
+                if (ring1) {
+                    ring1.scale.set(r * 1.14, r * 1.14, r * 1.14);
+                    ring1.rotation.z -= 0.016;
+                }
+
+                const halo = mesh.getObjectByName("halo");
+                if (halo) {
+                    const pulse = 1.0 + Math.sin(time * 1.6) * 0.07;
+                    halo.scale.set(r * pulse, r * pulse, r * pulse);
+                }
+
+                return mesh;
+            },
+
+            // =================================================================
             // ASTEROIDS (Solid, Watertight, Cratered Boulders - Zero Broken Triangles!)
             // =================================================================
             asteroids: function (renderer, p, THREE, mesh) {
@@ -672,27 +1162,37 @@
                 const px = p.x || 0;
                 const pz = p.y || 0;
                 const r = p.radius || 4.5;
+                const colHex = p.color ? parseInt(p.color.replace("#", "0x")) : 0xffaa22;
 
                 if (!mesh) {
                     const group = new THREE.Group();
 
-                    // 1. Blinding Incandescent Core (White Spark)
-                    const coreGeom = new THREE.SphereGeometry(1.0, 10, 10);
-                    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                    const core = new THREE.Mesh(coreGeom, coreMat);
+                    // Saturated coloured body. The decorative galaxy motes are
+                    // deliberately pale, so colour alone already separates what
+                    // you can eat from the background.
+                    const coreGeom = new THREE.SphereGeometry(1.0, 12, 12);
+                    const core = new THREE.Mesh(coreGeom, new THREE.MeshBasicMaterial({ color: colHex }));
                     core.name = "core";
                     group.add(core);
 
-                    // 2. Radiant Golden Amber Corona
-                    const haloGeom = new THREE.SphereGeometry(1.8, 10, 10);
-                    const colHex = p.color ? parseInt(p.color.replace("#", "0x")) : 0xffaa22;
-                    const haloMat = new THREE.MeshBasicMaterial({
-                        color: colHex,
-                        transparent: true,
-                        opacity: 0.65,
-                        blending: THREE.AdditiveBlending
-                    });
-                    const halo = new THREE.Mesh(haloGeom, haloMat);
+                    // Hot white centre so it still reads at distance.
+                    const hot = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.45, 10, 10),
+                        new THREE.MeshBasicMaterial({ color: 0xffffff })
+                    );
+                    hot.name = "hot";
+                    group.add(hot);
+
+                    const halo = new THREE.Mesh(
+                        new THREE.SphereGeometry(1.9, 12, 12),
+                        new THREE.MeshBasicMaterial({
+                            color: colHex,
+                            transparent: true,
+                            opacity: 0.7,
+                            blending: THREE.AdditiveBlending,
+                            depthWrite: false
+                        })
+                    );
                     halo.name = "halo";
                     group.add(halo);
 
@@ -700,11 +1200,27 @@
                 }
 
                 const time = performance.now() * 0.001;
-                const sSeed = (p.id ? String(p.id).charCodeAt(0) : (p.seed || 1));
+                const sSeed = (p.seed !== undefined ? p.seed : (p.id ? String(p.id).charCodeAt(0) : 1));
+
+                // A slow, steady breath - against the fast random twinkle of the
+                // decorative motes, the eye picks these out by motion alone.
+                const pulse = Math.sin(time * EDIBLE_PULSE_RATE + sSeed);
+                const scale = r * EDIBLE_SCALE * (1.0 + EDIBLE_PULSE_DEPTH * pulse);
+
                 const yBase = Math.sin(sSeed * 7.7) * 45;
-                const yBob = yBase + Math.sin(time * 2.2 + sSeed) * 8;
-                mesh.position.set(px, yBob, pz);
-                mesh.scale.set(r, r, r);
+                mesh.position.set(px, yBase + Math.sin(time * 2.2 + sSeed) * 8, pz);
+
+                const core = mesh.getObjectByName("core");
+                if (core) core.scale.set(scale, scale, scale);
+                const hot = mesh.getObjectByName("hot");
+                if (hot) hot.scale.set(scale, scale, scale);
+
+                const halo = mesh.getObjectByName("halo");
+                if (halo) {
+                    const hs = scale * 1.35;
+                    halo.scale.set(hs, hs, hs);
+                    halo.material.opacity = 0.55 + 0.25 * pulse;
+                }
 
                 return mesh;
             },

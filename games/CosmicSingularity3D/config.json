@@ -2,13 +2,49 @@
     "name": "CosmicSingularity3D",
     "gameport": 4444,
     "canvas": {
-        "width": 4000,
-        "height": 4000
+        "width": 48000,
+        "height": 48000
     },
     "fps": 30,
+
+    "_counts": "Entity counts are PER GALAXY. World total = count x galaxies.length. Raising these raises per-client bandwidth linearly - see scripts/payload check.",
     "botCount": 5,
-    "planetCount": 120,
-    "stardustCount": 280,
-    "asteroidCount": 22,
-    "pulsarCount": 4
+    "planetCount": 130,
+    "stardustCount": 180,
+    "asteroidCount": 24,
+    "pulsarCount": 5,
+
+    "_galaxies": "x,y is the CENTRE of the disc. arms+twist define the spiral geometry and MUST match the generator in visuals.js. seed only perturbs the painted star scatter.",
+    "galaxies": [
+        {
+            "name": "Milky Way",
+            "x": 0,
+            "y": 0,
+            "radius": 9000,
+            "palette": "amber",
+            "arms": 2,
+            "twist": 2.6,
+            "seed": 7
+        },
+        {
+            "name": "Andromeda",
+            "x": 30000,
+            "y": 0,
+            "radius": 9000,
+            "palette": "azure",
+            "arms": 2,
+            "twist": 3.1,
+            "seed": 91
+        },
+        {
+            "name": "Triangulum",
+            "x": 0,
+            "y": 30000,
+            "radius": 9000,
+            "palette": "violet",
+            "arms": 3,
+            "twist": 2.2,
+            "seed": 55
+        }
+    ]
 }
