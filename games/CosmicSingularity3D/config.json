@@ -2,13 +2,36 @@
     "name": "CosmicSingularity3D",
     "gameport": 4444,
     "canvas": {
-        "width": 4000,
-        "height": 4000
+        "width": 100000,
+        "height": 100000
     },
     "fps": 30,
-    "botCount": 5,
-    "planetCount": 120,
-    "stardustCount": 280,
-    "asteroidCount": 22,
-    "pulsarCount": 4
+    "botCount": 2,
+    "planetCount": 40,
+    "stardustCount": 100,
+    "asteroidCount": 8,
+    "pulsarCount": 1,
+    "galaxies": [
+        {
+            "name": "Milky Way",
+            "x": 0,
+            "y": 0,
+            "width": 8000,
+            "height": 8000
+        },
+        {
+            "name": "Andromeda",
+            "x": 30000,
+            "y": 0,
+            "width": 8000,
+            "height": 8000
+        },
+        {
+            "name": "Triangulum",
+            "x": 0,
+            "y": 30000,
+            "width": 8000,
+            "height": 8000
+        }
+    ]
 }

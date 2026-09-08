@@ -17,6 +17,7 @@ class SpacePhysicsSystem {
         const stardust = this.game.entities["stardust"] || [];
         const asteroids = this.game.entities["asteroids"] || [];
         const pulsars = this.game.entities["pulsars"] || [];
+        const wormholes = this.game.entities["wormholes"] || [];
         const W = this.config.canvas.width;
         const H = this.config.canvas.height;
 
@@ -129,8 +130,32 @@ class SpacePhysicsSystem {
             bh.x += bh.vx * dt;
             bh.y += bh.vy * dt;
 
-            bh.x = Math.max(bh.radius, Math.min(W - bh.radius, bh.x));
-            bh.y = Math.max(bh.radius, Math.min(H - bh.radius, bh.y));
+            const minX = bh.galaxyBounds ? bh.galaxyBounds.minX : 0;
+            const maxX = bh.galaxyBounds ? bh.galaxyBounds.maxX : W;
+            const minY = bh.galaxyBounds ? bh.galaxyBounds.minY : 0;
+            const maxY = bh.galaxyBounds ? bh.galaxyBounds.maxY : H;
+            bh.x = Math.max(minX + bh.radius, Math.min(maxX - bh.radius, bh.x));
+            bh.y = Math.max(minY + bh.radius, Math.min(maxY - bh.radius, bh.y));
+        }
+
+
+        // Wormhole Teleportation
+        for (const bh of bhs) {
+            if (bh.wormholeCooldown > 0) {
+                bh.wormholeCooldown -= dt;
+                continue;
+            }
+            
+            for (const wh of wormholes) {
+                const dist = Math.hypot(bh.x - wh.x, bh.y - wh.y);
+                if (dist < bh.radius + wh.radius) {
+                    bh.x = wh.destX;
+                    bh.y = wh.destY;
+                    bh.galaxyBounds = wh.destBounds;
+                    bh.wormholeCooldown = 3.0; // 3 seconds cooldown
+                    break;
+                }
+            }
         }
 
         // 4. Stardust Micro-Motes: Gravity Pull & Ingestion

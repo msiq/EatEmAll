@@ -5,14 +5,14 @@ function findSafeSpawn(game, canvas, margin = 250) {
     const W = (canvas && canvas.width) || 4000;
     const H = (canvas && canvas.height) || 4000;
 
-    let bestX = Math.random() * (W - margin * 2) + margin;
-    let bestY = Math.random() * (H - margin * 2) + margin;
+    let bestX = (canvas.offsetX||0) + Math.random() * (W - margin * 2) + margin;
+    let bestY = (canvas.offsetY||0) + Math.random() * (H - margin * 2) + margin;
     let maxMinDist = -1;
 
     // Test up to 30 candidate positions across the universe
     for (let attempt = 0; attempt < 30; attempt++) {
-        const testX = Math.random() * (W - margin * 2) + margin;
-        const testY = Math.random() * (H - margin * 2) + margin;
+        const testX = (canvas.offsetX||0) + Math.random() * (W - margin * 2) + margin;
+        const testY = (canvas.offsetY||0) + Math.random() * (H - margin * 2) + margin;
 
         if (existing.length === 0) {
             return { x: testX, y: testY };

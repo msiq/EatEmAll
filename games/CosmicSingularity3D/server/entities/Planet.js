@@ -10,8 +10,8 @@ function createPlanet(game, canvas) {
     const p = {
         id: "P" + pId++,
         type: type,
-        x: Math.random() * (canvas.width - 100) + 50,
-        y: Math.random() * (canvas.height - 100) + 50,
+        x: (canvas.offsetX||0) + Math.random() * (canvas.width - 100) + 50,
+        y: (canvas.offsetY||0) + Math.random() * (canvas.height - 100) + 50,
         mass: mass,
         radius: radius,
         color: colors[type],

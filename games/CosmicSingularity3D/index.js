@@ -5,6 +5,7 @@ const { createPlanet } = require("./server/entities/Planet.js");
 const { createStardust } = require("./server/entities/Stardust.js");
 const { createAsteroid } = require("./server/entities/Asteroid.js");
 const { createPulsar } = require("./server/entities/Pulsar.js");
+const { createWormhole } = require("./server/entities/Wormhole.js");
 const { SpacePhysicsSystem } = require("./server/systems/SpacePhysicsSystem.js");
 
 class CosmicSingularityCartridge {
@@ -27,43 +28,49 @@ class CosmicSingularityCartridge {
         game.addEntityType("asteroids");
         game.addEntityType("pulsars");
 
-        // 1. Spawn Stardust Micro-Motes
-        const sdCount = config.stardustCount || 280;
-        // spawner log
-        for (let i = 0; i < sdCount; i++) {
-            createStardust(game, config.canvas);
-        }
+        // Iterate over galaxies and spawn entities in each
+        const galaxies = config.galaxies || [{ name: "Universe", x: 0, y: 0, width: config.canvas.width, height: config.canvas.height }];
+        
+        for (let gIdx = 0; gIdx < galaxies.length; gIdx++) {
+            const g = galaxies[gIdx];
+            const localCanvas = { width: g.width, height: g.height, offsetX: g.x, offsetY: g.y };
 
-        // 2. Spawn Asteroids (Tactical Obstacles / Virus Equivalent)
-        const astCount = config.asteroidCount || 22;
-        // spawner log
-        for (let i = 0; i < astCount; i++) {
-            createAsteroid(game, config.canvas);
-        }
+            const sdCount = config.stardustCount || 100;
+            for (let i = 0; i < sdCount; i++) createStardust(game, localCanvas);
 
-        // 3. Spawn Pulsars (Magnetized Neutron Stars)
-        const psrCount = config.pulsarCount || 4;
-        // spawner log
-        for (let i = 0; i < psrCount; i++) {
-            createPulsar(game, config.canvas, i, psrCount);
-        }
+            const astCount = config.asteroidCount || 8;
+            for (let i = 0; i < astCount; i++) createAsteroid(game, localCanvas);
 
-        // 4. Spawn Orbiting Planets
-        const pCount = config.planetCount || 120;
-        // spawner log
-        for (let i = 0; i < pCount; i++) {
-            createPlanet(game, config.canvas);
-        }
+            const psrCount = config.pulsarCount || 1;
+            for (let i = 0; i < psrCount; i++) createPulsar(game, localCanvas, i, psrCount);
 
-        // 5. Spawn Bot Black Holes
-        const colors = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"];
-        for (let i = 0; i < config.botCount; i++) {
-            createBlackHole(game, {
-                name: "Bot Singularity " + (i+1),
-                isBot: true,
-                color: colors[i % colors.length],
-                canvas: config.canvas
-            });
+            const pCount = config.planetCount || 40;
+            for (let i = 0; i < pCount; i++) createPlanet(game, localCanvas);
+
+            const colors = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"];
+            const bCount = config.botCount || 2;
+            for (let i = 0; i < bCount; i++) {
+                let bot = createBlackHole(game, {
+                    name: "Bot " + g.name + " " + (i+1),
+                    isBot: true,
+                    color: colors[i % colors.length],
+                    canvas: localCanvas
+                });
+                bot.galaxyBounds = { minX: g.x, maxX: g.x + g.width, minY: g.y, maxY: g.y + g.height };
+            }
+            
+            // Spawn Wormhole connecting to next galaxy
+            if (galaxies.length > 1) {
+                const nextG = galaxies[(gIdx + 1) % galaxies.length];
+                createWormhole(game, {
+                    name: "Gateway to " + nextG.name,
+                    x: g.x + g.width / 2,
+                    y: g.y + g.height / 2,
+                    destX: nextG.x + nextG.width / 2 + 300,
+                    destY: nextG.y + nextG.height / 2,
+                    destBounds: { minX: nextG.x, maxX: nextG.x + nextG.width, minY: nextG.y, maxY: nextG.y + nextG.height }
+                });
+            }
         }
 
         game.playerInput = (event) => {
@@ -105,13 +112,20 @@ class CosmicSingularityCartridge {
 
     onPlayerJoin(socketId, userData) {
         const name = (userData && userData.userName) || "Nova";
-        return createBlackHole(this.game, {
+        const galaxies = config.galaxies || [{ name: "Universe", x: 0, y: 0, width: config.canvas.width, height: config.canvas.height }];
+        // Pick random galaxy for player spawn
+        const g = galaxies[Math.floor(Math.random() * galaxies.length)];
+        const localCanvas = { width: g.width, height: g.height, offsetX: g.x, offsetY: g.y };
+        
+        let player = createBlackHole(this.game, {
             name,
             socketId,
             isBot: false,
             color: "#38bdf8", // Signature player cyan
-            canvas: config.canvas
+            canvas: localCanvas
         });
+        player.galaxyBounds = { minX: g.x, maxX: g.x + g.width, minY: g.y, maxY: g.y + g.height };
+        return player;
     }
 
     onPlayerDisconnect(socketId) {
