@@ -580,7 +580,11 @@ var Game = function Game(customConfig) {
         //     return 0;
         // }
 
-        this.server.letEmPlay(this.formatToRender(player), player.socket_id,
+        // Address the socket from the live entity, not from the serialised copy:
+        // the copy carries only what the client needs to draw, so routing that
+        // depends on it silently breaks the moment a field leaves the wire.
+        this.server.letEmPlay(this.formatToRender(player),
+            player.socketId || player.socket_id,
             this.getAllDotsCompact(), this.getStaticLayersSnapshot());
     };
 

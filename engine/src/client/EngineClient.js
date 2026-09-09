@@ -618,12 +618,17 @@
                         const col = this.interpolator.getCollection(layer);
                         (data.staticDelta[layer] || []).forEach(d => {
                             if (d.remove) { col.delete(d.id); return; }
-                            // Seed the lerp targets so static entities render the
-                            // same way synced ones do.
-                            col.set(d.id, Object.assign({}, d, {
-                                targetX: d.x, targetY: d.y,
-                                targetRadius: d.radius, targetAngle: d.angle || 0
-                            }));
+                            // Merge rather than replace: a delta may carry only
+                            // the fields that actually changed, so a mostly
+                            // static entity can send one number instead of all
+                            // of itself. Lerp targets are seeded only for the
+                            // fields present.
+                            const ent = Object.assign({}, col.get(d.id) || {}, d);
+                            if (d.x !== undefined) ent.targetX = d.x;
+                            if (d.y !== undefined) ent.targetY = d.y;
+                            if (d.radius !== undefined) ent.targetRadius = d.radius;
+                            if (d.angle !== undefined) ent.targetAngle = d.angle;
+                            col.set(d.id, ent);
                         });
                     });
                 }
