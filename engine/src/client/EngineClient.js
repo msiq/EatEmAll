@@ -576,6 +576,15 @@
                     this.interpolator.syncType('dots', data.dots);
                 }
 
+                // Any other layer the cartridge marked static: sent in full once
+                // here, then only as deltas on each tick.
+                if (data.staticLayers && typeof data.staticLayers === 'object') {
+                    Object.keys(data.staticLayers).forEach(layer => {
+                        if (layer === 'dots') return;
+                        this.interpolator.syncType(layer, data.staticLayers[layer] || []);
+                    });
+                }
+
                 const loginModal = document.getElementById('login-modal');
                 const deathModal = document.getElementById('death-modal');
                 const hudOverlay = document.getElementById('hud-overlay');
@@ -599,6 +608,23 @@
                     const dotsCol = this.interpolator.getCollection('dots');
                     data.dotsDelta.forEach(d => {
                         dotsCol.set(d.id, d);
+                    });
+                }
+
+                // Deltas for every other static layer. An entry marked remove
+                // deletes it; anything else is an insert or a move.
+                if (data.staticDelta && typeof data.staticDelta === 'object') {
+                    Object.keys(data.staticDelta).forEach(layer => {
+                        const col = this.interpolator.getCollection(layer);
+                        (data.staticDelta[layer] || []).forEach(d => {
+                            if (d.remove) { col.delete(d.id); return; }
+                            // Seed the lerp targets so static entities render the
+                            // same way synced ones do.
+                            col.set(d.id, Object.assign({}, d, {
+                                targetX: d.x, targetY: d.y,
+                                targetRadius: d.radius, targetAngle: d.angle || 0
+                            }));
+                        });
                     });
                 }
 

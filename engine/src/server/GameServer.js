@@ -15,7 +15,18 @@ function GameServer() {
 
     this.serve = (game, options) => {
         this.game = game;
-        this.wss = new WebSocket.Server({ server: this.httpServer, path: '/ws' });
+        // permessage-deflate is OFF by default in ws, so every snapshot was going
+        // out as raw JSON. Successive ticks are nearly identical, so leaving
+        // context takeover enabled (the default) lets each frame compress against
+        // the last one - level 1 keeps the CPU cost negligible.
+        this.wss = new WebSocket.Server({
+            server: this.httpServer,
+            path: '/ws',
+            perMessageDeflate: {
+                zlibDeflateOptions: { level: 1 },
+                threshold: 512
+            }
+        });
         const wss = this.wss;
         const app = this.app;
 
@@ -183,13 +194,15 @@ function GameServer() {
         });
     };
 
-    this.letEmPlay = (player, socketId, allDots) => {
+    this.letEmPlay = (player, socketId, allDots, staticLayers) => {
         const targetId = socketId || (player && (player.socket_id || player.socketId));
         const sock = this.socketMap.get(targetId);
         if (sock && sock.readyState === WebSocket.OPEN) {
             sock.send(JSON.stringify({
                 event: 'play',
-                data: { player, dots: allDots || [] }
+                // staticLayers carries every layer marked static, in full, once.
+                // From here on those layers travel as deltas only.
+                data: { player, dots: allDots || [], staticLayers: staticLayers || {} }
             }));
         }
     };
@@ -220,6 +233,7 @@ function GameServer() {
                 data: {
                     players: data.players,
                     dotsDelta: data.dotsDelta || [],
+                    staticDelta: data.staticDelta || {},
                     fps: data.fps,
                     events: data.events || [],
                     gameState: data.gameState || null

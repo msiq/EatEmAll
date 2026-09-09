@@ -278,8 +278,32 @@ var Game = function Game(customConfig) {
         return !!this.active;
     };
 
+    /**
+     * Trim float noise before it goes on the wire.
+     *
+     * A coordinate serialises as "x":-2650.3930376442872 - nineteen characters
+     * to place something on a screen barely a thousand pixels wide. Two decimal
+     * places is far finer than any renderer can show and cuts the payload by
+     * more than half, before compression even sees it. Rounding happens on a
+     * copy so the simulation keeps its full precision.
+     */
+    const WIRE_PRECISION = 100;   // 2 decimal places
+    this.roundForWire = function(entity) {
+        const out = {};
+        const keys = Object.keys(entity);
+        for (let i = 0; i < keys.length; i++) {
+            const k = keys[i];
+            const v = entity[k];
+            out[k] = (typeof v === 'number' && Number.isFinite(v))
+                ? Math.round(v * WIRE_PRECISION) / WIRE_PRECISION
+                : v;
+        }
+        return out;
+    };
+
     this.formatToRender = (player) => {
-        if (typeof player.has !== "function") return player;
+        // Cartridge entities are plain objects: publish a rounded copy.
+        if (typeof player.has !== "function") return this.roundForWire(player);
         if (this.staticLayers.has(player.type) || (player.abilities && player.abilities.collidable && player.abilities.collidable.isStatic)) {
             return {
                 id: player.id,
@@ -334,25 +358,58 @@ var Game = function Game(customConfig) {
         this.tickEvents.push(event);
     };
 
+    /**
+     * Flatten one static entity for the wire. ECS entities are reduced to the
+     * fields the client draws; plain cartridge objects already carry only what
+     * they mean to publish (simulation state is non-enumerable), so they go as
+     * they are.
+     */
+    this.compactStaticEntity = function(e) {
+        if (typeof e.has !== 'function') return e;
+        return {
+            id: e.id,
+            x: (e.abilities.position && e.abilities.position.pos) ? e.abilities.position.pos.x : 0,
+            y: (e.abilities.position && e.abilities.position.pos) ? e.abilities.position.pos.y : 0,
+            radius: (e.abilities.body && e.abilities.body.shape && e.abilities.body.shape.radius) || 7,
+            color: (e.abilities.body && e.abilities.body.color) || '#fff'
+        };
+    };
+
+    /** Every static layer, keyed by layer name, for the one-time join sync. */
+    this.getStaticLayersSnapshot = function() {
+        const result = {};
+        this.staticLayers.forEach(layer => {
+            if (this.entities[layer]) {
+                result[layer] = this.entities[layer].map(this.compactStaticEntity);
+            }
+        });
+        return result;
+    };
+
     this.getStaticEntitiesSnapshot = function() {
         const result = [];
         this.staticLayers.forEach(layer => {
             if (this.entities[layer]) {
-                this.entities[layer].forEach(e => {
-                    result.push({
-                        id: e.id,
-                        x: (e.abilities.position && e.abilities.position.pos) ? e.abilities.position.pos.x : 0,
-                        y: (e.abilities.position && e.abilities.position.pos) ? e.abilities.position.pos.y : 0,
-                        radius: (e.abilities.body && e.abilities.body.shape && e.abilities.body.shape.radius) || 7,
-                        color: (e.abilities.body && e.abilities.body.color) || '#fff'
-                    });
-                });
+                this.entities[layer].forEach(e => result.push(this.compactStaticEntity(e)));
             }
         });
         return result;
     };
     this.getAllDotsCompact = function() {
-        return this.getStaticEntitiesSnapshot();
+        return this.entities['dots'] ? this.entities['dots'].map(this.compactStaticEntity) : [];
+    };
+
+    /**
+     * Queue a change to a static layer. Static layers are sent in full once on
+     * join and then only as deltas, so anything that appears or disappears must
+     * be reported here or clients never see it.
+     *   add/move: pushStaticDelta('stardust', entity)
+     *   remove:   pushStaticDelta('stardust', { id, remove: true })
+     */
+    this.staticDelta = {};
+    this.pushStaticDelta = function(layer, entry) {
+        if (!this.staticDelta[layer]) this.staticDelta[layer] = [];
+        this.staticDelta[layer].push(entry.remove ? entry : this.compactStaticEntity(entry));
     };
 
     this.doTick = function() {
@@ -369,12 +426,15 @@ var Game = function Game(customConfig) {
         const dotsDelta = this.dotsDelta || [];
         this.dotsDelta = [];
 
+        const staticDelta = this.staticDelta || {};
+        this.staticDelta = {};
+
         const gameState = this.gameFSM ? {
             name: this.gameFSM.getStateName(),
             timeInState: this.gameFSM.getTimeInState(),
             remainingMs: this.gameFSM.getRemainingTime(180000)
         } : null;
-        this.server.doTick({ players, dotsDelta, fps: this.lastFPS, events, gameState });
+        this.server.doTick({ players, dotsDelta, staticDelta, fps: this.lastFPS, events, gameState });
     };
 
     // Set new state
@@ -520,7 +580,8 @@ var Game = function Game(customConfig) {
         //     return 0;
         // }
 
-        this.server.letEmPlay(this.formatToRender(player), player.socket_id, this.getAllDotsCompact());
+        this.server.letEmPlay(this.formatToRender(player), player.socket_id,
+            this.getAllDotsCompact(), this.getStaticLayersSnapshot());
     };
 
 
