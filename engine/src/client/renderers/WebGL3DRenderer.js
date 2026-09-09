@@ -395,6 +395,29 @@
             this.backdropObjects.sunFlare = sunFlare;
         }
 
+        /**
+         * Project a world point to canvas pixels.
+         *
+         * The input manager needs this to know where the ship actually is on
+         * screen. Without it the 2D fallback (world position minus the 2D
+         * camera origin) is used, which is meaningless here because the 3D
+         * camera ignores that origin entirely - it handed back numbers in the
+         * tens of thousands on a ~1000px canvas, so the pointer deadzone could
+         * never engage and the player thrusted at full throttle forever.
+         */
+        worldToScreen(worldX, worldY) {
+            if (!this.camera3D) return null;
+            if (!this._projVec) this._projVec = new THREE.Vector3();
+
+            this._projVec.set(worldX, 0, worldY).project(this.camera3D);
+            if (!isFinite(this._projVec.x) || !isFinite(this._projVec.y)) return null;
+
+            return {
+                x: (this._projVec.x * 0.5 + 0.5) * this.width,
+                y: (-this._projVec.y * 0.5 + 0.5) * this.height
+            };
+        }
+
         resize(width, height) {
             this.width = width;
             this.height = height;
