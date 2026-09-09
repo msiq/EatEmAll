@@ -11,17 +11,19 @@ function createAsteroid(game, galaxy, customPos = null) {
 
     const ast = {
         id: "AST" + astId++,
-        type: "asteroid",
         x: pos.x,
         y: pos.y,
-        radius: radius,
-        angle: Math.random() * Math.PI * 2
+        radius: radius
     };
 
     // The 3D renderer builds its cratered geometry from the entity id, so the
     // vertex and crater tables are simulation-side only - shipping them was
     // 80% of the asteroid snapshot.
     defineServerOnly(ast, {
+        // The renderer animates tumble locally from the id, and keys its draw
+        // hook off the collection name, so neither of these needs sending.
+        angle: Math.random() * Math.PI * 2,
+        type: "asteroid",
         mass,
         color: "#78716c",
         rotSpeed: (Math.random() - 0.5) * 0.45,

@@ -44,6 +44,17 @@ class CosmicSingularityCartridge {
         // That is what pays for a field this dense.
         game.markLayerStatic("stardust");
 
+        // Planets too: they only stir when a black hole comes close enough to
+        // pull them, so publishing all 600 every tick was paying for nothing.
+        game.markLayerStatic("planets");
+
+        // Wormholes and galaxies are fixed geometry - nothing about them ever
+        // changes - and a pulsar only rotates its beam. All three were being
+        // rebroadcast in full 30 times a second.
+        game.markLayerStatic("wormholes");
+        game.markLayerStatic("galaxies");
+        game.markLayerStatic("pulsars");
+
         // Every galaxy is populated to the same density from the shared
         // per-galaxy counts in config.json.
         const galaxies = getGalaxies(config);

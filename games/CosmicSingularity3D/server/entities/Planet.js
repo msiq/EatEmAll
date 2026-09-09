@@ -18,7 +18,7 @@ function createPlanet(game, galaxy, customPos = null) {
         radius: Math.sqrt(mass) * 2
     };
 
-    defineServerOnly(p, { mass, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10 });
+    defineServerOnly(p, { mass, vx: 0, vy: 0 });
 
     if (!game.entities["planets"]) game.entities["planets"] = [];
     game.entities["planets"].push(p);

@@ -38,7 +38,6 @@ function createBlackHole(game, options) {
 
     const bh = {
         id: "BH" + bhId++,
-        socketId: options.socketId || null,
         type: "blackhole",
         name: options.name || "Singularity",
         x: pos.x,
@@ -56,6 +55,8 @@ function createBlackHole(game, options) {
     };
 
     defineServerOnly(bh, {
+        // Server-side routing only; the client identifies itself by id.
+        socketId: options.socketId || null,
         targetAngle: 0,
         throttle: 1.0,
         isThrusting: false,

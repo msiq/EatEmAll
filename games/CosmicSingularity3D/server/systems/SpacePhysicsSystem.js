@@ -10,6 +10,10 @@ const { getGalaxies, galaxyAt, clampToDisc } = require("../galaxies.js");
 const CAPTURE_MIN = 95;
 const CAPTURE_SCALE = 3.0;
 
+// A planet slower than this, with nothing pulling it, is parked.
+const PLANET_REST_SPEED = 1.2;
+const PLANET_DAMPING = 0.97;
+
 class SpacePhysicsSystem {
     constructor(game, config) {
         this.game = game;
@@ -312,6 +316,13 @@ class SpacePhysicsSystem {
             if (psr.beamAngle > Math.PI * 2) psr.beamAngle -= Math.PI * 2;
             if (psr.beamAngle < 0) psr.beamAngle += Math.PI * 2;
 
+            // Pulsars are a static layer: they never move, so only the rotating
+            // beam goes on the wire - one number instead of the whole record.
+            this.game.pushStaticDelta("pulsars", {
+                id: psr.id,
+                beamAngle: Math.round(psr.beamAngle * 1000) / 1000
+            });
+
             psr.pulseTimer += dt;
             if (psr.pulseTimer >= psr.pulseInterval) {
                 psr.pulseTimer = 0;
@@ -376,12 +387,20 @@ class SpacePhysicsSystem {
             }
         }
 
-        // 7. Planets & Capped Gravity Pull
+        // 7. Planets: gravity from a nearby black hole, and ingestion.
+        //
+        // Planets are a STATIC layer. Only the few inside some black hole's pull
+        // are integrated and published; the rest sit still and cost nothing at
+        // all. What they used to do instead was drift on their spawn velocity -
+        // 598 of 600 wandering at 4 u/s past nobody, for 77% of the tick
+        // payload. A planet falling into a black hole is worth paying for;
+        // aimless drift is not.
         for (let i = planets.length - 1; i >= 0; i--) {
             const p = planets[i];
             const home = this.homeOf(p);
             let ax = 0, ay = 0;
             let eatenBy = null;
+            let pulled = false;
 
             for (const bh of bhs) {
                 const dx = bh.x - p.x;
@@ -397,6 +416,7 @@ class SpacePhysicsSystem {
                 // Capped influence distance (max 320px)
                 const maxInfluence = Math.min(320, bh.radius * 3.2);
                 if (dist < maxInfluence) {
+                    pulled = true;
                     const effectiveMass = Math.min(300, bh.mass);
                     const force = (this.G * effectiveMass) / (distSq + 160);
                     ax += (dx / dist) * force;
@@ -407,16 +427,30 @@ class SpacePhysicsSystem {
             if (eatenBy) {
                 eatenBy.mass += p.mass;
                 planets.splice(i, 1);
-                createPlanet(this.game, home);
+                this.game.pushStaticDelta("planets", { id: p.id, remove: true });
+                this.game.pushStaticDelta("planets", createPlanet(this.game, home));
+                continue;
+            }
+
+            // At rest and unpulled: nothing to simulate, nothing to send.
+            const speed = Math.hypot(p.vx, p.vy);
+            if (!pulled && speed < PLANET_REST_SPEED) {
+                if (speed > 0) { p.vx = 0; p.vy = 0; }
                 continue;
             }
 
             p.vx += ax * dt;
             p.vy += ay * dt;
+            // Once out of reach, coast to a stop rather than drifting forever.
+            if (!pulled) {
+                p.vx *= PLANET_DAMPING;
+                p.vy *= PLANET_DAMPING;
+            }
             p.x += p.vx * dt;
             p.y += p.vy * dt;
 
             this.containInDisc(home, p, p.radius);
+            this.game.pushStaticDelta("planets", p);
         }
 
         // 8. Consumption between Black Holes (Protected by Spawn Immunity)
