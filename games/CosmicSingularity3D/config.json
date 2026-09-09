@@ -7,10 +7,10 @@
     },
     "fps": 30,
 
-    "_counts": "Entity counts are PER GALAXY. World total = count x galaxies.length. Raising these raises per-client bandwidth linearly - see scripts/payload check.",
+    "_counts": "Entity counts are PER GALAXY. World total = count x galaxies.length. stardustCount is nearly free per-tick because stardust is a STATIC layer (sent once on join, then deltas) - it only costs a bigger join payload. The others ride every 30 Hz snapshot, so raising them costs bandwidth linearly.",
     "botCount": 5,
-    "planetCount": 130,
-    "stardustCount": 180,
+    "planetCount": 200,
+    "stardustCount": 4000,
     "asteroidCount": 24,
     "pulsarCount": 5,
 

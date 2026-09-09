@@ -5,6 +5,11 @@ const { createAsteroid } = require("../entities/Asteroid.js");
 const { createPulsar } = require("../entities/Pulsar.js");
 const { getGalaxies, galaxyAt, clampToDisc } = require("../galaxies.js");
 
+// Stardust capture. CAPTURE_MIN keeps the early game from starving; the scale
+// term lets a grown black hole hoover up a wide swathe.
+const CAPTURE_MIN = 95;
+const CAPTURE_SCALE = 3.0;
+
 class SpacePhysicsSystem {
     constructor(game, config) {
         this.game = game;
@@ -14,6 +19,15 @@ class SpacePhysicsSystem {
         // Pulse waves top the universe up, but only until every galaxy is at
         // roughly its configured stardust density.
         this.stardustCap = Math.round((config.stardustCount || 100) * this.galaxies.length * 1.15);
+    }
+
+    /**
+     * How far a black hole can swallow stardust from. Generous compared with
+     * its physical size, because a fast mover has almost no dwell time near any
+     * one mote - this is the knob that decides whether the game feeds you.
+     */
+    captureRadius(bh) {
+        return Math.max(CAPTURE_MIN, bh.radius * CAPTURE_SCALE);
     }
 
     /** The galaxy a body currently belongs to. */
@@ -199,47 +213,35 @@ class SpacePhysicsSystem {
             }
         }
 
-        // 4. Stardust Micro-Motes: Gravity Pull & Ingestion
+        // 4. Stardust Micro-Motes: Ingestion
+        //
+        // Stardust is a STATIC layer: the full field is sent once when a client
+        // joins and after that only what changes travels. That is what makes a
+        // dense field affordable - motes therefore do not drift, and every
+        // removal and every replacement must be published as a delta or clients
+        // keep eating ghosts.
         for (let i = stardust.length - 1; i >= 0; i--) {
             const sd = stardust[i];
-            const home = this.homeOf(sd);
+
             let eatenBy = null;
-            let ax = 0, ay = 0;
-
             for (const bh of bhs) {
-                const dx = bh.x - sd.x;
-                const dy = bh.y - sd.y;
-                const dist = Math.hypot(dx, dy);
-
-                // Instant suction ingestion
-                if (dist < bh.radius + sd.radius) {
+                // Capture reaches out to the vacuum radius. The old code only
+                // swallowed motes on physical contact and relied on suction to
+                // drag them in, which barely acts on a black hole moving at
+                // full speed - a new player could fly an arm and eat nothing.
+                if (Math.hypot(bh.x - sd.x, bh.y - sd.y) < this.captureRadius(bh) + sd.radius) {
                     eatenBy = bh;
                     break;
-                }
-
-                // Vacuum pull when nearby
-                const pullRadius = Math.min(220, bh.radius * 3.0);
-                if (dist < pullRadius && dist > 1) {
-                    const pullForce = (2800) / (dist + 25);
-                    ax += (dx / dist) * pullForce;
-                    ay += (dy / dist) * pullForce;
                 }
             }
 
             if (eatenBy) {
                 eatenBy.mass += sd.mass;
                 stardust.splice(i, 1);
-                createStardust(this.game, home);
-                continue;
+                this.game.pushStaticDelta("stardust", { id: sd.id, remove: true });
+                const fresh = createStardust(this.game, this.homeOf(sd));
+                this.game.pushStaticDelta("stardust", fresh);
             }
-
-            sd.vx = (sd.vx + ax * dt) * 0.94;
-            sd.vy = (sd.vy + ay * dt) * 0.94;
-            sd.x += sd.vx * dt;
-            sd.y += sd.vy * dt;
-
-            // Motes are held inside the disc; drifting off the rim bounces back.
-            this.containInDisc(home, sd, sd.radius);
         }
 
         // 5. Asteroids: Tumble, Drift & Tactical Tidal Disruption (Virus Mechanics)
@@ -288,10 +290,10 @@ class SpacePhysicsSystem {
                         for (let f = 0; f < fragmentCount; f++) {
                             const fAng = (Math.PI * 2 / fragmentCount) * f + Math.random() * 0.5;
                             const fDist = ast.radius * 1.3;
-                            createStardust(this.game, home, {
+                            this.game.pushStaticDelta("stardust", createStardust(this.game, home, {
                                 x: ast.x + Math.cos(fAng) * fDist,
                                 y: ast.y + Math.sin(fAng) * fDist
-                            });
+                            }));
                         }
                         break;
                     }
@@ -323,8 +325,7 @@ class SpacePhysicsSystem {
                             x: psr.x + Math.cos(bAng) * (psr.radius + 15),
                             y: psr.y + Math.sin(bAng) * (psr.radius + 15)
                         });
-                        sd.vx = Math.cos(bAng) * 90;
-                        sd.vy = Math.sin(bAng) * 90;
+                        this.game.pushStaticDelta("stardust", sd);
                     }
                 }
             }

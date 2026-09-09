@@ -12,7 +12,7 @@ function createWormhole(game, options) {
         name: options.name || "Wormhole",
         x: options.x,
         y: options.y,
-        radius: 90,
+        radius: options.radius || 400,
         color: options.color || "#a855f7",
         destX: options.destX,
         destY: options.destY

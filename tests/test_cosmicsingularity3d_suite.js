@@ -309,8 +309,9 @@ test("The galaxy rim contains bodies, and the spiral formula is pinned", () => {
     const bh = cartridge.onPlayerJoin("sock_rim", { userName: "Rimrunner" });
     bh.spawnImmunity = 99;
 
-    // Fling it hard at the rim and let the physics hold it.
-    bh.x = g.x;
+    // Fling it hard at the rim and let the physics hold it. Start off-centre:
+    // the galactic core is the gateway now, and standing on it teleports you.
+    bh.x = g.x + g.radius * 0.5;
     bh.y = g.y;
     bh.vx = 100000;
     bh.vy = 100000;

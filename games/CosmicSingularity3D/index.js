@@ -10,9 +10,11 @@ const { createGalaxy } = require("./server/entities/Galaxy.js");
 const { getGalaxies, spiralPoint } = require("./server/galaxies.js");
 const { SpacePhysicsSystem } = require("./server/systems/SpacePhysicsSystem.js");
 
-// Gateways sit far out on an arm; arrivals land well inside the destination on
-// a different arm, so you never surface on top of another gateway.
-const GATEWAY_AT = 0.88;
+// The gateway is the galactic core itself. The inner ~1200 units hold no food -
+// the arms start further out - so nobody crosses the centre by accident while
+// farming, and the core glow every galaxy already has doubles as the signpost.
+// You fall into the core and are ejected onto an arm of the next galaxy.
+const GATEWAY_RADIUS = 400;
 const ARRIVAL_AT = 0.22;
 
 class CosmicSingularityCartridge {
@@ -36,6 +38,11 @@ class CosmicSingularityCartridge {
         game.addEntityType("pulsars");
         game.addEntityType("wormholes");
         game.addEntityType("galaxies");
+
+        // Stardust is the bulk of the world and never moves, so it travels as a
+        // one-time sync plus deltas instead of riding every 30 Hz snapshot.
+        // That is what pays for a field this dense.
+        game.markLayerStatic("stardust");
 
         // Every galaxy is populated to the same density from the shared
         // per-galaxy counts in config.json.
@@ -74,13 +81,15 @@ class CosmicSingularityCartridge {
             // Gateway onward to the next galaxy, wired into a closed ring.
             if (galaxies.length > 1) {
                 const nextG = galaxies[(gIdx + 1) % galaxies.length];
-                const gate = spiralPoint(g, GATEWAY_AT, 0);
-                // Arrive on the far arm of the destination, away from its gateway.
+                // Arrive out on an arm of the destination, never at its core -
+                // landing on that galaxy's own gateway would bounce you straight
+                // back out again.
                 const arrive = spiralPoint(nextG, ARRIVAL_AT, Math.min(1, nextG.arms - 1));
                 createWormhole(game, {
                     name: "Gateway to " + nextG.name,
-                    x: gate.x,
-                    y: gate.y,
+                    x: g.x,
+                    y: g.y,
+                    radius: GATEWAY_RADIUS,
                     destX: arrive.x,
                     destY: arrive.y
                 });

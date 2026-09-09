@@ -73,10 +73,17 @@ function spawnOnArm(g, rand = Math.random, opts = {}) {
     return clampToDisc(g, x, y, g.radius * 0.97);
 }
 
-/** A position anywhere on the disc, ignoring arm structure. */
+/**
+ * A position anywhere on the disc, ignoring arm structure.
+ * Keeps clear of the core: the galactic centre is the gateway out, and spawning
+ * on top of it would fling a brand new player into the next galaxy immediately.
+ */
+const CORE_KEEPOUT = 900;
+
 function spawnInDisc(g, rand = Math.random, inset = 0) {
-    const maxR = Math.max(0, g.radius - inset);
-    const r = Math.sqrt(rand()) * maxR;      // sqrt keeps it area-uniform
+    const maxR = Math.max(CORE_KEEPOUT + 1, g.radius - inset);
+    // Area-uniform between the keep-out ring and the rim.
+    const r = Math.sqrt(rand() * (maxR * maxR - CORE_KEEPOUT * CORE_KEEPOUT) + CORE_KEEPOUT * CORE_KEEPOUT);
     const th = rand() * Math.PI * 2;
     return { x: g.x + Math.cos(th) * r, y: g.y + Math.sin(th) * r };
 }
@@ -112,6 +119,6 @@ function galaxyAt(galaxies, x, y) {
 
 module.exports = {
     getGalaxies, galaxyAt, spiralPoint, armSpread,
-    spawnOnArm, spawnInDisc, clampToDisc,
+    spawnOnArm, spawnInDisc, clampToDisc, CORE_KEEPOUT,
     ARM_INNER, ARM_OUTER
 };

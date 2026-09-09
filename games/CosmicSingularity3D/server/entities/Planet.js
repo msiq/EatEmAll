@@ -8,7 +8,7 @@ function createPlanet(game, galaxy, customPos = null) {
     const type = planetTypes[Math.floor(Math.random() * planetTypes.length)];
     const mass = type === "star" ? 30 : (Math.random() * 15 + 5);
     // Planets hug the arms a little tighter than loose dust.
-    const pos = customPos || spawnOnArm(galaxy, Math.random, { spreadScale: 0.42 });
+    const pos = customPos || spawnOnArm(galaxy, Math.random, { spreadScale: 0.28 });
 
     const p = {
         id: "P" + pId++,

@@ -357,8 +357,26 @@
     // ------------------------------------------------------------------------
     let _hudInstance = null;
 
+    // ------------------------------------------------------------------------
+    // HUD LANES
+    // Every panel owns one lane and nothing shares. The engine's universal HUD
+    // (engine/src/client/index.html) also draws into the top row, so this
+    // cartridge takes the top-left lane and hands the top-right lane back to
+    // the engine for the FPS readout, the audio toggle and the settings button.
+    //
+    //   top-left      player stats            (this cartridge)
+    //   top-right     FPS / audio / settings  (engine top bar)
+    //   right         leaderboard             (engine, below the top bar)
+    //   bottom-left   radar                   (this cartridge)
+    //   bottom-right  control hints           (this cartridge, fades)
+    // ------------------------------------------------------------------------
+    const HUD_EDGE = 20;          // distance of every panel from its screen edge
+    const RADAR_SIZE = 160;
+    const HINT_FADE_AFTER = 14;   // seconds before the control hints dim
+
     class HolographicCosmicHUD {
         constructor() {
+            this.born = performance.now();
             this.container = document.createElement("div");
             this.container.id = "cs3d-holographic-hud";
             this.container.innerHTML = `
@@ -372,6 +390,11 @@
                         color: #f8fafc;
                         user-select: none;
                     }
+                    /* The engine top bar repeats MASS and HORIZON, which this
+                       cartridge already shows in more detail on the left. Two
+                       copies of the same numbers sat on top of each other. */
+                    #hud-game-title-pill, #hud-stats-container { display: none !important; }
+
                     .ch-corner-box {
                         position: absolute;
                         background: rgba(8, 14, 26, 0.72);
@@ -381,31 +404,38 @@
                         border-radius: 6px;
                         padding: 12px 18px;
                     }
-                    .ch-top-left { top: 20px; left: 24px; min-width: 240px; }
-                    .ch-top-right { top: 20px; right: 24px; }
-                    .ch-bottom-right { bottom: 24px; right: 24px; text-align: right; }
-                    .ch-radar {
+                    .ch-top-left { top: ${HUD_EDGE}px; left: ${HUD_EDGE}px; min-width: 240px; }
+                    .ch-bottom-right {
+                        bottom: ${HUD_EDGE}px; right: ${HUD_EDGE}px; text-align: right;
+                        transition: opacity 1.2s ease;
+                    }
+                    .ch-radar-wrap {
                         position: absolute;
-                        bottom: 24px; left: 24px;
-                        width: 140px; height: 140px;
-                        border-radius: 6px;
+                        bottom: ${HUD_EDGE}px; left: ${HUD_EDGE}px;
+                        width: ${RADAR_SIZE}px;
                         background: rgba(8, 14, 26, 0.75);
                         border: 1px solid rgba(255, 170, 40, 0.35);
+                        border-radius: 6px;
                         backdrop-filter: blur(14px);
                         box-shadow: 0 0 25px rgba(255, 120, 10, 0.18);
+                        padding: 8px 8px 6px;
+                    }
+                    .ch-radar-label {
+                        font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase;
+                        color: #ffaa22; text-align: center; margin-top: 5px;
+                        text-shadow: 0 0 8px rgba(255,170,34,0.5);
+                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
                     }
                     .ch-title {
                         font-size: 11px; font-weight: 800; letter-spacing: 2px;
                         color: #ffaa22; text-transform: uppercase; margin-bottom: 6px;
                         text-shadow: 0 0 10px rgba(255, 170, 34, 0.6);
                     }
-                    .ch-row { display: flex; justify-content: space-between; font-size: 12px; margin: 4px 0; font-family: monospace; }
+                    .ch-row { display: flex; justify-content: space-between; gap: 18px; font-size: 12px; margin: 4px 0; font-family: monospace; }
                     .ch-val { font-weight: 700; color: #ffffff; text-shadow: 0 0 8px rgba(255, 255, 255, 0.4); }
-                    .ch-badge {
-                        display: inline-block; padding: 3px 8px; border-radius: 3px;
-                        font-size: 10px; font-weight: 800; letter-spacing: 1px;
-                        background: rgba(255, 120, 10, 0.2); border: 1px solid rgba(255, 170, 40, 0.4);
-                        color: #ffaa22;
+                    .ch-key {
+                        border: 1px solid #ffaa22; padding: 1px 4px;
+                        border-radius: 3px; font-family: monospace;
                     }
                 </style>
                 <div class="ch-corner-box ch-top-left">
@@ -414,23 +444,24 @@
                     <div class="ch-row"><span>RELATIVISTIC VEL:</span><span class="ch-val" id="hud-val-speed">0 km/h</span></div>
                     <div class="ch-row"><span>EVENT HORIZON:</span><span class="ch-val" id="hud-val-radius">18.5 km</span></div>
                 </div>
-                <div class="ch-corner-box ch-top-right">
-                    <span class="ch-badge">RELATIVISTIC SYSTEM</span>
-                </div>
-                <div class="ch-corner-box ch-bottom-right">
-                    <div style="font-size: 10px; color: #94a3b8; letter-spacing: 1px; margin-bottom: 3px;">GRAVITATIONAL CAPTURE</div>
-                    <div style="font-size: 14px; font-weight: 800; color: #ffaa22; text-shadow: 0 0 10px rgba(255,170,34,0.5);">ACCRETING STARDUST & ASTEROIDS</div>
-                    <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">
-                        <span style="border: 1px solid #ffaa22; padding: 1px 4px; border-radius: 3px; font-family: monospace;">WASD</span> or 
-                        <span style="border: 1px solid #ffaa22; padding: 1px 4px; border-radius: 3px; font-family: monospace;">MOUSE</span> Fly 360° • 
-                        <span style="border: 1px solid #ffaa22; padding: 1px 4px; border-radius: 3px; font-family: monospace;">SPACE</span> Pulse
+                <div class="ch-corner-box ch-bottom-right" id="cs3d-hints">
+                    <div style="font-size: 11px; color: #cbd5e1;">
+                        <span class="ch-key">WASD</span> or
+                        <span class="ch-key">MOUSE</span> Fly 360° •
+                        <span class="ch-key">SPACE</span> Pulse
                     </div>
                 </div>
-                <canvas id="cs3d-radar-canvas" class="ch-radar" width="140" height="140"></canvas>
+                <div class="ch-radar-wrap">
+                    <canvas id="cs3d-radar-canvas" width="${RADAR_SIZE - 16}" height="${RADAR_SIZE - 16}"
+                            style="display:block;width:${RADAR_SIZE - 16}px;height:${RADAR_SIZE - 16}px"></canvas>
+                    <div class="ch-radar-label" id="cs3d-radar-label">—</div>
+                </div>
             `;
             document.body.appendChild(this.container);
             this.radarCvs = document.getElementById("cs3d-radar-canvas");
             this.radarCtx = this.radarCvs ? this.radarCvs.getContext("2d") : null;
+            this.hints = document.getElementById("cs3d-hints");
+            this.radarLabel = document.getElementById("cs3d-radar-label");
         }
 
         update(p) {
@@ -451,32 +482,116 @@
                 radEl.textContent = r.toFixed(1) + " km";
             }
 
-            if (this.radarCtx) {
-                const ctx = this.radarCtx;
-                ctx.clearRect(0, 0, 140, 140);
+            // Control hints have done their job after the first few seconds.
+            if (this.hints) {
+                const age = (performance.now() - this.born) / 1000;
+                this.hints.style.opacity = age > HINT_FADE_AFTER ? "0.3" : "1";
+            }
 
-                ctx.strokeStyle = "rgba(255, 170, 40, 0.25)";
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.arc(70, 70, 30, 0, Math.PI * 2);
-                ctx.arc(70, 70, 60, 0, Math.PI * 2);
-                ctx.stroke();
+            this.drawRadar(p);
+        }
 
-                ctx.fillStyle = "#ffaa22";
-                ctx.shadowColor = "#ff7a00";
-                ctx.shadowBlur = 8;
-                ctx.beginPath();
-                ctx.arc(70, 70, 3.5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
+        /**
+         * A minimap of the galaxy you are in: the disc, your position, rival
+         * singularities colour-coded by threat, and the gateway out. The old
+         * version drew two rings and a sweep line and plotted nothing at all.
+         */
+        drawRadar(p) {
+            const ctx = this.radarCtx;
+            if (!ctx) return;
 
-                const sweepAngle = (performance.now() * 0.002) % (Math.PI * 2);
-                ctx.strokeStyle = "rgba(255, 200, 80, 0.6)";
+            const app = window.__engineApp;
+            const S = this.radarCvs.width;
+            const c = S / 2;
+            ctx.clearRect(0, 0, S, S);
+
+            if (!app || !app.interpolator) return;
+            const galaxies = [...app.interpolator.getCollection("galaxies").values()];
+            if (!galaxies.length) return;
+
+            // The disc we are inside (or nearest to).
+            let home = galaxies[0], best = Infinity;
+            for (const g of galaxies) {
+                const d = Math.hypot(p.x - g.x, p.y - g.y);
+                if (d < best) { best = d; home = g; }
+            }
+            const R = home.radius || 9000;
+            const scale = (c - 6) / R;
+            const toRadar = (wx, wy) => ({ x: c + (wx - home.x) * scale, y: c + (wy - home.y) * scale });
+
+            // Galaxy rim
+            ctx.strokeStyle = "rgba(255, 170, 40, 0.35)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(c, c, R * scale, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Arms, so the map matches what is out of the window
+            ctx.strokeStyle = "rgba(255, 170, 40, 0.13)";
+            const arms = home.arms || 2, twist = home.twist || 2.6;
+            for (let a = 0; a < arms; a++) {
                 ctx.beginPath();
-                ctx.moveTo(70, 70);
-                ctx.lineTo(70 + Math.cos(sweepAngle) * 60, 70 + Math.sin(sweepAngle) * 60);
+                for (let t = 0; t <= 1; t += 0.02) {
+                    const th = (a / arms) * Math.PI * 2 + t * twist * Math.PI;
+                    const rr = R * (ARM_INNER + t * ARM_OUTER) * scale;
+                    const x = c + Math.cos(th) * rr, y = c + Math.sin(th) * rr;
+                    if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
                 ctx.stroke();
             }
+
+            // Core. The gateway out of this galaxy sits here too, so one marker
+            // serves for both: an amber core inside a violet exit ring.
+            const hasGate = [...app.interpolator.getCollection("wormholes").values()]
+                .some(wh => Math.hypot(wh.x - home.x, wh.y - home.y) <= R * 1.05);
+
+            ctx.fillStyle = "rgba(255, 210, 130, 0.75)";
+            ctx.beginPath();
+            ctx.arc(c, c, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (hasGate) {
+                ctx.strokeStyle = "rgba(192, 132, 252, 0.9)";
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.arc(c, c, 5.5, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Rivals, colour-coded by whether they can eat you
+            const myMass = p.mass || 100;
+            for (const bh of app.interpolator.getCollection("blackholes").values()) {
+                if (bh.id === p.id) continue;
+                if (Math.hypot(bh.x - home.x, bh.y - home.y) > R * 1.05) continue;
+                const q = toRadar(bh.x, bh.y);
+                const bigger = (bh.mass || 0) > myMass * 1.1;
+                ctx.fillStyle = bigger ? "#f87171" : "rgba(148, 197, 255, 0.85)";
+                ctx.beginPath();
+                ctx.arc(q.x, q.y, bigger ? 3 : 2.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // You, with a heading tick
+            const me = toRadar(p.x, p.y);
+            ctx.fillStyle = "#ffaa22";
+            ctx.shadowColor = "#ff7a00";
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(me.x, me.y, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            const heading = Math.atan2(p.vy || 0, p.vx || 0);
+            if (Math.hypot(p.vx || 0, p.vy || 0) > 5) {
+                ctx.strokeStyle = "rgba(255, 200, 80, 0.9)";
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(me.x, me.y);
+                ctx.lineTo(me.x + Math.cos(heading) * 9, me.y + Math.sin(heading) * 9);
+                ctx.stroke();
+            }
+
+            if (this.radarLabel) this.radarLabel.textContent = home.name || "—";
         }
     }
 
@@ -538,6 +653,9 @@
 
     // Edible stardust: larger than the decorative motes, with a slow steady
     // breath rather than a fast random twinkle.
+    const GATEWAY_Y = -60;        // sits just under the play plane
+    const GATEWAY_FADE = 2600;    // distance over which the aperture fades in
+    const STARDUST_CULL = 3600;   // how far out stardust still gets a mesh
     const EDIBLE_SCALE = 1.55;
     const EDIBLE_PULSE_RATE = Math.PI * 2 / 1.6;   // one breath every 1.6s
     const EDIBLE_PULSE_DEPTH = 0.16;
@@ -1033,82 +1151,69 @@
             // WORMHOLES (Inter-Galactic Gateways: Spinning Violet Event Ring)
             // =================================================================
             wormholes: function (renderer, p, THREE, mesh) {
-                const px = p.x || 0;
-                const pz = p.y || 0;
-                const r = p.radius || 90;
-                const colHex = p.color ? parseInt(p.color.replace("#", "0x")) : 0xa855f7;
+                // The gateway IS the galactic core. Every galaxy has one in the
+                // same place, so it needs no signpost of its own - the core glow
+                // already tells you something is there. All this draws is a faint
+                // aperture that only resolves once you are nearly on top of it.
+                const r = p.radius || 400;
 
                 if (!mesh) {
                     const group = new THREE.Group();
 
-                    // 1. Throat: a dark lens you fall through, tilted to face the pilot
-                    const throatGeom = new THREE.CircleGeometry(1, 48);
-                    const throatMat = new THREE.MeshBasicMaterial({
-                        color: 0x05010f,
-                        transparent: true,
-                        opacity: 0.92,
-                        side: THREE.DoubleSide
-                    });
-                    const throat = new THREE.Mesh(throatGeom, throatMat);
+                    // A dark throat: a hole in the glow rather than an object.
+                    const throat = new THREE.Mesh(
+                        new THREE.CircleGeometry(1, 40),
+                        new THREE.MeshBasicMaterial({
+                            color: 0x04010a,
+                            transparent: true,
+                            opacity: 0.55,
+                            side: THREE.DoubleSide,
+                            depthWrite: false
+                        })
+                    );
                     throat.name = "throat";
                     throat.rotation.x = -Math.PI / 2;
                     group.add(throat);
 
-                    // 2. Counter-rotating accretion rings marking the aperture
-                    for (let ring = 0; ring < 2; ring++) {
-                        const ringGeom = new THREE.TorusGeometry(1, 0.055 + ring * 0.02, 16, 64);
-                        const ringMat = new THREE.MeshBasicMaterial({
-                            color: ring === 0 ? colHex : 0x38bdf8,
+                    // The faintest rim, so at close range the edge is readable.
+                    const rim = new THREE.Mesh(
+                        new THREE.TorusGeometry(1, 0.012, 10, 48),
+                        new THREE.MeshBasicMaterial({
+                            color: 0xc8b0ff,
                             transparent: true,
-                            opacity: ring === 0 ? 0.9 : 0.55,
+                            opacity: 0.22,
                             blending: THREE.AdditiveBlending,
                             depthWrite: false
-                        });
-                        const torus = new THREE.Mesh(ringGeom, ringMat);
-                        torus.name = "ring" + ring;
-                        torus.rotation.x = -Math.PI / 2;
-                        group.add(torus);
-                    }
-
-                    // 3. Halo so the gateway is findable from across the galaxy
-                    const haloGeom = new THREE.SphereGeometry(1.35, 24, 24);
-                    const haloMat = new THREE.MeshBasicMaterial({
-                        color: colHex,
-                        transparent: true,
-                        opacity: 0.16,
-                        blending: THREE.AdditiveBlending,
-                        depthWrite: false,
-                        side: THREE.BackSide
-                    });
-                    const halo = new THREE.Mesh(haloGeom, haloMat);
-                    halo.name = "halo";
-                    group.add(halo);
+                        })
+                    );
+                    rim.name = "rim";
+                    rim.rotation.x = -Math.PI / 2;
+                    group.add(rim);
 
                     mesh = group;
+                    mesh.renderOrder = -9;   // above the arm dust, below entities
                 }
 
-                const time = performance.now() * 0.001;
-                mesh.position.set(px, 0, pz);
+                mesh.position.set(p.x, GATEWAY_Y, p.y);
 
                 const throat = mesh.getObjectByName("throat");
-                if (throat) throat.scale.set(r * 0.92, r * 0.92, 1);
+                if (throat) throat.scale.set(r * 0.85, r * 0.85, 1);
 
-                const ring0 = mesh.getObjectByName("ring0");
-                if (ring0) {
-                    ring0.scale.set(r, r, r);
-                    ring0.rotation.z += 0.010;
+                const rim = mesh.getObjectByName("rim");
+                if (rim) {
+                    rim.scale.set(r, r, r);
+                    rim.rotation.z += 0.004;   // barely-there drift
                 }
 
-                const ring1 = mesh.getObjectByName("ring1");
-                if (ring1) {
-                    ring1.scale.set(r * 1.14, r * 1.14, r * 1.14);
-                    ring1.rotation.z -= 0.016;
-                }
-
-                const halo = mesh.getObjectByName("halo");
-                if (halo) {
-                    const pulse = 1.0 + Math.sin(time * 1.6) * 0.07;
-                    halo.scale.set(r * pulse, r * pulse, r * pulse);
+                // Fade the whole thing in only as you approach; from across the
+                // galaxy it should read as nothing but the core.
+                const me = renderer.myPlayer;
+                if (me) {
+                    const d = Math.hypot(p.x - me.x, p.y - me.y);
+                    const near = 1 - Math.min(1, Math.max(0, (d - r) / GATEWAY_FADE));
+                    if (throat) throat.material.opacity = 0.55 * near;
+                    if (rim) rim.material.opacity = 0.22 * near;
+                    mesh.visible = near > 0.01;
                 }
 
                 return mesh;
@@ -1163,6 +1268,19 @@
                 const pz = p.y || 0;
                 const r = p.radius || 4.5;
                 const colHex = p.color ? parseInt(p.color.replace("#", "0x")) : 0xffaa22;
+
+                // Only the motes near you get a mesh. With a field this dense,
+                // building one for all of them costs more than the entire rest
+                // of the scene; beyond this range a mote is a sub-pixel dot.
+                const me = renderer.myPlayer;
+                if (me) {
+                    const d2 = (px - me.x) * (px - me.x) + (pz - me.y) * (pz - me.y);
+                    if (d2 > STARDUST_CULL * STARDUST_CULL) {
+                        if (mesh) mesh.visible = false;
+                        return mesh || null;
+                    }
+                }
+                if (mesh) mesh.visible = true;
 
                 if (!mesh) {
                     const group = new THREE.Group();

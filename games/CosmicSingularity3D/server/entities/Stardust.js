@@ -4,7 +4,7 @@ let sdId = 1;
 const stardustColors = ["#38bdf8", "#f43f5e", "#fbbf24", "#a855f7", "#34d399", "#ffffff"];
 
 function createStardust(game, galaxy, customPos = null) {
-    const pos = customPos || spawnOnArm(galaxy, Math.random, { spreadScale: 0.55 });
+    const pos = customPos || spawnOnArm(galaxy, Math.random, { spreadScale: 0.34 });
     const mass = 1.0 + Math.random() * 1.5;
 
     const sd = {
