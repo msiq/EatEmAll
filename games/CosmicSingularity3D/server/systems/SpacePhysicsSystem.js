@@ -10,6 +10,11 @@ const { getGalaxies, galaxyAt, clampToDisc } = require("../galaxies.js");
 const CAPTURE_MIN = 95;
 const CAPTURE_SCALE = 3.0;
 
+// How far a pulsar throws its ejected stardust. Wide enough that a lifetime of
+// pulses never builds a visible clump.
+const EJECTA_INNER = 60;
+const EJECTA_OUTER = 700;
+
 // A planet slower than this, with nothing pulling it, is parked.
 const PLANET_REST_SPEED = 1.2;
 const PLANET_DAMPING = 0.97;
@@ -327,14 +332,30 @@ class SpacePhysicsSystem {
             if (psr.pulseTimer >= psr.pulseInterval) {
                 psr.pulseTimer = 0;
 
-                // PULSE WAVE: Eject a burst of glowing stardust radiating outward!
+                // PULSE WAVE: eject a burst of stardust, scattered across the
+                // surrounding space.
+                //
+                // These used to be placed at psr.radius + 15 and given an
+                // outward velocity, which carried them away. Stardust is a
+                // static layer now and never moves, so that same placement
+                // parked every mote at 35 units and each pulsar grew a solid
+                // white cloud of ~126 of them - 13% of all the food in the game
+                // ringing pulsars instead of lying out on the arms. Scattering
+                // them on spawn is what the velocity used to do.
                 if (stardust.length < this.stardustCap) {
                     const burstCount = 4;
+                    const home = this.homeOf(psr);
                     for (let b = 0; b < burstCount; b++) {
-                        const bAng = (Math.PI * 2 / burstCount) * b + Math.random() * 0.4;
-                        const sd = createStardust(this.game, this.homeOf(psr), {
-                            x: psr.x + Math.cos(bAng) * (psr.radius + 15),
-                            y: psr.y + Math.sin(bAng) * (psr.radius + 15)
+                        const bAng = Math.random() * Math.PI * 2;
+                        // Area-uniform across the annulus, so motes do not bunch
+                        // up against its inner edge.
+                        const d = Math.sqrt(
+                            Math.random() * (EJECTA_OUTER * EJECTA_OUTER - EJECTA_INNER * EJECTA_INNER)
+                            + EJECTA_INNER * EJECTA_INNER
+                        );
+                        const sd = createStardust(this.game, home, {
+                            x: psr.x + Math.cos(bAng) * d,
+                            y: psr.y + Math.sin(bAng) * d
                         });
                         this.game.pushStaticDelta("stardust", sd);
                     }

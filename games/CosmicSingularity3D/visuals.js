@@ -657,6 +657,13 @@
     const GATEWAY_FADE = 2600;    // distance over which the aperture fades in
     const STARDUST_CULL = 3600;   // how far out stardust still gets a mesh
     const EDIBLE_SCALE = 1.55;
+    // The translucent shell around an edible mote. Its visible width is the part
+    // beyond the core: geom * scale - 1, in core radii. At 1.9 * 1.35 the shell
+    // reached 2.57 core radii, so the band was 1.57 wide and read as a big soft
+    // disc with a small dot in it. 1.13 * 1.35 puts the band at 0.53 - a third
+    // as wide - so the mote reads as a body with a rim rather than a haze.
+    const EDIBLE_HALO_GEOM = 1.13;
+    const EDIBLE_HALO_SCALE = 1.35;
     const EDIBLE_PULSE_RATE = Math.PI * 2 / 1.6;   // one breath every 1.6s
     const EDIBLE_PULSE_DEPTH = 0.16;
 
@@ -1302,7 +1309,7 @@
                     group.add(hot);
 
                     const halo = new THREE.Mesh(
-                        new THREE.SphereGeometry(1.9, 12, 12),
+                        new THREE.SphereGeometry(EDIBLE_HALO_GEOM, 12, 12),
                         new THREE.MeshBasicMaterial({
                             color: colHex,
                             transparent: true,
@@ -1335,7 +1342,7 @@
 
                 const halo = mesh.getObjectByName("halo");
                 if (halo) {
-                    const hs = scale * 1.35;
+                    const hs = scale * EDIBLE_HALO_SCALE;
                     halo.scale.set(hs, hs, hs);
                     halo.material.opacity = 0.55 + 0.25 * pulse;
                 }
@@ -1367,7 +1374,10 @@
                     sphere.name = "planetSphere";
                     group.add(sphere);
 
-                    const atmosGeom = new THREE.SphereGeometry(1.12, 32, 32);
+                    // The visible glow is the band outside the planet sphere:
+                    // at 1.12 that band was 0.12r wide. 1.04 makes it 0.04r -
+                    // a third as wide.
+                    const atmosGeom = new THREE.SphereGeometry(1.04, 32, 32);
                     const atmosMat = new THREE.MeshBasicMaterial({
                         color: 0x38bdf8,
                         transparent: true,
